@@ -58,8 +58,7 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 - **Unvomit** – Clear Boomer bile with `sm_unvomit` as a Medic cleanse.
 - **Map Music** – `!music` menu lets players enable round-start tracks. Server var `start_music_enabled` controls the default.
 - **Multiturret** – Engineer presses the class skill key (default middle mouse or `sm_skill`) to open a turret menu. Pick a gun and ammo, left-click to deploy, and press **Use** to pick it back up. Look down + **Shift** to drop ammo supplies. Admins can remove a turret via `sm_removemachine`.
-- **Ninja Kick** – Athlete sprint + **Jump** together to leap‑kick infected, knocking targets to the ground.
-- **Parachute Glide** – Athletes hold **Use** mid-air to pop a parachute, slow fall speed, and reposition without taking fall damage.
+- **Ninja Kick** – Athlete leap‑kicks infected by jumping into them, knocking targets to the ground.
 - **Berserk Mode** – Commando builds rage as they deal damage; press `!skill` (or `sm_berserker`) when prompted for a short speed and damage surge.
 - **Airstrike** – Soldier aims and hits `!skill` to mark a target for a missile barrage.
 - **3rd Person Mode** – Switch to shoulder cam via the Game Options menu (`!rage`); modes include Off, Melee-only, and Always, your selection is remembered per-player, and you can bind a key (e.g., Alt) to `+rage_menu` to hold the menu open while choosing.
@@ -85,5 +84,16 @@ Need to tidy the battlefield? `!adm` opens a dedicated panel with spawn helpers,
 
 ## Ready to tinker?
 Rage Edition is built from modular SourceMod plugins, so you can add new talents, swap out effects, or write your own class packs without touching the core. Check the `sourcemod/scripting` folder for clean, well-documented examples.
+
+Helper natives:
+
+```sourcepawn
+forward FindSkillIdByName(const char[] skillName, int &skillId);
+native int GetPlayerClassName(int client);
+```
+
+Add `RageCore.sp` to your include folder and register your skill during `OnPluginStart` or `Rage_OnPluginState`. See the multiturret plugin for a complete example.
+
+See https://forums.alliedmods.net/showthread.php?t=273312 for more info.
 
 Grab the files, drop them on your server, tweak `configs/rage_class_skills.cfg` to taste, and let the rage weekend begin.
