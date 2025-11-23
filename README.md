@@ -22,7 +22,8 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 
 ### Ninja
 - Built for motion: sprint boosts, double jumps, and mid-air karate kicks.
-- Deploys a parachute to float over chaos or escape a wipe.
+- Sprint + **Jump** together to launch a ninja kick into whatever you collide with.
+- Hold **Use** mid-air to deploy a parachute and float over chaos or escape a wipe.
 
 ### Trooper
 - Tunes damage per weapon, reloads on instinct, and shrugs off tank knockdowns.
@@ -57,7 +58,8 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 - **Unvomit** – Clear Boomer bile with `sm_unvomit` as a Medic cleanse.
 - **Map Music** – `!music` menu lets players enable round-start tracks. Server var `start_music_enabled` controls the default.
 - **Multiturret** – Engineer presses the class skill key (default middle mouse or `sm_skill`) to open a turret menu. Pick a gun and ammo, left-click to deploy, and press **Use** to pick it back up. Look down + **Shift** to drop ammo supplies. Admins can remove a turret via `sm_removemachine`.
-- **Ninja Kick** – Athlete leap‑kicks infected by jumping into them, knocking targets to the ground.
+- **Ninja Kick** – Athlete sprint + **Jump** together to leap‑kick infected, knocking targets to the ground.
+- **Parachute Glide** – Athletes hold **Use** mid-air to pop a parachute, slow fall speed, and reposition without taking fall damage.
 - **Berserk Mode** – Commando builds rage as they deal damage; press `!skill` (or `sm_berserker`) when prompted for a short speed and damage surge.
 - **Airstrike** – Soldier aims and hits `!skill` to mark a target for a missile barrage.
 - **3rd Person Mode** – Switch to shoulder cam via the Game Options menu (`!rage`); modes include Off, Melee-only, and Always, your selection is remembered per-player, and you can bind a key (e.g., Alt) to `+rage_menu` to hold the menu open while choosing.

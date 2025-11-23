@@ -811,16 +811,21 @@ switch (view_as<ClassTypes>(class))
 			MaxPossibleHP = GetConVarInt(MEDIC_HEALTH);
 		}
 		
-		case athlete:
-		{
-			decl String:text[64];
-			text = "";
-			if (GetConVarBool(ATHLETE_PARACHUTE_ENABLED) == true) {
-				text = "While in air, hold E to use parachute!";
-			}
-			PrintHintText(client,"You move faster, Hold JUMP to bunny hop! %s", text);
-			MaxPossibleHP = GetConVarInt(ATHLETE_HEALTH);
-		}
+                case athlete:
+                {
+                        decl String:mobilityHint[128];
+                        if (GetConVarBool(ATHLETE_PARACHUTE_ENABLED))
+                        {
+                                Format(mobilityHint, sizeof(mobilityHint), "Hold USE mid-air for a parachute glide. Sprint + JUMP to throw a ninja kick.");
+                        }
+                        else
+                        {
+                                Format(mobilityHint, sizeof(mobilityHint), "Sprint + JUMP to throw a ninja kick.");
+                        }
+
+                        PrintHintText(client, "You move faster, Hold JUMP to bunny hop! %s", mobilityHint);
+                        MaxPossibleHP = GetConVarInt(ATHLETE_HEALTH);
+                }
 		
 		case commando:
 		{
@@ -1419,9 +1424,9 @@ public void OnRoundState(int roundstate)
 
 public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 {
-	new client = GetClientOfUserId(GetEventInt(hEvent, "userid"));
-	
-	if(client > 0 && IsValidEntity(client) && IsClientInGame(client))
+        new client = GetClientOfUserId(GetEventInt(hEvent, "userid"));
+
+        if(client > 0 && IsValidEntity(client) && IsClientInGame(client))
 	{
 		GetClientAbsOrigin(client, g_SpawnPos[client]);
 		
@@ -1431,14 +1436,33 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 			CreateTimer(0.3, TimerLoadClient, client, TIMER_FLAG_NO_MAPCHANGE);
 			CreateTimer(0.1, TimerThink, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 			
-			if (LastClassConfirmed[client] != 0)
-				ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
-			else
-				CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
-		}
-		
-		g_iPlayerSpawn = true;
-	}
+                        if (LastClassConfirmed[client] != 0)
+                                ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                        else
+                                CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
+
+                        ShowAthleteAbilityHint(client);
+                }
+
+                g_iPlayerSpawn = true;
+        }
+}
+
+void ShowAthleteAbilityHint(int client)
+{
+        if (ClientData[client].ChosenClass != athlete || GetClientTeam(client) != 2)
+        {
+                return;
+        }
+
+        if (GetConVarBool(ATHLETE_PARACHUTE_ENABLED))
+        {
+                PrintHintText(client, "Hold USE mid-air to glide with your parachute. Sprint + JUMP to throw a ninja kick.");
+        }
+        else
+        {
+                PrintHintText(client, "Sprint + JUMP to throw a ninja kick.");
+        }
 }
 
 public Event_PlayerDeath(Handle:hEvent, String:sName[], bool:bDontBroadcast)
