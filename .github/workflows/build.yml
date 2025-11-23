@@ -57,9 +57,16 @@ jobs:
             spcomp="${spcomp}.exe"
           fi
           includes="-i $GITHUB_WORKSPACE/sourcemod/scripting/include -i $GITHUB_WORKSPACE/sm/addons/sourcemod/scripting/include"
-          mkdir -p package/addons/sourcemod/plugins
+
+          package_plugins_dir="$GITHUB_WORKSPACE/package/addons/sourcemod/plugins"
+          repo_plugins_dir="$GITHUB_WORKSPACE/sourcemod/plugins"
+
+          mkdir -p "$package_plugins_dir" "$repo_plugins_dir"
+
           for sp in sourcemod/scripting/rage_sur*.sp; do
-            "$spcomp" $includes -v0 "$sp" -o package/addons/sourcemod/plugins/$(basename "${sp%.sp}.smx")
+            output_name="$(basename "${sp%.sp}.smx")"
+            "$spcomp" $includes -v0 "$sp" -o "$package_plugins_dir/$output_name"
+            cp "$package_plugins_dir/$output_name" "$repo_plugins_dir/$output_name"
           done
 
       - name: Upload package
