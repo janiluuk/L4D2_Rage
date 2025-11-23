@@ -7,6 +7,8 @@
     #define SOUND_HELICOPTER "vehicles/airboat/fan_blade_fullthrottle_loop1.wav"
 #endif
 
+// Provide local fallbacks for common models used by the parachute ability so this
+// helper can be included without relying on broader talent definitions.
 #if !defined PARACHUTE
     #define PARACHUTE "models/props_swamp/parachute01.mdl"
 #endif
@@ -43,6 +45,8 @@ enum struct ParachuteAbility
 
     bool HandleRunCmd(int client, int buttons, int flags, Handle parachuteToggle, bool isLeft4Dead2)
     {
+        #pragma unused flags
+
         if (!GetConVarBool(parachuteToggle))
         {
             return false;
