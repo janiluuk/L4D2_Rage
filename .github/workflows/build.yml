@@ -63,6 +63,9 @@ jobs:
 
           mkdir -p "$package_plugins_dir" "$repo_plugins_dir"
 
+          # Ensure previous outputs do not linger between runs
+          rm -f "$package_plugins_dir"/rage_sur*.smx "$repo_plugins_dir"/rage_sur*.smx
+
           for sp in sourcemod/scripting/rage_sur*.sp; do
             output_name="$(basename "${sp%.sp}.smx")"
             "$spcomp" $includes -v0 "$sp" -o "$package_plugins_dir/$output_name"
