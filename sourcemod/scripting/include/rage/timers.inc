@@ -21,8 +21,8 @@ static bool PressedSpecialSkillButton(int client, int buttons)
 
 static bool PressedSecondarySkillButton(int client, int buttons)
 {
-	bool pressed = (buttons & IN_USE) != 0 && (buttons & IN_ATTACK) != 0;
-	bool wasPressed = (ClientData[client].LastButtons & IN_USE) != 0 && (ClientData[client].LastButtons & IN_ATTACK) != 0;
+	bool pressed = (buttons & IN_ZOOM) != 0;
+	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0;
 	return pressed && !wasPressed;
 }
 
