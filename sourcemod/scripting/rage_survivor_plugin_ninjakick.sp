@@ -1,26 +1,15 @@
 #pragma semicolon 1
 #include <sourcemod>
 #include <sdktools>
-#include <sdktools_functions> 
+#include <sdktools_functions>
 #include <sdkhooks>
+#include <rage/movement>
 
 new ZOMBIECLASS_TANK = 5;
 new GameMode;
 new L4D2Version;
 new g_PointHurt;
-new Float:Energe[MAXPLAYERS+1];
-new Float:LastTime[MAXPLAYERS+1];
-new Attacker[MAXPLAYERS+1];
-new Float:AttackTime[MAXPLAYERS+1];
-new Float:NextShoveTime[MAXPLAYERS+1];
-new Float:ShoveTime[MAXPLAYERS+1];
-new Float:ShoveDelay[MAXPLAYERS+1];
-new Float:JumpTime[MAXPLAYERS+1];
-new Float:JumpOnGroundTime[MAXPLAYERS+1];
-new Float:KeyPressedTime[MAXPLAYERS+1];
-new EnemyList[MAXPLAYERS+1][MAXPLAYERS+1];
-new bool:AttackDisable[MAXPLAYERS+1];
-new Float:AttackDisableTime[MAXPLAYERS+1];
+JumpKickAbility g_JumpKick;
 
 public Plugin:myinfo = {
 	name = "[Rage] ninja kick",
@@ -68,11 +57,15 @@ public OnPluginStart() {
 }
 
 public Action:player_spawn(Handle:event, String:event_name[], bool:dontBroadcast) {
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(client > 0) {
-		ResetClientState(client);
-	}
-	return Plugin_Continue;
+        new client = GetClientOfUserId(GetEventInt(event, "userid"));
+        if(client > 0) {
+                ResetClientState(client);
+                if (IsClientInGame(client) && GetClientTeam(client) == 2)
+                {
+                        PrintHintText(client, "Sprint + JUMP together to launch a ninja kick into infected.");
+                }
+        }
+        return Plugin_Continue;
 }
 
 public Action:player_death(Handle:event, String:event_name[], bool:dontBroadcast) {
@@ -104,59 +97,59 @@ public bot_player_replace(Handle:Spawn_Event, const String:Spawn_Name[], bool:Sp
 public lunge_pounce (Handle:event, const String:name[], bool:dontBroadcast) {
 	new victim = GetClientOfUserId(GetEventInt(event, "victim"));
 	new attacker = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(victim > 0 && attacker > 0) {	
-		Energe[victim] = 0.0;
-		Attacker[victim] = attacker;
-		AttackTime[victim] = GetEngineTime();
-	}
+        if(victim > 0 && attacker > 0) {
+                g_JumpKick.state[victim].energy = 0.0;
+                g_JumpKick.state[victim].attacker = attacker;
+                g_JumpKick.state[victim].attackTime = GetEngineTime();
+        }
 }
 
 public tongue_grab (Handle:event, const String:name[], bool:dontBroadcast) {
 	new victim = GetClientOfUserId(GetEventInt(event, "victim"));
 	new attacker = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(victim > 0 && attacker > 0) {
-		Energe[victim] = 0.0;
-		Attacker[victim] = attacker;
-		AttackTime[victim] = GetEngineTime();
-	}
+        if(victim > 0 && attacker > 0) {
+                g_JumpKick.state[victim].energy = 0.0;
+                g_JumpKick.state[victim].attacker = attacker;
+                g_JumpKick.state[victim].attackTime = GetEngineTime();
+        }
 }
 
 public jockey_ride (Handle:event, const String:name[], bool:dontBroadcast) {
 	new victim = GetClientOfUserId(GetEventInt(event, "victim"));
 	new attacker = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(victim > 0 && attacker > 0) {
-		Energe[victim] = 0.0;
-		Attacker[victim] = attacker;
-		AttackTime[victim] = GetEngineTime();
-	}
+        if(victim > 0 && attacker > 0) {
+                g_JumpKick.state[victim].energy = 0.0;
+                g_JumpKick.state[victim].attacker = attacker;
+                g_JumpKick.state[victim].attackTime = GetEngineTime();
+        }
 }
 
 public charger_pummel_start (Handle:event, const String:name[], bool:dontBroadcast) {
 	new victim = GetClientOfUserId(GetEventInt(event, "victim"));
 	new attacker = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(victim > 0 && attacker > 0) {
-		Energe[victim] = 0.0;
-		Attacker[victim] = attacker;
-		AttackTime[victim] = GetEngineTime();
-	}
+        if(victim > 0 && attacker > 0) {
+                g_JumpKick.state[victim].energy = 0.0;
+                g_JumpKick.state[victim].attacker = attacker;
+                g_JumpKick.state[victim].attackTime = GetEngineTime();
+        }
 }
 
 public Action:player_ledge_grab(Handle:event, String:event_name[], bool:dontBroadcast) {
 	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(victim > 0) {
-		if(Attacker[victim] == 0)Energe[victim] = 0.0;
-		if(Attacker[victim] == 0)Attacker[victim] =victim;
-		AttackTime[victim] = GetEngineTime();
-	}
+        if(victim > 0) {
+                if(g_JumpKick.state[victim].attacker == 0)g_JumpKick.state[victim].energy = 0.0;
+                if(g_JumpKick.state[victim].attacker == 0)g_JumpKick.state[victim].attacker =victim;
+                g_JumpKick.state[victim].attackTime = GetEngineTime();
+        }
 }
 
 public player_incapacitated (Handle:event, const String:name[], bool:dontBroadcast) {
 	new victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(victim > 0) {
-		if(Attacker[victim] == 0)Energe[victim] = 0.0;
-		if(Attacker[victim] == 0)Attacker[victim] =victim;
-		AttackTime[victim] = GetEngineTime();
-	}
+        if(victim > 0) {
+                if(g_JumpKick.state[victim].attacker == 0)g_JumpKick.state[victim].energy = 0.0;
+                if(g_JumpKick.state[victim].attacker == 0)g_JumpKick.state[victim].attacker =victim;
+                g_JumpKick.state[victim].attackTime = GetEngineTime();
+        }
 }
 
 public Action:round_start(Handle:event, const String:name[], bool:dontBroadcast) {
@@ -172,24 +165,12 @@ public OnMapStart() {
 }
 
 ResetAllState() {
-	g_PointHurt = 0;
-	for(new i = 0;i <= MaxClients;i++) {
-		ResetClientState(i);
-		JumpTime[i] = 0.0;
-		JumpOnGroundTime[i] = 0.0;
-		AttackDisableTime[i] = 0.0;
-		AttackDisable[i] =false;
-	}
+        g_PointHurt = 0;
+        g_JumpKick.ResetAll();
 }
 
 ResetClientState(client) {
-	KeyPressedTime[client] = 0.0;
-	Energe[client] = 0.0;
-	Attacker[client] = 0;
-	LastTime[client] = 0.0;
-	NextShoveTime[client] = 0.0;
-	ShoveTime[client] = 0.0;
-	ShoveDelay[client] = 100.0;
+        g_JumpKick.ResetClient(client);
 }
 
 Fling3(victim, Float:force, Float:dir[3]) {
@@ -219,19 +200,19 @@ CalcDir(client, Float:front, Float:right, Float:dir[3]) {
 }
 
 public OnTouch(client, other) {
-	if(GetEngineTime()-JumpTime[client] < 0.5) {
+	if(GetEngineTime()-g_JumpKick.state[client].jumpTime < 0.5) {
 		if(other > 0) {
-			new count = EnemyList[client][0];
+			new count = g_JumpKick.state[client].enemyList[0];
 			new bool:find = false;
 			for(new i= 1;i <= count && i <= MAXPLAYERS;i++) {
-				if(other == EnemyList[client][i]) {
+				if(other == g_JumpKick.state[client].enemyList[i]) {
 					find=true;
 					break;
 				}
 			}
 			if(!find) {
-				EnemyList[client][count+1] =other;
-				EnemyList[client][0]++;
+				g_JumpKick.state[client].enemyList[count+1] =other;
+				g_JumpKick.state[client].enemyList[0]++;
 				if(other > 0 && other <= MaxClients) {
 					new class = GetEntProp(other, Prop_Send, "m_zombieClass");
 					if(class == ZOMBIECLASS_TANK) {
@@ -248,7 +229,7 @@ public OnTouch(client, other) {
 						if(GetConVarInt(l4d_jumper_kickwitch) == 1)DoPointHurtForInfected(other, client, GetConVarFloat(l4d_jumper_damage), 1);		
 						else DoPointHurtForInfected(other, client, GetConVarFloat(l4d_jumper_damage), 0);
 					} else if(StrContains(classname, "infected")!=-1 || StrContains(classname, "player")!=-1) {
-						//PrintToChatAll("time %f %d %s", GetEngineTime()-JumpTime[client], other, classname);
+						//PrintToChatAll("time %f %d %s", GetEngineTime()-g_JumpKick.state[client].jumpTime, other, classname);
 						DoPointHurtForInfected(other, client, GetConVarFloat(l4d_jumper_damage), 1);
 					} else if((GetClientButtons(client) & IN_ATTACK2) && StrContains(classname, "prop_physics")!=-1)ThrowEnt(client, other, 1000.0);
 				}
@@ -279,9 +260,9 @@ GetAttacker(client) {
 
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon) {
 	new Float:time= GetEngineTime();
-	new Float:duration=time-JumpTime[client];
+	new Float:duration=time-g_JumpKick.state[client].jumpTime;
 	if((buttons & IN_SPEED && buttons & IN_JUMP) && duration>GetConVarFloat(l4d_jumper_delay) && GetAttacker(client) == 0 && IsPlayerAlive(client)) {
-		JumpTime[client] =time;
+		g_JumpKick.state[client].jumpTime =time;
 		new Float:move_front=vel[0];
 		if(move_front > 0.0)move_front= 1.0;
 		else if(move_front<0.0)move_front=-1.0;
@@ -299,7 +280,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 		else Fling3(client, GetConVarFloat(l4d_jumper_force), dir);
 
 		for(new i= 0;i<MAXPLAYERS;i++) {
-			EnemyList[client][i] = 0;
+			g_JumpKick.state[client].enemyList[i] = 0;
 		}
 		SDKUnhook(client, SDKHook_Touch, OnTouch);
 		SDKHook(client, SDKHook_Touch , OnTouch);
