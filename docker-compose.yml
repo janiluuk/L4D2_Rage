@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  l4d2-server:
+    image: cm2network/steamcmd:root
+    container_name: l4d2-rage-server
+    restart: unless-stopped
+    environment:
+      - SRCDS_APPID=222860
+      - SRCDS_DIR=/home/steam/left4dead2/left4dead2
+      - SRCDS_TICKRATE=60
+      - SRCDS_MAP=c5m1_waterfront
+      - SRCDS_MAXPLAYERS=8
+    ports:
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+    volumes:
+      - ./sourcemod:/home/steam/left4dead2/left4dead2/addons/sourcemod
+      - ./music:/home/steam/left4dead2/left4dead2/sound/custom/rage
+    working_dir: /home/steam/left4dead2
+    command: >-
+      bash -lc "
+        /home/steam/steamcmd/steamcmd.sh \
+          +login anonymous \
+          +force_install_dir /home/steam/left4dead2 \
+          +app_update ${SRCDS_APPID} validate \
+          +quit && \
+        /home/steam/left4dead2/srcds_run \
+          -game left4dead2 \
+          -tickrate ${SRCDS_TICKRATE} \
+          +map ${SRCDS_MAP} \
+          -maxplayers ${SRCDS_MAXPLAYERS}
+      "

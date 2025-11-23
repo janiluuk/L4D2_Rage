@@ -22,7 +22,8 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 
 ### Ninja
 - Built for motion: sprint boosts, double jumps, and mid-air karate kicks.
-- Deploys a parachute to float over chaos or escape a wipe.
+- Sprint + **Jump** together to launch a ninja kick into whatever you collide with.
+- Hold **Use** mid-air to deploy a parachute and float over chaos or escape a wipe.
 
 ### Trooper
 - Tunes damage per weapon, reloads on instinct, and shrugs off tank knockdowns.
@@ -57,7 +58,8 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 - **Unvomit** – Clear Boomer bile with `sm_unvomit` as a Medic cleanse.
 - **Map Music** – `!music` menu lets players enable round-start tracks. Server var `start_music_enabled` controls the default.
 - **Multiturret** – Engineer presses the class skill key (default middle mouse or `sm_skill`) to open a turret menu. Pick a gun and ammo, left-click to deploy, and press **Use** to pick it back up. Look down + **Shift** to drop ammo supplies. Admins can remove a turret via `sm_removemachine`.
-- **Ninja Kick** – Athlete leap‑kicks infected by jumping into them, knocking targets to the ground.
+- **Ninja Kick** – Athlete sprint + **Jump** together to leap‑kick infected, knocking targets to the ground.
+- **Parachute Glide** – Athletes hold **Use** mid-air to pop a parachute, slow fall speed, and reposition without taking fall damage.
 - **Berserk Mode** – Commando builds rage as they deal damage; press `!skill` (or `sm_berserker`) when prompted for a short speed and damage surge.
 - **Airstrike** – Soldier aims and hits `!skill` to mark a target for a missile barrage.
 - **3rd Person Mode** – Switch to shoulder cam via the Game Options menu (`!rage`); modes include Off, Melee-only, and Always, your selection is remembered per-player, and you can bind a key (e.g., Alt) to `+rage_menu` to hold the menu open while choosing.
@@ -71,7 +73,12 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 - **Command parity** – Every feature also has an `sm_` console command so you can bind keys or build macros exactly how you like.
 
 ## Soundtrack corner
-Drop a list of 44.1 kHz MP3s into the supplied music text files, point your fast-download host at them, and the plugin does the rest. First-time players can even hear a special welcome track if you enable the option.
+Drop a list of 44.1 kHz audio files (WAV/MP4 are safest) into the supplied music text files, point your fast-download host at them, and the plugin does the rest. First-time players can even hear a special welcome track if you enable the option.
+
+### Music directory
+Custom tracks belong in the repo-level `music/` folder. Docker Compose mounts that directory into the server at `left4dead2/sound/custom/rage` so the entries in `sourcemod/data/music_mapstart*.txt` resolve correctly (e.g., `custom/rage/my_track.wav`).
+
+Want music out of the box? Run `python music/download_soundtrack.py --out music` to fetch MP4s for the DOOM/DOOM II gamerip directly from downloads.khinsider.com. The pull includes Zorasoft's licenseless **Project Doom** album (https://zorasoft.net/prjdoom.html) so you still get Intro Stomp, Midnight Assault, and Final Push without storing the WAVs in the repository.
 
 ## Admin corner
 Need to tidy the battlefield? `!adm` opens a dedicated panel with spawn helpers, restart controls, god mode, and slow-motion toggles. Everything is grouped for quick decisions mid-round.
