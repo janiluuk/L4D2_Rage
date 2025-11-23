@@ -74,7 +74,7 @@ void DisplayGuideMainMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_GuideMain);
     SetMenuTitle(menu, "Rage Tutorial Guide");
-    AddMenuItem(menu, "overview", "What is Rage Edition?");
+    AddMenuItem(menu, "overview", "Quick start & how to open this guide");
     AddMenuItem(menu, "classes", "Survivor class guides");
     AddMenuItem(menu, "features", "Controls & features");
     AddMenuItem(menu, "skills", "Special skills & commands");
@@ -135,14 +135,70 @@ void DisplayClassListMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_ClassList);
     SetMenuTitle(menu, "Survivor Classes");
-    AddMenuItem(menu, "soldier", "Soldier");
-    AddMenuItem(menu, "athlete", "Athlete");
-    AddMenuItem(menu, "commando", "Commando");
-    AddMenuItem(menu, "medic", "Medic");
-    AddMenuItem(menu, "engineer", "Engineer");
-    AddMenuItem(menu, "saboteur", "Saboteur");
+    AddMenuItem(menu, "soldier", "Soldier (frontline tank)");
+    AddMenuItem(menu, "athlete", "Athlete (movement expert)");
+    AddMenuItem(menu, "commando", "Commando (damage specialist)");
+    AddMenuItem(menu, "medic", "Medic (team sustain)");
+    AddMenuItem(menu, "engineer", "Engineer (builder)");
+    AddMenuItem(menu, "saboteur", "Saboteur (stealth scout)");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
+}
+
+void DisplayControlsMenu(int client)
+{
+    Menu menu = CreateMenu(MenuHandler_Controls);
+    SetMenuTitle(menu, "Controls & Core Features");
+    AddMenuItem(menu, "skillkeys", "Skill & deploy buttons");
+    AddMenuItem(menu, "thirdperson", "Third-person camera");
+    AddMenuItem(menu, "hudmusic", "HUD & music toggles");
+    AddMenuItem(menu, "binds", "Quick binds & chat commands");
+    SetMenuExitBackButton(menu, true);
+    DisplayMenu(menu, client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int param2)
+{
+    switch (action)
+    {
+        case MenuAction_Select:
+        {
+            char info[32];
+            GetMenuItem(menu, param2, info, sizeof(info));
+            if (StrEqual(info, "skillkeys"))
+            {
+                PrintGuideLine(param1, "Bind !skill for your class ability and !deploy for build/throw actions so you can react without typing.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "thirdperson"))
+            {
+                PrintGuideLine(param1, "Open !rage and pick Third person to toggle Off, Melee only or Always. Your choice saves between rounds.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "hudmusic"))
+            {
+                PrintGuideLine(param1, "Use the admin menu to toggle the HUD overlay, opt into custom music or adjust volume without leaving the fight.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "binds"))
+            {
+                PrintGuideLine(param1, "Common binds: bind a key to say !skill, !deploy, !music, !unvomit or !extendedsight for one-tap support.");
+                DisplayControlsMenu(param1);
+            }
+        }
+        case MenuAction_Cancel:
+        {
+            if (param2 == MenuCancel_ExitBack)
+            {
+                DisplayGuideMainMenu(param1);
+            }
+        }
+        case MenuAction_End:
+        {
+            CloseHandle(menu);
+        }
+    }
+    return 0;
 }
 
 public int MenuHandler_ClassList(Menu menu, MenuAction action, int param1, int param2)
@@ -651,25 +707,25 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
                 Format(orbLine, sizeof(orbLine), "Medics use %s to throw a glowing healing orb from the main skills plugin. Toss it between fights to top the team off.", action2);
                 PrintGuideLine(param1, orbLine);
             }
-            else if (StrEqual(info, "deadringer"))
+            else if (StrEqual(info, "turrets"))
             {
-                PrintGuideLine(param1, "Saboteurs can type !fd or !cloak to drop a fake corpse, gain invisibility and reset aggro.");
+                PrintGuideLine(param1, "Engineers open the turret picker with !skill, choose turret + ammo, left-click to place and USE to pack it up.");
             }
-            else if (StrEqual(info, "sight"))
+            else if (StrEqual(info, "mines"))
             {
-                PrintGuideLine(param1, "!extendedsight paints special infected through walls for 20 seconds with a two-minute cooldown.");
+                PrintGuideLine(param1, "Saboteurs hold SHIFT to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.");
             }
-            else if (StrEqual(info, "multiturret"))
+            else if (StrEqual(info, "recon"))
             {
                 char turretLine[192];
                 Format(turretLine, sizeof(turretLine), "Engineers open the turret picker with %s, choose turret + ammo, left-click to place and USE to pick up.", action1);
                 PrintGuideLine(param1, turretLine);
             }
-            else if (StrEqual(info, "music"))
+            else if (StrEqual(info, "airsupport"))
             {
-                PrintGuideLine(param1, "Type !music to opt into custom tracks, adjust volume or disable songs per map.");
+                PrintGuideLine(param1, "Soldiers press !skill to mark an F-18 airstrike, while Commandos use !skill for the satellite cannon once rage is ready.");
             }
-            else if (StrEqual(info, "unvomit"))
+            else if (StrEqual(info, "support"))
             {
                 PrintGuideLine(param1, "Medics can cleanse Boomer bile with !unvomit to keep survivors firing.");
             }
