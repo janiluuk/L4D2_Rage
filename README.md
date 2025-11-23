@@ -28,6 +28,7 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 ### Trooper
 - Tunes damage per weapon, reloads on instinct, and shrugs off tank knockdowns.
 - Builds rage meter to unleash a Berserk rush that melts specials.
+- Replaces the old airstrike call with a satellite strike triggered by the class skill key.
 
 ### Medic
 - Expanded spawn options

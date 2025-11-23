@@ -90,6 +90,8 @@ new freeze[MAXPLAYERS+1];
 new energy[MAXPLAYERS+1][4];
 new Float:trsPos[MAXPLAYERS+1][3];
 
+bool g_SimpleCombatAvailable = false;
+
 public Plugin:myinfo = 
 {
 	name = "Satellite Cannon",
@@ -104,7 +106,7 @@ public Plugin:myinfo =
 *******************************************************/
 public OnPluginStart()
 {
-	CreateTimer(1.0, Timer_SetupSpell);
+        CreateTimer(1.0, Timer_SetupSpell);
 	
 	sm_satellite_enable			= CreateConVar("sm_satellite_enable","1","Enable plugin", FCVAR_NOTIFY);
 	sm_satellite_damage_01		= CreateConVar("sm_satellite_damage_01","600.0", "Scan mode damage", FCVAR_NOTIFY);
@@ -125,23 +127,67 @@ public OnPluginStart()
 	HookEvent("item_pickup", Event_Item_Pickup);
 	HookEvent("round_start", Event_Round_Start);
 	
-	hActiveWeapon = FindSendPropOffs ("CTerrorPlayer", "m_hActiveWeapon");
-	m_iClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
-	
-	AutoExecConfig(true,"l4d2_satellite");
+        hActiveWeapon = FindSendPropOffs ("CTerrorPlayer", "m_hActiveWeapon");
+        m_iClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
+
+        g_SimpleCombatAvailable = LibraryExists("l4d2_simple_combat");
+
+        AutoExecConfig(true,"l4d2_satellite");
+}
+
+public APLRes AskPluginLoad2(Handle myinfo, bool late, char[] error, int err_max)
+{
+        MarkNativeAsOptional("SC_CreateSpell");
+        MarkNativeAsOptional("SC_GetClientLevel");
+
+        return APLRes_Success;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+        if (StrEqual(name, "l4d2_simple_combat"))
+        {
+                g_SimpleCombatAvailable = true;
+        }
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+        if (StrEqual(name, "l4d2_simple_combat"))
+        {
+                g_SimpleCombatAvailable = false;
+        }
+}
+
+int GetSimpleCombatLevel(int client)
+{
+        if (!g_SimpleCombatAvailable)
+        {
+                return 0;
+        }
+
+        return SC_GetClientLevel(client);
 }
 
 public Action:Timer_SetupSpell(Handle:timer, any:unused)
 {
-	SC_CreateSpell("ztar_satellite_judgement", "Satellite Cannon - High Blast", 200, 4000, "Create an explosion that deals high damage to specials");
-	SC_CreateSpell("ztar_satellite_blizzard", "Satellite Cannon - Freeze", 200, 3000, "Freeze specials and commons in range");
-	SC_CreateSpell("ztar_satellite_inferno", "Satellite Cannon - Inferno", 200, 4500, "Create fire and ignite specials and commons in range");
+        if (!g_SimpleCombatAvailable)
+                return Plugin_Stop;
+
+        SC_CreateSpell("ztar_satellite_judgement", "Satellite Cannon - High Blast", 200, 4000, "Create an explosion that deals high damage to specials");
+        SC_CreateSpell("ztar_satellite_blizzard", "Satellite Cannon - Freeze", 200, 3000, "Freeze specials and commons in range");
+        SC_CreateSpell("ztar_satellite_inferno", "Satellite Cannon - Inferno", 200, 4500, "Create fire and ignite specials and commons in range");
+
+        return Plugin_Stop;
 }
 
 public void SC_OnUseSpellPost(int client, const char[] classname)
 {
-	if(StrContains(classname, "ztar_satellite_", false) != 0)
-		return;
+        if (!g_SimpleCombatAvailable)
+                return;
+
+        if(StrContains(classname, "ztar_satellite_", false) != 0)
+                return;
 	
 	if(StrEqual(classname, "ztar_satellite_judgement", false))
 		operation[client] = MODE_JUDGEMENT;
@@ -512,8 +558,8 @@ public Judgement(client)
 	/* Laser effect */
 	CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, VARTICAL);
 	
-	new Float:radius = ((SC_GetClientLevel(client) + 1) * 10) + GetConVarFloat(sm_satellite_radius_01);
-	new Float:damage = ((SC_GetClientLevel(client) + 1) * 5) + GetConVarFloat(sm_satellite_damage_01);
+        new Float:radius = ((GetSimpleCombatLevel(client) + 1) * 10) + GetConVarFloat(sm_satellite_radius_01);
+        new Float:damage = ((GetSimpleCombatLevel(client) + 1) * 5) + GetConVarFloat(sm_satellite_damage_01);
 	
 	/* Damage to special infected */
 	for(new i = 1; i <= MaxClients; i++)
@@ -557,7 +603,7 @@ public Blizzard(client)
 	EmitAmbientSound(SOUND_IMPACT01, trsPos[client]);
 	EmitAmbientSound(SOUND_IMPACT02, trsPos[client]);
 	
-	new Float:radius = ((SC_GetClientLevel(client) + 1) * 15) + GetConVarFloat(sm_satellite_radius_02);
+        new Float:radius = ((GetSimpleCombatLevel(client) + 1) * 15) + GetConVarFloat(sm_satellite_radius_02);
 	new Float:damage = GetConVarFloat(sm_satellite_freeze_02);
 	
 	/* Laser effect */
@@ -628,8 +674,8 @@ public Inferno(client)
 	ShowParticle(trsPos[client], PARTICLE_FIRE01, 3.0);
 	ShowParticle(trsPos[client], PARTICLE_FIRE02, 3.0);
 	
-	new Float:radius = ((SC_GetClientLevel(client) + 1) * 5) + GetConVarFloat(sm_satellite_radius_03);
-	new Float:damage = ((SC_GetClientLevel(client) + 1) * 10) + GetConVarFloat(sm_satellite_damage_03);
+        new Float:radius = ((GetSimpleCombatLevel(client) + 1) * 5) + GetConVarFloat(sm_satellite_radius_03);
+        new Float:damage = ((GetSimpleCombatLevel(client) + 1) * 10) + GetConVarFloat(sm_satellite_damage_03);
 	
 	/* Ignite special infected and survivor in the radius */
 	for(new i = 1; i <= GetMaxClients(); i++)

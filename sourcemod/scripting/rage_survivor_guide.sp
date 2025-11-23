@@ -279,6 +279,7 @@ void DisplayCommandoMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Commando);
     SetMenuTitle(menu, "Commando Guide");
     AddMenuItem(menu, "damage", "Damage tuning");
+    AddMenuItem(menu, "satellite", "Satellite cannon");
     AddMenuItem(menu, "berserk", "Berserk mode");
     AddMenuItem(menu, "reload", "Reload & finishers");
     SetMenuExitBackButton(menu, true);
@@ -296,6 +297,11 @@ public int MenuHandler_Commando(Menu menu, MenuAction action, int param1, int pa
             if (StrEqual(info, "damage"))
             {
                 PrintGuideLine(param1, "Commandos carry weapon-specific damage modifiers - swap to whatever gun the team needs and keep pressure on tanks.");
+                DisplayCommandoMenu(param1);
+            }
+            else if (StrEqual(info, "satellite"))
+            {
+                PrintGuideLine(param1, "Use your class !skill for a satellite strike instead of the F-18 barrage. Berserk stays on secondary, so warn teammates before painting the target zone.");
                 DisplayCommandoMenu(param1);
             }
             else if (StrEqual(info, "berserk"))
@@ -350,7 +356,7 @@ public int MenuHandler_Medic(Menu menu, MenuAction action, int param1, int param
             }
             else if (StrEqual(info, "orbs"))
             {
-                PrintGuideLine(param1, "Press !skill to toss healing orbs that glow and ping the team. You can also drop med items for others.");
+                PrintGuideLine(param1, "Use your secondary !skill to toss healing orbs that glow and ping the team. You can also drop med items for others.");
                 DisplayMedicMenu(param1);
             }
             else if (StrEqual(info, "support"))
@@ -486,12 +492,14 @@ void DisplaySkillMenu(int client)
     SetMenuTitle(menu, "Special Skills & Commands");
     AddMenuItem(menu, "skill", "Class skill command");
     AddMenuItem(menu, "grenades", "Prototype grenades");
+    AddMenuItem(menu, "healingorb", "Healing orb toss");
     AddMenuItem(menu, "deadringer", "Dead Ringer");
     AddMenuItem(menu, "sight", "Extended sight");
     AddMenuItem(menu, "multiturret", "Multiturret controls");
     AddMenuItem(menu, "music", "Music player");
     AddMenuItem(menu, "unvomit", "Unvomit cleanse");
     AddMenuItem(menu, "berserk", "Berserk reminders");
+    AddMenuItem(menu, "satellite", "Satellite cannon");
     AddMenuItem(menu, "airstrike", "Airstrike reminders");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
@@ -512,6 +520,10 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             else if (StrEqual(info, "grenades"))
             {
                 PrintGuideLine(param1, "Equip any grenade, hold FIRE and tap SHOVE (or use sm_grenade) to cycle through experimental prototypes.");
+            }
+            else if (StrEqual(info, "healingorb"))
+            {
+                PrintGuideLine(param1, "Medics use their secondary !skill to throw a glowing healing orb from the main skills plugin. Toss it between fights to top the team off.");
             }
             else if (StrEqual(info, "deadringer"))
             {
@@ -536,6 +548,10 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             else if (StrEqual(info, "berserk"))
             {
                 PrintGuideLine(param1, "Commandos hit !berserker or !skill once rage is full. Berserk grants burst damage and immunity to tank knockdowns.");
+            }
+            else if (StrEqual(info, "satellite"))
+            {
+                PrintGuideLine(param1, "Commandos call the satellite cannon with their class skill while Berserk stays on secondary. Expect a short startup before the orbital blast lands.");
             }
             else if (StrEqual(info, "airstrike"))
             {
