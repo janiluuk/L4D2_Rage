@@ -102,7 +102,7 @@ Rage Edition grew out of DLR keeps a mix of community talent and community open-
 
 - Core talents and class system by DLR team, Ken, Neil, Spirit, panxiaohai, and Yani.
 - Scripted HUD work by Mart and Yani.
-- Extra menu system, airstrike, prototype grenades, and Left 4 DHooks utilities by SilverShot (Silvers).
+- Extra menu system, airstrike, grenades, and Left 4 DHooks utilities by SilverShot (Silvers).
 - Satellite cannon plugin by ztar.
 - Music player by Dragokas.
 - Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.
