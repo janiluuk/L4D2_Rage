@@ -164,10 +164,6 @@ stock bool:ClassHint = false;
 Handle g_ReadyTimer[MAXPLAYERS+1] = {null, ...};
 new RndSession;
 
-// Parachute
-bool g_bParachute[MAXPLAYERS+1];
-int g_iVelocity = -1, g_iParaEntRef[MAXPLAYERS+1] = {INVALID_ENT_REFERENCE, ...};
-
 // CLASS RELATED STUFF
 
 // Max classes
