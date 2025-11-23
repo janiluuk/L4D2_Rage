@@ -45,6 +45,8 @@ enum struct ParachuteAbility
 
     bool HandleRunCmd(int client, int buttons, int flags, Handle parachuteToggle, bool isLeft4Dead2)
     {
+        #pragma unused flags
+
         if (!GetConVarBool(parachuteToggle))
         {
             return false;
