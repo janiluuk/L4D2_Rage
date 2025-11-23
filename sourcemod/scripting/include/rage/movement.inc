@@ -7,6 +7,16 @@
     #define SOUND_HELICOPTER "vehicles/airboat/fan_blade_fullthrottle_loop1.wav"
 #endif
 
+// Provide local fallbacks for common models used by the parachute ability so this
+// helper can be included without relying on broader talent definitions.
+#if !defined PARACHUTE
+    #define PARACHUTE "models/props_swamp/parachute01.mdl"
+#endif
+
+#if !defined FAN_BLADE
+    #define FAN_BLADE "models/props/de_inferno/ceiling_fan_blade.mdl"
+#endif
+
 /**
  * Lightweight containers for movement-centric abilities so they can be reused
  * from talent classes without cluttering the primary plugin file.
