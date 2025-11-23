@@ -1,4 +1,44 @@
-# Each non-empty line should contain a relative sound path that SourceMod can precache.
-# Prefix custom files with "sound/" when packing them into the VPK/fastDL.
-ui/l4d_music/kate/kate_hopeful.wav
-music/stingers/battle_chatter.wav
+TS_SERVER/at_dooms_gate.mp3 TAG- at_dooms_gate.mp3
+TS_SERVER/dark_halls.mp3 TAG- dark_halls.mp3
+TS_SERVER/deep_into_the_code.mp3 TAG- deep_into_the_code.mp3
+TS_SERVER/demons_on_the_prey.mp3 TAG- demons_on_the_prey.mp3
+TS_SERVER/donna_to_the_rescue.mp3 TAG- donna_to_the_rescue.mp3
+TS_SERVER/facing_the_spider.mp3 TAG- facing_the_spider.mp3
+TS_SERVER/hiding_the_secrets.mp3 TAG- hiding_the_secrets.mp3
+TS_SERVER/intermission_from_doom.mp3 TAG- intermission_from_doom.mp3
+TS_SERVER/i_sawed_the_demons.mp3 TAG- i_sawed_the_demons.mp3
+TS_SERVER/kitchen_ace.mp3 TAG- kitchen_ace.mp3
+TS_SERVER/nobody_told_me_about_id.mp3 TAG- nobody_told_me_about_id.mp3
+TS_SERVER/on_the_hunt.mp3 TAG- on_the_hunt.mp3
+TS_SERVER/sign_of_evil.mp3 TAG- sign_of_evil.mp3
+TS_SERVER/sinister.mp3 TAG- sinister.mp3
+TS_SERVER/suspense.mp3 TAG- suspense.mp3
+TS_SERVER/sweet_little_dead_bunny.mp3 TAG- sweet_little_dead_bunny.mp3
+TS_SERVER/the_demons_from_adrians_pen.mp3 TAG- the_demons_from_adrians_pen.mp3
+TS_SERVER/the_imp_song.mp3 TAG- the_imp_song.mp3
+TS_SERVER/theyre_going_to_get_you.mp3 TAG- theyre_going_to_get_you.mp3
+TS_SERVER/untitled.mp3 TAG- untitled.mp3
+TS_SERVER/victory_music.mp3 TAG- victory_music.mp3
+TS_SERVER/waltz_of_the_demons.mp3 TAG- waltz_of_the_demons.mp3
+rage-music/at_dooms_gate.mp3 TAG- at_dooms_gate.mp3
+rage-music/dark_halls.mp3 TAG- dark_halls.mp3
+rage-music/deep_into_the_code.mp3 TAG- deep_into_the_code.mp3
+rage-music/demons_on_the_prey.mp3 TAG- demons_on_the_prey.mp3
+rage-music/donna_to_the_rescue.mp3 TAG- donna_to_the_rescue.mp3
+rage-music/facing_the_spider.mp3 TAG- facing_the_spider.mp3
+rage-music/hiding_the_secrets.mp3 TAG- hiding_the_secrets.mp3
+rage-music/intermission_from_doom.mp3 TAG- intermission_from_doom.mp3
+rage-music/i_sawed_the_demons.mp3 TAG- i_sawed_the_demons.mp3
+rage-music/kitchen_ace.mp3 TAG- kitchen_ace.mp3
+rage-music/nobody_told_me_about_id.mp3 TAG- nobody_told_me_about_id.mp3
+rage-music/on_the_hunt.mp3 TAG- on_the_hunt.mp3
+rage-music/sign_of_evil.mp3 TAG- sign_of_evil.mp3
+rage-music/sinister.mp3 TAG- sinister.mp3
+rage-music/suspense.mp3 TAG- suspense.mp3
+rage-music/sweet_little_dead_bunny.mp3 TAG- sweet_little_dead_bunny.mp3
+rage-music/the_demons_from_adrians_pen.mp3 TAG- the_demons_from_adrians_pen.mp3
+rage-music/the_imp_song.mp3 TAG- the_imp_song.mp3
+rage-music/theyre_going_to_get_you.mp3 TAG- theyre_going_to_get_you.mp3
+rage-music/untitled.mp3 TAG- untitled.mp3
+rage-music/victory_music.mp3 TAG- victory_music.mp3
+rage-music/waltz_of_the_demons.mp3 TAG- waltz_of_the_demons.mp3
