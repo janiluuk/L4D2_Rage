@@ -73,6 +73,9 @@ A celebratory remix of Left 4 Dead 2 that turns every round into a playable acti
 ## Soundtrack corner
 Drop a list of 44.1 kHz MP3s into the supplied music text files, point your fast-download host at them, and the plugin does the rest. First-time players can even hear a special welcome track if you enable the option.
 
+### Music directory
+Custom tracks belong in the repo-level `music/` folder. Docker Compose mounts that directory into the server at `left4dead2/sound/custom/rage` so the entries in `sourcemod/data/music_mapstart*.txt` resolve correctly (e.g., `custom/rage/my_track.mp3`).
+
 ## Admin corner
 Need to tidy the battlefield? `!adm` opens a dedicated panel with spawn helpers, restart controls, god mode, and slow-motion toggles. Everything is grouped for quick decisions mid-round.
 
