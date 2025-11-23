@@ -250,12 +250,12 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
             }
             else if (StrEqual(info, "parachute"))
             {
-                PrintGuideLine(param1, "Hold USE in mid-air to pop the parachute and chain long jumps to reposition without fall damage.");
+                PrintGuideLine(param1, "Hold USE in mid-air to pop the parachute, glide safely, and chain long jumps without fall damage.");
                 DisplayAthleteMenu(param1);
             }
             else if (StrEqual(info, "ninja"))
             {
-                PrintGuideLine(param1, "Leap into infected to deliver a ninja kick that knocks them down - great for peeling specials off teammates.");
+                PrintGuideLine(param1, "Sprint + JUMP together to launch a ninja kick into infected and knock them down.");
                 DisplayAthleteMenu(param1);
             }
         }
