@@ -57,11 +57,15 @@ public OnPluginStart() {
 }
 
 public Action:player_spawn(Handle:event, String:event_name[], bool:dontBroadcast) {
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(client > 0) {
-		ResetClientState(client);
-	}
-	return Plugin_Continue;
+        new client = GetClientOfUserId(GetEventInt(event, "userid"));
+        if(client > 0) {
+                ResetClientState(client);
+                if (IsClientInGame(client) && GetClientTeam(client) == 2)
+                {
+                        PrintHintText(client, "Sprint + JUMP together to launch a ninja kick into infected.");
+                }
+        }
+        return Plugin_Continue;
 }
 
 public Action:player_death(Handle:event, String:event_name[], bool:dontBroadcast) {
