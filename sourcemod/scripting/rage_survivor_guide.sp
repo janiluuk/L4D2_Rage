@@ -559,6 +559,7 @@ void DisplaySkillMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Skills);
     SetMenuTitle(menu, "Special Skills & Commands");
     AddMenuItem(menu, "skill", "Class skill command");
+    AddMenuItem(menu, "grenades", "Grenades");
     AddMenuItem(menu, "healingorb", "Healing orb toss");
     AddMenuItem(menu, "deadringer", "Dead Ringer");
     AddMenuItem(menu, "sight", "Extended sight");
@@ -583,6 +584,10 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             if (StrEqual(info, "skill"))
             {
                 PrintGuideLine(param1, "Bind a key to !skill (or type the command) to trigger your class ability consistently every round.");
+            }
+            else if (StrEqual(info, "grenades"))
+            {
+                PrintGuideLine(param1, "Equip any grenade, hold FIRE and tap SHOVE (or use sm_grenade) to cycle through grenade types.");
             }
             else if (StrEqual(info, "healingorb"))
             {
