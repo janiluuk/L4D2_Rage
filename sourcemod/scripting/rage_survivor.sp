@@ -228,14 +228,16 @@ void ConfigureDefaultClassSkills()
 {
 	ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Airstrike");
 	ApplyActionDefinition(athlete, ClassSkill_Special, "command:Grenades:15");
-	ApplyActionDefinition(medic, ClassSkill_Special, "skill:Grenades");
-	ApplyActionDefinition(medic, ClassSkill_Deploy, "builtin:medic_supply");
-	ApplyActionDefinition(saboteur, ClassSkill_Special, "skill:cloak:1");
-	ApplyActionDefinition(saboteur, ClassSkill_Deploy, "builtin:saboteur_mines");
-	ApplyActionDefinition(commando, ClassSkill_Special, "skill:Berzerk");
-	ApplyActionDefinition(engineer, ClassSkill_Special, "skill:Multiturret");
-	ApplyActionDefinition(engineer, ClassSkill_Secondary, "command:Grenades:7");
-	ApplyActionDefinition(engineer, ClassSkill_Deploy, "builtin:engineer_supply");
+        ApplyActionDefinition(medic, ClassSkill_Special, "skill:Grenades");
+        ApplyActionDefinition(medic, ClassSkill_Secondary, "skill:HealingOrb");
+        ApplyActionDefinition(medic, ClassSkill_Deploy, "builtin:medic_supply");
+        ApplyActionDefinition(saboteur, ClassSkill_Special, "skill:cloak:1");
+        ApplyActionDefinition(saboteur, ClassSkill_Deploy, "builtin:saboteur_mines");
+        ApplyActionDefinition(commando, ClassSkill_Special, "skill:Satellite");
+        ApplyActionDefinition(commando, ClassSkill_Secondary, "skill:Berzerk");
+        ApplyActionDefinition(engineer, ClassSkill_Special, "skill:Multiturret");
+        ApplyActionDefinition(engineer, ClassSkill_Secondary, "command:Grenades:7");
+        ApplyActionDefinition(engineer, ClassSkill_Deploy, "builtin:engineer_supply");
 }
 
 void ResolveClassSkillIds()
