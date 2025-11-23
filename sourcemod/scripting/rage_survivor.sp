@@ -39,6 +39,7 @@ public Plugin:myinfo =
 #include <talents>
 #include <jutils>
 #include <l4d2>
+#include <rage/movement>
 
 #if !defined MAX_SKILL_NAME_LENGTH
 	#define MAX_SKILL_NAME_LENGTH 32
@@ -98,6 +99,8 @@ const int CLASS_COMMAND_PLUGIN_LEN = 32;
 char g_ClassActionCommandPlugin[MAXCLASSES][ClassSkill_Count][CLASS_COMMAND_PLUGIN_LEN];
 int g_ClassActionCommandType[MAXCLASSES][ClassSkill_Count];
 int g_ClassActionCommandEntity[MAXCLASSES][ClassSkill_Count];
+
+ParachuteAbility g_Parachute;
 
 void ResetClassActionSlot(ClassTypes type, ClassSkillInput input)
 {
@@ -588,7 +591,7 @@ public OnPluginStart( )
 	g_iViewModelO = FindSendPropInfo("CTerrorPlayer","m_hViewModel");
 	g_iActiveWeaponOffset = FindSendPropInfo("CBasePlayer", "m_hActiveWeapon");
 	g_iNextSecondaryAttack	= FindSendPropInfo("CBaseCombatWeapon","m_flNextSecondaryAttack");
-	g_iVelocity = FindSendPropInfo("CBasePlayer", "m_vecVelocity[0]");
+        g_Parachute.Initialize();
 	g_iShovePenalty = FindSendPropInfo("CTerrorPlayer", "m_iShovePenalty");
 	g_flMeleeRate = 0.45;	
 	g_flAttackRate = 0.666;
@@ -2852,126 +2855,20 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
 	return Plugin_Continue;
 	
-	if (ClientData[client].ChosenClass == athlete)
-	{
-		if (buttons & IN_JUMP && flags & FL_ONGROUND )
-		{
-			PushEntity(client, Float:{-90.0,0.0,0.0}, GetConVarFloat(ATHLETE_JUMP_VEL));
-			flags &= ~FL_ONGROUND;
-			SetEntityFlags(client,flags);
+        if (ClientData[client].ChosenClass == athlete)
+        {
+                if (buttons & IN_JUMP && flags & FL_ONGROUND )
+                {
+                        PushEntity(client, Float:{-90.0,0.0,0.0}, GetConVarFloat(ATHLETE_JUMP_VEL));
+                        flags &= ~FL_ONGROUND;
+                        SetEntityFlags(client,flags);
 
-		}
+                }
+                g_Parachute.HandleRunCmd(client, buttons, flags, ATHLETE_PARACHUTE_ENABLED, g_bLeft4Dead2);
+        }
+        ClientData[client].LastButtons = buttons;
 
-		if(GetConVarBool(ATHLETE_PARACHUTE_ENABLED) == false) return Plugin_Continue;
-
-		if(g_bParachute[client])
-		{
-			if(!(buttons & IN_USE) || !IsPlayerAlive(client))
-			{
-				DisableParachute(client);
-				return Plugin_Continue;
-			}
-
-			float fVel[3];
-			GetEntDataVector(client, g_iVelocity, fVel);
-
-			if(fVel[2] >= 0.0)
-			{
-				DisableParachute(client);
-				return Plugin_Continue;
-			}
-
-			if(GetEntityFlags(client) & FL_ONGROUND)
-			{
-				DisableParachute(client);
-				return Plugin_Continue;
-			}
-			
-			float fOldSpeed = fVel[2];
-
-			if(fVel[2] < 100.0 * -1.0) fVel[2] = 100.0 * -1.0;
-
-			if(fOldSpeed != fVel[2])
-			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, fVel);
-		}
-		else
-		{
-			if(!(buttons & IN_USE) || !IsPlayerAlive(client))
-			return Plugin_Continue;
-
-			if(GetEntityFlags(client) & FL_ONGROUND)
-			return Plugin_Continue;
-
-			float fVel[3];
-			GetEntDataVector(client, g_iVelocity, fVel);
-
-			if(fVel[2] >= 0.0)
-			return Plugin_Continue;
-
-			int iEntity = CreateEntityByName("prop_dynamic_override"); 
-			DispatchKeyValue(iEntity, "model", g_bLeft4Dead2 ? PARACHUTE : FAN_BLADE);
-			DispatchSpawn(iEntity);
-			
-			SetEntityMoveType(iEntity, MOVETYPE_NOCLIP);
-
-			float ParachutePos[3], ParachuteAng[3];
-			GetClientAbsOrigin(client, ParachutePos);
-			GetClientAbsAngles(client, ParachuteAng);
-			ParachutePos[2] += 80.0;
-			ParachuteAng[0] = 0.0;
-
-			TeleportEntity(iEntity, ParachutePos, ParachuteAng, NULL_VECTOR);
-			
-			int R = GetRandomInt(0, 255), G = GetRandomInt(0, 255), B = GetRandomInt(0, 255); 
-			SetEntProp(iEntity, Prop_Send, "m_nGlowRange", 1000);
-			SetEntProp(iEntity, Prop_Send, "m_iGlowType", 3);
-			SetEntProp(iEntity, Prop_Send, "m_glowColorOverride", R + (G * 256) + (B * 65536));
-			SetEntPropFloat(iEntity, Prop_Data, "m_flModelScale", 0.3);
-
-			SetEntityRenderMode(iEntity, RENDER_TRANSCOLOR);
-			SetEntityRenderColor(iEntity, 255, 255, 255, 2);
-			SetVariantString("!activator");
-			AcceptEntityInput(iEntity, "SetParent", client);
-			g_iParaEntRef[client] = EntIndexToEntRef(iEntity);
-			g_bParachute[client] = true;
-		}
-
-	}	
-	ClientData[client].LastButtons = buttons;
-	
-	return Plugin_Continue;
-}
-
-public void RotateParachute(int index, float value, int axis)
-{
-	if (IsValidEntity(index))
-	{
-		float s_rotation[3];
-		GetEntPropVector(index, Prop_Data, "m_angRotation", s_rotation);
-		s_rotation[axis] += value;
-		TeleportEntity( index, NULL_VECTOR, s_rotation, NULL_VECTOR);
-	}
-}
-
-public void DisableParachute(int client)
-{
-	int iEntity = EntRefToEntIndex(g_iParaEntRef[client]);
-	if(iEntity != INVALID_ENT_REFERENCE)
-	{
-		AcceptEntityInput(iEntity, "ClearParent");
-		AcceptEntityInput(iEntity, "kill");
-	}
-
-	ParachuteDrop(client);
-	g_bParachute[client] = false;
-	g_iParaEntRef[client] = INVALID_ENT_REFERENCE;
-}
-
-public void ParachuteDrop(int client)
-{
-	if (!IsClientInGame(client))
-	return;
-	if( !g_bLeft4Dead2 ) StopSound(client, SNDCHAN_STATIC, SOUND_HELICOPTER);	
+        return Plugin_Continue;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
