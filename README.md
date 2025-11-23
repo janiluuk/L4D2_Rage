@@ -13,13 +13,18 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - Optional HUD with alerts, class specific info, and stats.
 - Expanded help system with class descriptions and tutorials
 - Adjustable adrenaline, pills, revive and heal timings
-- Rewritten invisibility and fixed gun reload glitches
-- Debug modes, admin menu and useful tools
+- Integrated functionalities: Versus match countdown, multiple equipment, self healing with configurable bot support.
+- Portable turrets with 20 different shooting modes
+- Mines with 20 different types
+- Ninja kick to the face, parachute glide and other enhancemenets for classes. See class description for more info.
+- Missile functionality rewritten with more fun in mind. Shooter will be highlighted for other infected to kill. Missiles can be shot down. 
+- Debug modes, logging, streamlined release and development flow. 
 
 ## Play your way
 
-- Players have 3 extra skill actions + deploy action. By default these are mapped to MOUSE3, USE+FIRE, CROUCH+USE+FIRE.
+- Players have 3 extra skill actions + deploy action. These are configurable. 
 - Deploy action is mapped to SHIFT. You can also deploy from quick menu
+- Multiple equipment mode
 - You can configure the skills and add new ones
 
 ### Soldierboy
@@ -67,7 +72,6 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - **Class Skill Command** – Bind a key or type `!skill` to trigger your class's special ability. Secondary actions (Use+Attack) and deploy actions (look down + Shift) are configurable per class in `configs/rage_class_skills.cfg`.
 - Keeps chosen class throughout the campaign unless user changes it.
 
-
 ## Toys, tricks, and server spice
 - **Music player** – Type `!music` to choose the soundtrack, skip songs, or go silent. Preferences stick with you between maps.
 - **Away toggle** – Need a breather? Mark yourself AFK directly from the menu and hop back in when ready.
@@ -94,12 +98,16 @@ Grab the files, drop them on your server, tweak `configs/rage_class_skills.cfg` 
 
 ## Credits
 
-Rage Edition grew out of Dead Land Rage and keeps a mix of community talent and borrowed open-source modules alive.
+Rage Edition grew out of DLR keeps a mix of community talent and community open-source modules alive.
 
-- Core talents and class system by Rage, Ken, Neil, Spirit, panxiaohai, and Yani.【F:sourcemod/scripting/rage_survivor.sp†L1-L27】
-- Scripted HUD work by Mart and Yani.【F:sourcemod/scripting/rage_survivor_hud.sp†L9-L18】
-- Extra menu system, airstrike, prototype grenades, and Left 4 DHooks utilities by SilverShot (Silvers).【F:sourcemod/scripting/extra_menu.sp†L18-L25】【F:sourcemod/scripting/rage_survivor_plugin_airstrike.sp†L18-L23】【F:sourcemod/scripting/rage_survivor_plugin_grenades.sp†L20-L26】【F:sourcemod/scripting/left4dhooks.sp†L1-L17】
-- Satellite cannon plugin by ztar.【F:sourcemod/scripting/rage_survivor_plugin_satellite.sp†L1-L7】
-- Music player by Dragokas.【F:sourcemod/scripting/rage_music.sp†L83-L87】
-- Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.【F:sourcemod/scripting/rage_survivor_guide.sp†L8-L13】【F:sourcemod/scripting/rage_survivor_plugin_deadringer.sp†L1-L7】
-- In-progress jump and utility plugins from zonde306 and Yani, alongside shanapu’s shared parachute logic.【F:sourcemod/scripting/todo/rage_survivor_plugin_jump.sp†L6-L14】【F:sourcemod/scripting/todo/rage_survivor_plugin_parachute.sp†L1-L14】
+- Core talents and class system by DLR team, Ken, Neil, Spirit, panxiaohai, and Yani.
+- Scripted HUD work by Mart and Yani.
+- Extra menu system, airstrike, prototype grenades, and Left 4 DHooks utilities by SilverShot (Silvers).
+- Satellite cannon plugin by ztar.
+- Music player by Dragokas.
+- Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.
+- In-progress jump and utility plugins from zonde306 and Yani, alongside shanapu’s shared parachute logic.
+- Enhanced graphics and custom Adawong model by LuxLuma
+- Ripping custom soundtrack by Zorasoft
+- Additional sound effects and event themes by Yaniho
+- Alliedmodders community
