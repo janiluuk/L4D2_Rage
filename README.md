@@ -91,3 +91,15 @@ Need to tidy the battlefield? `!rageadm` opens a dedicated panel with spawn help
 Rage Edition is built from modular SourceMod plugins, so you can add new talents, swap out effects, or write your own class packs without touching the core. Check the `sourcemod/scripting` folder for clean, well-documented examples.
 
 Grab the files, drop them on your server, tweak `configs/rage_class_skills.cfg` to taste, and let the rage weekend begin.
+
+## Credits
+
+Rage Edition grew out of Dead Land Rage and keeps a mix of community talent and borrowed open-source modules alive.
+
+- Core talents and class system by Rage, Ken, Neil, Spirit, panxiaohai, and Yani.【F:sourcemod/scripting/rage_survivor.sp†L1-L27】
+- Scripted HUD work by Mart and Yani.【F:sourcemod/scripting/rage_survivor_hud.sp†L9-L18】
+- Extra menu system, airstrike, prototype grenades, and Left 4 DHooks utilities by SilverShot (Silvers).【F:sourcemod/scripting/extra_menu.sp†L18-L25】【F:sourcemod/scripting/rage_survivor_plugin_airstrike.sp†L18-L23】【F:sourcemod/scripting/rage_survivor_plugin_grenades.sp†L20-L26】【F:sourcemod/scripting/left4dhooks.sp†L1-L17】
+- Satellite cannon plugin by ztar.【F:sourcemod/scripting/rage_survivor_plugin_satellite.sp†L1-L7】
+- Music player by Dragokas.【F:sourcemod/scripting/rage_music.sp†L83-L87】
+- Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.【F:sourcemod/scripting/rage_survivor_guide.sp†L8-L13】【F:sourcemod/scripting/rage_survivor_plugin_deadringer.sp†L1-L7】
+- In-progress jump and utility plugins from zonde306 and Yani, alongside shanapu’s shared parachute logic.【F:sourcemod/scripting/todo/rage_survivor_plugin_jump.sp†L6-L14】【F:sourcemod/scripting/todo/rage_survivor_plugin_parachute.sp†L1-L14】
