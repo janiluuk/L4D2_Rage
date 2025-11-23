@@ -106,7 +106,7 @@ public Plugin:myinfo =
 *******************************************************/
 public OnPluginStart()
 {
-        CreateTimer(1.0, Timer_SetupSpell);
+	CreateTimer(1.0, Timer_SetupSpell);
 	
 	sm_satellite_enable			= CreateConVar("sm_satellite_enable","1","Enable plugin", FCVAR_NOTIFY);
 	sm_satellite_damage_01		= CreateConVar("sm_satellite_damage_01","600.0", "Scan mode damage", FCVAR_NOTIFY);
@@ -808,7 +808,7 @@ public MoveTracePosition(client, min, max)
 
 public bool:TraceEntityFilterPlayer(entity, contentsMask)
 {
-        return entity > MaxClients || !entity;
+	return entity > GetMaxClients() || !entity;
 }
 
 public CreateLaserEffect(client, colRed, colGre, colBlu, alpha, Float:width, Float:duration, mode)
