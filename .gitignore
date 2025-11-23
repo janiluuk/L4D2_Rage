@@ -1,2 +1,5 @@
 .vscode/launch.json
 .vscode/settings.json
+music/*
+!music/.gitkeep
+!music/README.md
