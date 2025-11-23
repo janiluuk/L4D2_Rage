@@ -127,7 +127,7 @@ public OnPluginStart()
 	HookEvent("item_pickup", Event_Item_Pickup);
 	HookEvent("round_start", Event_Round_Start);
 	
-        hActiveWeapon = FindSendPropOffs ("CTerrorPlayer", "m_hActiveWeapon");
+        hActiveWeapon = FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon");
         m_iClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
 
         g_SimpleCombatAvailable = LibraryExists("l4d2_simple_combat");
@@ -135,7 +135,7 @@ public OnPluginStart()
         AutoExecConfig(true,"l4d2_satellite");
 }
 
-public APLRes AskPluginLoad2(Handle myinfo, bool late, char[] error, int err_max)
+public APLRes AskPluginLoad2(Handle hMyInfo, bool late, char[] error, int err_max)
 {
         MarkNativeAsOptional("SC_CreateSpell");
         MarkNativeAsOptional("SC_GetClientLevel");
@@ -614,7 +614,7 @@ public Blizzard(client)
 	TE_SendToAll();
 	
 	/* Freeze special infected and survivor in the radius */
-	for(new i = 1; i <= GetMaxClients(); i++)
+        for (int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsClientInGame(i))
 			continue;
@@ -678,7 +678,7 @@ public Inferno(client)
         new Float:damage = ((GetSimpleCombatLevel(client) + 1) * 10) + GetConVarFloat(sm_satellite_damage_03);
 	
 	/* Ignite special infected and survivor in the radius */
-	for(new i = 1; i <= GetMaxClients(); i++)
+        for (int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsClientInGame(i))
 			continue;
@@ -808,7 +808,7 @@ public MoveTracePosition(client, min, max)
 
 public bool:TraceEntityFilterPlayer(entity, contentsMask)
 {
-	return entity > GetMaxClients() || !entity;
+        return entity > MaxClients || !entity;
 }
 
 public CreateLaserEffect(client, colRed, colGre, colBlu, alpha, Float:width, Float:duration, mode)
