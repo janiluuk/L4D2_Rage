@@ -5,11 +5,11 @@
 
 #define PLUGIN_VERSION	"0.2"
 #define CVAR_FLAGS		FCVAR_NONE
-#define PLUGIN_SKILL_NAME = "healing_ball"
-#define PLUGIN_SKILL_DESCRIPTION "Summons health orb around player to heal others."
+#define PLUGIN_SKILL_NAME "HealingOrb"
+#define PLUGIN_SKILL_DESCRIPTION "Summons a healing orb near the player to patch up allies."
 public Plugin myinfo =
 {
-	name = "[Rage] Healing ball plugin version",
+	name = "[Rage] Healing orb skill",
 	author = "zonde306, Yani",
 	description = PLUGIN_SKILL_DESCRIPTION,
 	version = PLUGIN_VERSION,
@@ -24,23 +24,31 @@ public Plugin myinfo =
 #define SPRITE_GLOW		"materials/sprites/glow01.vmt"
 
 new BlueColor[4] = {80, 80, 255, 255};
-new Handle:HealingBallTimer[MAXPLAYERS+1];
+new Handle:HealingBallTimer[MAXPLAYERS+1] = { INVALID_HANDLE, ... };
 new g_BeamSprite, g_HaloSprite, g_GlowSprite;
 
 new Float:HealingBallInterval[MAXPLAYERS+1], Float:HealingBallEffect[MAXPLAYERS+1],
-	Float:HealingBallRadius[MAXPLAYERS+1], Float:HealingBallDuration[MAXPLAYERS+1];
+        Float:HealingBallRadius[MAXPLAYERS+1], Float:HealingBallDuration[MAXPLAYERS+1];
+
+public void OnPluginStart()
+{
+        for (int i = 1; i <= MaxClients; ++i)
+        {
+                HealingBallTimer[i] = INVALID_HANDLE;
+        }
+}
 
 public void OnSpecialSkillUsed(int client, const char[] skillName)
 {
-	if(!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
-		return;
+        if(!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
+                return;
 	
 	HealingBallInterval[client] = 1.0;
-	HealingBallEffect[client] = 1.5);
-	HealingBallRadius[client] = 130.0);
+	HealingBallEffect[client] = 1.5;
+	HealingBallRadius[client] = 130.0;
 	HealingBallDuration[client] = 8.0;
 	HealingBallFunction(client);
-	PrintToChat(client, "\x03[Rage]\x01 Healing ball now active\x01", HealingBallDuration[client]);
+	PrintToChat(client, "\x03[Rage]\x01 Healing orb now active\x01", HealingBallDuration[client]);
 }
 
 public void OnMapStart()
