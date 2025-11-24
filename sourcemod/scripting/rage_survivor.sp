@@ -24,7 +24,7 @@
 #define DEBUG_TRACE 0
 stock int DEBUG_MODE = 0;
 
-public Plugin:myinfo =
+public Plugin myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "Rage / Ken / Neil / Spirit / panxiaohai / Yani",
@@ -1408,7 +1408,7 @@ public OnClientDisconnect(client)
 
 public void useCustomCommand(char[] pluginName, int client, int entity, int type )
 {
-	new String:szPluginName[32];
+	char szPluginName[32];
 	Format(szPluginName, sizeof(szPluginName), "%s", pluginName);
 	Call_StartForward(g_hfwdOnCustomCommand);
 
@@ -1544,10 +1544,10 @@ stock KillProgressBar(client)
 
 public ShowBar(client, String:msg[], Float:pos, Float:max)
 {
-	new String:Gauge1[2] = "-";
-	new String:Gauge3[2] = "#";
+	char Gauge1[2] = "-";
+	char Gauge3[2] = "#";
 	new i;
-	new String:ChargeBar[100];
+	char ChargeBar[100];
 	Format(ChargeBar, sizeof(ChargeBar), "");
 	
 	new Float:GaugeNum = pos/max*100;
@@ -1808,7 +1808,7 @@ public Native_GetPlayerClassName(Handle:plugin, numParams)
 	}
 
 	new iSize = GetNativeCell(3);
-	new String:szSkillName[32];
+	char szSkillName[32];
 	Format(szSkillName, iSize, "%s", MENU_OPTIONS[ClientData[client].ChosenClass]);
 	SetNativeString(2, szSkillName, iSize);	
 	return;

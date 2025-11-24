@@ -292,7 +292,7 @@ public Action:DeleteParticles(Handle:timer, any:particle)
 	/* Delete particle */
     if(IsValidEdict(particle) && IsValidEntity(particle))
 	{
-		new String:classname[64];
+		char classname[64];
 		GetEdictClassname(particle, classname, sizeof(classname));
 		if(StrEqual(classname, "info_particle_system", false))
 		{
