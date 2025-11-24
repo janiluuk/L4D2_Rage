@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <admin>
 #include <clientprefs>
 #include <extra_menu>
 #include <rage_survivor_guide>
