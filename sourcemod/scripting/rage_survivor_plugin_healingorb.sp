@@ -2,6 +2,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <rage/skills>
 
 #define PLUGIN_VERSION	"0.2"
 #define CVAR_FLAGS		FCVAR_NONE
@@ -38,17 +39,21 @@ public void OnPluginStart()
         }
 }
 
-public void OnSpecialSkillUsed(int client, const char[] skillName)
+public int OnSpecialSkillUsed(int client, int skill, int type)
 {
+        char skillName[32];
+        GetPlayerSkillName(client, skillName, sizeof(skillName));
         if(!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
-                return;
+                return 0;
 	
 	HealingBallInterval[client] = 1.0;
 	HealingBallEffect[client] = 1.5;
 	HealingBallRadius[client] = 130.0;
-	HealingBallDuration[client] = 8.0;
-	HealingBallFunction(client);
-	PrintToChat(client, "\x03[Rage]\x01 Healing orb now active\x01", HealingBallDuration[client]);
+        HealingBallDuration[client] = 8.0;
+        HealingBallFunction(client);
+        PrintToChat(client, "\x03[Rage]\x01 Healing orb now active\x01", HealingBallDuration[client]);
+
+        return 1;
 }
 
 public void OnMapStart()
