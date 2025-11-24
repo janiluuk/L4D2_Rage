@@ -48,6 +48,7 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 ### Soldierboy
 - Moves faster, shrugs off more hits, and slashes like a blender.
 - Can order satellite strike on outside areas.
+- Fires a homing missile with `SKILL ACTION 2` and a dummy distraction missile with `SKILL ACTION 3`.
 - Flips night vision on or off whenever the fight slips into darkness.
 - Has increased health
 
@@ -61,7 +62,6 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 ### Trooper
 - Increased damage per weapon, reloads fast. Can perform tank knockdowns.
 - Builds rage meter to unleash a Berserk rush that melts specials. Activate rage with `SKILL ACTION 1`
-- Launches missiles with `SKILL ACTION 2`, homing missiles with `SKILL ACTION 3`
 - Lots of health
 
 ### Medic
