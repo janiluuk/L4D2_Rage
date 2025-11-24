@@ -691,6 +691,8 @@ public OnPluginStart( )
 	// Convars
 	g_hPluginEnabled = CreateConVar("talents_enabled","1","Enables/Disables Plugin 0 = OFF, 1 = ON.", FCVAR_NOTIFY);
 
+	CLASS_PREVIEW_DURATION = CreateConVar("talents_class_preview_time", "8.0", "How long (in seconds) to show third-person view when selecting a class", FCVAR_NOTIFY, true, 1.0, true, 30.0);
+
 	MAX_SOLDIER = CreateConVar("talents_soldier_max", "1", "Max number of soldiers");
 	MAX_ATHLETE = CreateConVar("talents_athelete_max", "1", "Max number of athletes");
 	MAX_MEDIC = CreateConVar("talents_medic_max", "1", "Max number of medics");
@@ -1205,6 +1207,10 @@ public OnMapStart()
 	PrecacheModel(AMMO_PILE);
 	PrecacheModel(FAN_BLADE);
 	PrecacheModel(PARACHUTE);
+
+	// Precache all class models to avoid runtime frame drops
+	PrecacheClassModels();
+
 	// Particles
 	PrecacheParticle(EXPLOSION_PARTICLE);
 	PrecacheParticle(EXPLOSION_PARTICLE2);
@@ -1431,7 +1437,6 @@ public Action CmdUseSkill(int client, int args)
 
 // Global state for tracking third-person during class selection
 bool g_bClassSelectionThirdPerson[MAXPLAYERS + 1];
-float g_fThirdPersonTime = 8.0; // How long to stay in third person
 
 public Action CmdClassSet(int client, int args)
 {
@@ -1457,8 +1462,11 @@ public Action CmdClassSet(int client, int args)
                 return Plugin_Handled;
         }
 
+        // Get configured preview duration
+        float previewDuration = GetConVarFloat(CLASS_PREVIEW_DURATION);
+
         // Enable third person view for class preview
-        ForceThirdPersonView(client, g_fThirdPersonTime);
+        ForceThirdPersonView(client, previewDuration);
         g_bClassSelectionThirdPerson[client] = true;
 
         // Change to the selected class
@@ -1466,7 +1474,7 @@ public Action CmdClassSet(int client, int args)
         SaveClassCookie(client, view_as<ClassTypes>(classIndex));
 
         // Schedule return to normal view
-        CreateTimer(g_fThirdPersonTime, Timer_ReturnFromThirdPerson, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+        CreateTimer(previewDuration, Timer_ReturnFromThirdPerson, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 
         return Plugin_Handled;
 }
@@ -1513,7 +1521,8 @@ public Action Timer_ReturnFromThirdPerson(Handle timer, int userid)
 
         if (g_bClassSelectionThirdPerson[client])
         {
-                ClientCommand(client, "firstperson");
+                // Reset third person view by setting the time to 0
+                SetEntPropFloat(client, Prop_Send, "m_TimeForceExternalView", 0.0);
                 g_bClassSelectionThirdPerson[client] = false;
         }
 
@@ -1530,6 +1539,22 @@ void ForceThirdPersonView(int client, float duration)
 
         float gameTime = GetGameTime();
         SetEntPropFloat(client, Prop_Send, "m_TimeForceExternalView", gameTime + duration);
+}
+
+// Precache all class models during map start to avoid runtime frame drops
+void PrecacheClassModels()
+{
+        for (int i = 0; i < sizeof(ClassCustomModels); i++)
+        {
+                char model[PLATFORM_MAX_PATH];
+                strcopy(model, sizeof(model), ClassCustomModels[i]);
+                
+                if (!IsModelPrecached(model))
+                {
+                        PrecacheModel(model, true);
+                        PrintDebugAll("Precached class model: %s", model);
+                }
+        }
 }
 
 // Apply class-specific character model
@@ -1551,12 +1576,7 @@ void ApplyClassModel(int client, ClassTypes classType)
         char model[PLATFORM_MAX_PATH];
         strcopy(model, sizeof(model), ClassCustomModels[classIndex]);
         
-        // Precache and set the model
-        if (!IsModelPrecached(model))
-        {
-                PrecacheModel(model, true);
-        }
-        
+        // Models should already be precached in OnMapStart
         SetEntityModel(client, model);
         PrintDebugAll("Applied model %s to client %d (class: %d)", model, client, classType);
 }

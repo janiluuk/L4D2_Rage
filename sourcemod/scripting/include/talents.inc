@@ -179,6 +179,9 @@ new Handle:MAX_COMMANDO;
 new Handle:MAX_ENGINEER;
 new Handle:MAX_BRAWLER;
 
+// Class selection settings
+new Handle:CLASS_PREVIEW_DURATION;
+
 // Everyone
 new Handle:NONE_HEALTH;
 new Handle:SOLDIER_HEALTH;
