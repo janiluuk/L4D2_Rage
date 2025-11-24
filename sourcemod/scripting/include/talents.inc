@@ -23,6 +23,7 @@ new g_iSkillCounter = -1;
 new Handle:g_hSkillArray = INVALID_HANDLE;
 new Handle:g_hSkillTypeArray = INVALID_HANDLE;
 Handle g_hClassCookie = INVALID_HANDLE;
+char g_ClassDescriptions[MAXCLASSES][128];
 
 //Menu Handlers
 new Handle:g_hSkillMenu = INVALID_HANDLE;

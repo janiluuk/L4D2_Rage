@@ -6,6 +6,8 @@
 #include <clientprefs>
 #include <extra_menu>
 #include <rage_survivor_guide>
+#include <l4d2hud>
+#include <rage/hud>
 
 #define GAMEMODE_OPTION_COUNT 11
 #define CLASS_OPTION_COUNT 7
@@ -90,6 +92,7 @@ int g_iSelectableEntryCount = 0;
 bool g_bGuideNativeAvailable = false;
 bool g_bExtraMenuLoaded = false;
 bool g_bMenuHeld[MAXPLAYERS + 1];
+bool g_bHudEnabled = true;
 
 enum ThirdPersonMode
 {
@@ -144,6 +147,7 @@ bool HasRageMenuAccess(int client);
 void ApplyThirdPersonMode(int client);
 void PersistThirdPersonMode(int client);
 bool IsMeleeWeapon(int weapon);
+void SetHudEnabled(bool enabled, int activator);
 
 // ====================================================================================================
 //					PLUGIN INFO
@@ -159,7 +163,7 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-    RegAdminCmd("sm_rage", CmdRageMenu, ADMFLAG_ROOT);
+    RegConsoleCmd("sm_rage", CmdRageMenu, "Open the Rage game menu");
     RegConsoleCmd("sm_guide", CmdRageGuideMenu, "Open the Rage tutorial guide");
     RegConsoleCmd("+rage_menu", CmdRageMenuHoldStart, "Hold to open Rage menu");
     RegConsoleCmd("-rage_menu", CmdRageMenuHoldEnd, "Release to close Rage menu");
@@ -276,11 +280,11 @@ public void OnLibraryAdded(const char[] name)
         ExtraMenu_AddEntry(menu_id, "6. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
         TrackSelectableEntry(MENU_SELECT_ADD);
         ExtraMenu_AddEntry(menu_id, "7. Vote for gamemode", MENU_SELECT_LIST);
-        TrackSelectableEntry(MENU_SELECT_LIST);
-        AddGameModeOptions(menu_id);
-        ExtraMenu_NewPage(menu_id);
+            TrackSelectableEntry(MENU_SELECT_LIST);
+            AddGameModeOptions(menu_id);
+            ExtraMenu_NewPage(menu_id);
 
-        ExtraMenu_AddEntry(menu_id, "GAME OPTIONS:", MENU_ENTRY);
+            ExtraMenu_AddEntry(menu_id, "GAME OPTIONS:", MENU_ENTRY);
         if (!buttons_nums)
             ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
         ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
@@ -447,6 +451,13 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             return;
         }
 
+        bool adminSelection = (option >= Menu_SpawnItems && option <= Menu_GameSpeed);
+        if (adminSelection && !CheckCommandAccess(client, "sm_rage_admin", ADMFLAG_ROOT))
+        {
+            PrintHintText(client, "Admin-only option.");
+            return;
+        }
+
         switch (option)
         {
             case Menu_GetKit:
@@ -505,7 +516,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             }
             case Menu_HudToggle:
             {
-                PrintHintText(client, "HUD toggle is not configured.");
+                bool enableHud = value != 0;
+                SetHudEnabled(enableHud, client);
             }
             case Menu_MusicToggle:
             {
@@ -713,7 +725,7 @@ void ChangeGameModeByIndex(int client, int modeIndex)
 
 public bool HasRageMenuAccess(int client)
 {
-    return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", ADMFLAG_ROOT);
+    return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", ADMFLAG_NONE);
 }
 
 public bool DisplayRageMenu(int client, bool showHint)
@@ -737,6 +749,45 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);
     return true;
+}
+
+void SetHudEnabled(bool enabled, int activator)
+{
+    if (activator > 0 && IsClientInGame(activator))
+    {
+        if (g_bHudEnabled == enabled)
+        {
+            PrintHintText(activator, "HUD is already %s.", enabled ? "on" : "off");
+            return;
+        }
+    }
+
+    g_bHudEnabled = enabled;
+
+    if (!enabled)
+    {
+        DeleteAllHUD();
+
+        if (activator > 0 && IsClientInGame(activator))
+        {
+            PrintHintText(activator, "HUD disabled.");
+        }
+
+        return;
+    }
+
+    hudPosition currentPos = view_as<hudPosition>(getCurrentHud());
+    if (currentPos < HUD_POSITION_FAR_LEFT || currentPos > HUD_POSITION_SCORE_4)
+    {
+        currentPos = HUD_POSITION_MID_TOP;
+    }
+
+    SetupMessageHud(currentPos, HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEAM_SURVIVORS);
+
+    if (activator > 0 && IsClientInGame(activator))
+    {
+        PrintHintText(activator, "HUD enabled.");
+    }
 }
 
 public bool IsMeleeWeapon(int weapon)
