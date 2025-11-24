@@ -37,7 +37,7 @@ stock void ShowClassHud(int client, bool skillReady, const char[] readyText = ""
         }
 }
 
-stock bool ApplyClassSelection(int client, int classIndex)
+public bool ApplyClassSelection(int client, int classIndex)
 {
         if (client <= 0 || classIndex <= 0 || classIndex >= view_as<int>(MAXCLASSES) || GetClientTeam(client) != 2)
         {
@@ -54,13 +54,7 @@ stock bool ApplyClassSelection(int client, int classIndex)
         }
 
         LastClassConfirmed[client] = classIndex;
-
-        if (g_hClassCookie != INVALID_HANDLE)
-        {
-                char classValue[8];
-                IntToString(classIndex, classValue, sizeof(classValue));
-                SetClientCookie(client, g_hClassCookie, classValue);
-        }
+        SaveClassCookie(client, view_as<ClassTypes>(classIndex));
 
         if (RoundStarted == true && hasActiveClass && view_as<int>(oldClass) != classIndex)
         {
@@ -568,7 +562,7 @@ public void Admin_TopMainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObje
 	}
 }
 
-public void OnAdminMenuReady(TopMenu topmenu) {
+public void OnAdminMenuReady(Handle topmenu) {
 	
 	// Check ..
 	if (topmenu == hTopMenu) return;
