@@ -260,7 +260,8 @@ public Action Timer_UpdateHoming(Handle timer, any ref)
 
 int FindClosestInfectedTarget(int owner, int missile)
 {
-    float missilePos[3];
+#pragma unused owner
+float missilePos[3];
     GetEntPropVector(missile, Prop_Send, "m_vecOrigin", missilePos);
 
     float bestDistance = g_fHomingRange;

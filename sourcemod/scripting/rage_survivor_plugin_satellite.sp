@@ -808,7 +808,7 @@ public MoveTracePosition(client, min, max)
 
 public bool:TraceEntityFilterPlayer(entity, contentsMask)
 {
-	return entity > GetMaxClients() || !entity;
+return entity > MaxClients || !entity;
 }
 
 public CreateLaserEffect(client, colRed, colGre, colBlu, alpha, Float:width, Float:duration, mode)

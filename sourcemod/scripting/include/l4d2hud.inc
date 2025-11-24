@@ -106,7 +106,7 @@ void SetupHUD(hudPosition position, int flags, float x, float y, float w, float 
 
 
         char flagBuffer[16];
-        for(int i = 0; i < sizeof(flagStrings); i++) {
+        for(int i = 0; i < flagStrings.Length; i++) {
             flagStrings.GetString(i, flagBuffer, sizeof(flagBuffer));
             PrintToServer("flag[%d] = %s", i, flagBuffer);
             if(i == flagStrings.Length - 1) {
@@ -146,7 +146,7 @@ void DeleteHUD(hudPosition position) {
     huds[view_as<int>(position)][0] = '\0';
 }
 
-void GetHUDFormatString(hudPosition position, char[] buffer, int buffersize) {
+stock void GetHUDFormatString(hudPosition position, char[] buffer, int buffersize) {
     strcopy(buffer, buffersize, huds[view_as<int>(position)]);
 }
 
@@ -220,11 +220,11 @@ int getCurrentHud() {
     return MSG_HUD_POS;
 }
 
-void setCurrentHud(pos) {
+stock void setCurrentHud(pos) {
     MSG_HUD_POS = view_as<hudPosition>(pos);
 }
 
-void getHudText(char[] text, int textSize) {
+stock void getHudText(char[] text, int textSize) {
     GetHUDFormatString(MSG_HUD_POS, text, textSize);
 }
 

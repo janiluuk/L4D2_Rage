@@ -711,7 +711,7 @@ void ApplyEffectsToEntity(int entity, bool boolean = true)
 	}
 }
 
-Action Timer_Vocals(Handle timer, int client)
+stock Action Timer_Vocals(Handle timer, int client)
 {
 	if (!IsValidClient(client)) return Plugin_Stop;
 	if (!IsSurvivor(client)) return Plugin_Stop;
@@ -720,7 +720,7 @@ Action Timer_Vocals(Handle timer, int client)
 	return Plugin_Stop;
 }
 
-void BeginVocalizations(int client)
+stock void BeginVocalizations(int client)
 {
 	if (!IsValidClient(client)) return;
 	bool hasFirstVocal = false;
@@ -769,7 +769,7 @@ void BeginVocalizations(int client)
 	}
 }
 
-void SpoutDeathOfSurvivorName(int victim, int client)
+stock void SpoutDeathOfSurvivorName(int victim, int client)
 {
 	if (!IsValidClient(victim) || !IsValidClient(client)) return;
 	int char_netprop = GetEntProp(victim, Prop_Send, "m_survivorCharacter");
@@ -805,7 +805,7 @@ void SpoutDeathOfSurvivorName(int victim, int client)
 	PlayScene(client, scene_str);
 }
 
-void PlayScene(int client, const char[] str)
+stock void PlayScene(int client, const char[] str)
 {
 	int scene = CreateEntityByName("instanced_scripted_scene");
 	DispatchKeyValue(scene, "SceneFile", str);
@@ -817,7 +817,7 @@ void PlayScene(int client, const char[] str)
 }
 
 //void SpoutPanicFromDeath(int victim, int client, int backup_cl, bool hasEllis = false, int survivorCount = 1)
-void SpoutPanicFromDeath(int victim, int client, int backup_cl)
+stock void SpoutPanicFromDeath(int victim, int client, int backup_cl)
 {
 	if (!IsValidClient(victim) || !IsValidClient(client)) return;
 	int char_netprop = GetEntProp(victim, Prop_Send, "m_survivorCharacter");
@@ -853,7 +853,7 @@ void SpoutPanicFromDeath(int victim, int client, int backup_cl)
 	PlayScene(useBackup ? backup_cl : client, scene_str);
 }
 
-void GetSurvivorSceneName(int client, bool is_victim = false, char[] str, int maxlength)
+stock void GetSurvivorSceneName(int client, bool is_victim = false, char[] str, int maxlength)
 {
 	if (!IsValidClient(client)) return;
 	
@@ -878,7 +878,7 @@ void GetSurvivorSceneName(int client, bool is_victim = false, char[] str, int ma
 	{ is_victim ? strcopy(str, maxlength, "louis") : strcopy(str, maxlength, "manager"); }
 }
 
-int GetClientSurvivorSet(int client)
+stock int GetClientSurvivorSet(int client)
 {
 	if (!IsValidClient(client)) return 0;
 	if (!IsSurvivor(client)) return 0;
@@ -897,7 +897,7 @@ int GetClientSurvivorSet(int client)
 	return 0;
 }
 
-int GetCryOutNumber(const char[] cl_survname, const char[] cl_victimname)
+stock int GetCryOutNumber(const char[] cl_survname, const char[] cl_victimname)
 {
 	//PrintToChatAll("cl_survname: %s cl_victimname: %s", cl_survname, cl_victimname);
 	if (StrEqual(cl_survname, "gambler", false))
@@ -1010,7 +1010,7 @@ int GetCryOutNumber(const char[] cl_survname, const char[] cl_victimname)
 }
 
 //int GetDoubleDeathResponseNumber(const char[] cl_survname, char[] str, int maxlength, bool hasEllis = false, int survivorCount = 1)
-int GetDoubleDeathResponseNumber(const char[] cl_survname, char[] str, int maxlength)
+stock int GetDoubleDeathResponseNumber(const char[] cl_survname, char[] str, int maxlength)
 {
 	/*bool two_left = false;
 	bool hasEllis = false;
