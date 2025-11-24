@@ -37,7 +37,7 @@ stock void ShowClassHud(int client, bool skillReady, const char[] readyText = ""
         }
 }
 
-stock bool ApplyClassSelection(int client, int classIndex)
+public bool ApplyClassSelection(int client, int classIndex)
 {
         if (client <= 0 || classIndex <= 0 || classIndex >= view_as<int>(MAXCLASSES) || GetClientTeam(client) != 2)
         {
