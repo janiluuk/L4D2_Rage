@@ -35,6 +35,7 @@ public Plugin:myinfo =
 
 #include <adminmenu>
 #include <sdktools>
+#include <clientprefs>
 #include <l4d2hud>
 #include <talents>
 #include <jutils>
@@ -577,6 +578,7 @@ public OnPluginStart( )
 {
         // Concommands
         RegConsoleCmd("sm_class", CmdClassMenu, "Shows the class selection menu");
+        RegConsoleCmd("sm_class_set", CmdClassSet, "Select a class directly");
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows clClearMessagesass descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
         RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
@@ -595,12 +597,14 @@ public OnPluginStart( )
 	RegAdminCmd("sm_hud_close", Cmd_CloseHUD, ADMFLAG_ROOT, "Delete HUD");
 	RegAdminCmd("sm_hud_get", Cmd_GetHud, ADMFLAG_ROOT, "Delete HUD");
 	RegAdminCmd("sm_hud_set", Cmd_SetHud, ADMFLAG_ROOT, "Delete HUD");
-	RegAdminCmd("sm_hud_setup", Cmd_SetupHud, ADMFLAG_ROOT, "Delete HUD");
-	RegAdminCmd("sm_setvictim", Cmd_SetVictim, ADMFLAG_ROOT, "Set horde to attack player #");
-	RegAdminCmd("sm_debug", Command_Debug, ADMFLAG_GENERIC, "sm_debug [0 = Off|1 = PrintToChat|2 = LogToFile|3 = PrintToChat AND LogToFile]");
-	RegAdminCmd("sm_model", CmdModel, ADMFLAG_GENERIC, "Change model to custom one");
+        RegAdminCmd("sm_hud_setup", Cmd_SetupHud, ADMFLAG_ROOT, "Delete HUD");
+        RegAdminCmd("sm_setvictim", Cmd_SetVictim, ADMFLAG_ROOT, "Set horde to attack player #");
+        RegAdminCmd("sm_debug", Command_Debug, ADMFLAG_GENERIC, "sm_debug [0 = Off|1 = PrintToChat|2 = LogToFile|3 = PrintToChat AND LogToFile]");
+        RegAdminCmd("sm_model", CmdModel, ADMFLAG_GENERIC, "Change model to custom one");
 
-	// Api
+        g_hClassCookie = RegClientCookie("rage_last_class", "Last selected Rage class", CookieAccess_Protected);
+
+        // Api
 
 	g_hfwdOnPlayerClassChange = CreateGlobalForward("OnPlayerClassChange", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hfwdOnSpecialSkillUsed = CreateGlobalForward("OnSpecialSkillUsed", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
@@ -818,10 +822,10 @@ public RebuildCache()
 
 public void GetPlayerSkillReadyHint(client) {
 
-	int classId = view_as<int>(ClientData[client].ChosenClass);
-	if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed) {
-		PrintHintText(client,"%s", SpecialReadyTips[classId]);	
-	}
+        int classId = view_as<int>(ClientData[client].ChosenClass);
+        if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed && classId > 0 && classId < sizeof(SpecialReadyTips)) {
+                ShowClassHud(client, true, SpecialReadyTips[classId]);
+        }
 }
 
 public void SetupClasses(client, class)
@@ -1306,6 +1310,30 @@ public void OnClientCookiesCached(int client)
         PrintToChat(client, "%sRestored your %s class. Use the class menu to change it again.", PRINT_PREFIX, MENU_OPTIONS[storedClass]);
 }
 
+public void OnClientCookiesCached(int client)
+{
+        if (g_hClassCookie == INVALID_HANDLE || !IsClientInGame(client) || IsFakeClient(client))
+        {
+                return;
+        }
+
+        char storedClass[8];
+        GetClientCookie(client, g_hClassCookie, storedClass, sizeof(storedClass));
+
+        int savedClass = StringToInt(storedClass);
+        if (savedClass > 0 && savedClass < view_as<int>(MAXCLASSES))
+        {
+                LastClassConfirmed[client] = savedClass;
+
+                if (ClientData[client].ChosenClass == NONE)
+                {
+                        ClientData[client].ChosenClass = view_as<ClassTypes>(savedClass);
+                }
+
+                PrintToChat(client, "%sLoaded your %s class. It will auto-apply on spawn; use the Rage menu to change anytime.", PRINT_PREFIX, MENU_OPTIONS[savedClass]);
+        }
+}
+
 void DmgHookUnhook(bool enabled)
 {
 	if( !enabled && g_bDmgHooked )
@@ -1641,11 +1669,11 @@ public Event_PlayerTeam(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 	new client = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	new team = GetEventInt(hEvent, "team");
 	
-	if (team == 2 && LastClassConfirmed[client] != 0)
-	{
-		ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
-		PrintToChat(client, "\x01You are currently a \x04%s", MENU_OPTIONS[LastClassConfirmed[client]]);
-	}
+        if (team == 2 && LastClassConfirmed[client] != 0)
+        {
+                ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                PrintToChat(client, "\x01You are currently a \x04%s\x01. Mid-round changes apply next round.", MENU_OPTIONS[LastClassConfirmed[client]]);
+        }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
