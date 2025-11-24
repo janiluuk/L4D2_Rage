@@ -19,12 +19,13 @@
 #define PLUGIN_VERSION "1.82b"
 #define PLUGIN_IDENTIFIER "rage_survivor"
 #pragma semicolon 1
+#pragma newdecls required
 #define DEBUG 0
 #define DEBUG_LOG 1
 #define DEBUG_TRACE 0
-stock int DEBUG_MODE = 0;
+int DEBUG_MODE;
 
-public Plugin:myinfo =
+public Plugin myinfo =
 {
 	name = PLUGIN_NAME,
 	author = "Rage / Ken / Neil / Spirit / panxiaohai / Yani",
@@ -617,9 +618,9 @@ public OnPluginStart( )
 	LoadClassSkillConfig();
 
 	// Convars
-	new Handle:hVersion = CreateConVar("talents_version", PLUGIN_VERSION, "Version of this release", FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_DONTRECORD);
-	if(hVersion != INVALID_HANDLE)
-		SetConVarString(hVersion, PLUGIN_VERSION);
+	ConVar hVersion = CreateConVar("talents_version", PLUGIN_VERSION, "Version of this release", FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_DONTRECORD);
+	if(hVersion != null)
+		hVersion.SetString(PLUGIN_VERSION);
 	// Convars
 	g_hPluginEnabled = CreateConVar("talents_enabled","1","Enables/Disables Plugin 0 = OFF, 1 = ON.", FCVAR_NOTIFY);
 
@@ -813,7 +814,7 @@ switch (view_as<ClassTypes>(class))
 		
                 case athlete:
                 {
-                        decl String:mobilityHint[128];
+                        char mobilityHint[128];
                         if (GetConVarBool(ATHLETE_PARACHUTE_ENABLED))
                         {
                                 Format(mobilityHint, sizeof(mobilityHint), "Hold USE mid-air for a parachute glide. Sprint + JUMP to throw a ninja kick.");
@@ -1270,7 +1271,7 @@ public OnClientDisconnect(client)
 
 public void useCustomCommand(char[] pluginName, int client, int entity, int type )
 {
-	new String:szPluginName[32];
+	char szPluginName[32];
 	Format(szPluginName, sizeof(szPluginName), "%s", pluginName);
 	Call_StartForward(g_hfwdOnCustomCommand);
 
@@ -1357,15 +1358,15 @@ stock KillProgressBar(client)
 	SetEntPropFloat(client, Prop_Send, "m_flProgressBarDuration", 0.0);
 }
 
-public ShowBar(client, String:msg[], Float:pos, Float:max)
+public void ShowBar(int client, const char[] msg, float pos, float max)
 {
-	new String:Gauge1[2] = "-";
-	new String:Gauge3[2] = "#";
-	new i;
-	new String:ChargeBar[100];
+	char Gauge1[2] = "-";
+	char Gauge3[2] = "#";
+	int i;
+	char ChargeBar[100];
 	Format(ChargeBar, sizeof(ChargeBar), "");
 	
-	new Float:GaugeNum = pos/max*100;
+	float GaugeNum = pos/max*100.0;
 	if(GaugeNum > 100.0)
 	GaugeNum = 100.0;
 	if(GaugeNum<0.0)
@@ -1586,8 +1587,8 @@ public Native_GetPlayerClassName(Handle:plugin, numParams)
 		ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index (%d)", client);
 	}
 
-	new iSize = GetNativeCell(3);
-	new String:szSkillName[32];
+	int iSize = GetNativeCell(3);
+	char szSkillName[32];
 	Format(szSkillName, iSize, "%s", MENU_OPTIONS[ClientData[client].ChosenClass]);
 	SetNativeString(2, szSkillName, iSize);	
 	return;
@@ -1743,9 +1744,9 @@ stock SetClientTempHealth(client, iValue)
 	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", iValue*1.0);
 	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
 	
-	new Handle:hPack = CreateDataPack();
-	WritePackCell(hPack, client);
-	WritePackCell(hPack, iValue);
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(client);
+	hPack.WriteCell(iValue);
 	
 	CreateTimer(0.1, TimerSetClientTempHealth, hPack, TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -1834,8 +1835,8 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 	#endif
 	float flGameTime = GetGameTime();
 	float flNextTime_calc;
-	decl String:bNetCl[64];
-	decl String:stClass[32];
+	char bNetCl[64];
+	char stClass[32];
 	float flStartTime_calc;
 	GetEntityNetClass(weapon, bNetCl, sizeof(bNetCl));
 	GetEntityNetClass(weapon,stClass,32);
@@ -1846,8 +1847,8 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 	if (StrContains(bNetCl, "shotgun", false) == -1)
 	{
 
-		new Handle:hPack = CreateDataPack();
-		WritePackCell(hPack, client);
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(client);
 		float flNextPrimaryAttack = GetEntDataFloat(weapon, g_iNextPrimaryAttack);		
 		#if DEBUG
 		PrintDebugAll("\x03- pre, gametime \x01%f\x03, retrieved nextattack\x01 %i %f\x03, retrieved time idle \x01%i %f",
@@ -1887,9 +1888,9 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 	}
 	else
 	{
-		new Handle:hPack = CreateDataPack();
-		WritePackCell(hPack, weapon);
-		WritePackCell(hPack, client);		
+		DataPack hPack = new DataPack();
+		hPack.WriteCell(weapon);
+		hPack.WriteCell(client);		
 
 		if (StrContains(bNetCl, "CShotgun_SPAS", false) != -1)
 		{
@@ -1995,9 +1996,9 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 		PrintDebugAll("\x03-spas shotgun detected, ratio \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i", fReloadRatio, g_reloadStartDuration, g_reloadInsertDuration, g_reloadEndDuration);
 	#endif
 
-	new Handle:hPack = CreateDataPack();
-	WritePackCell(hPack, weapon);
-	WritePackCell(hPack, client);
+	DataPack hPack = new DataPack();
+	hPack.WriteCell(weapon);
+	hPack.WriteCell(client);
 
 	if (GetEntData(weapon, g_iReloadState) != 2)
 	{
@@ -2194,10 +2195,10 @@ public void CalculateSaboteurPlacePos(client, int value)
 	GetClientEyeAngles(client, vAng);
 	GetClientEyePosition(client, vPos);
 	
-	new Handle:trace = TR_TraceRayFilterEx(vPos, vAng, MASK_SHOT, RayType_Infinite, TraceFilter, client);
+	Handle trace = TR_TraceRayFilterEx(vPos, vAng, MASK_SHOT, RayType_Infinite, TraceFilter, client);
 	if (TR_DidHit(trace)) {
 		TR_GetEndPosition(endPos, trace);
-		CloseHandle(trace);
+		delete trace;
 		
 		if (GetVectorDistance(endPos, vPos) <= GetConVarFloat(ENGINEER_MAX_BUILD_RANGE)) {
 			vAng[0] = 0.1;
@@ -2645,10 +2646,10 @@ public void DropBomb(client, bombType)
 	bombName = getBombName(bombType);
 	PrintDebugAll("Planting #%i %s (index %d)", index, bombName, bombType);
 
-	new Handle:hPack = CreateDataPack();
+	DataPack hPack = new DataPack();
 
-	WritePackFloat(hPack, pos[0]);
-	WritePackFloat(hPack, pos[1]);
+	hPack.WriteFloat(pos[0]);
+	hPack.WriteFloat(pos[1]);
 	WritePackFloat(hPack, pos[2]);
 	WritePackCell(hPack, GetClientUserId(client));
 	WritePackCell(hPack, RndSession);
@@ -2716,10 +2717,10 @@ public void CreateAirStrike(int client) {
 
 		EmitSoundToAll(SOUND_DROP_BOMB);
 
-		new Handle:pack = CreateDataPack();
-		WritePackCell(pack, GetClientUserId(client));
-		WritePackFloat(pack, vPos[0]);
-		WritePackFloat(pack, vPos[1]);
+		DataPack pack = new DataPack();
+		pack.WriteCell(GetClientUserId(client));
+		pack.WriteFloat(vPos[0]);
+		pack.WriteFloat(vPos[1]);
 		WritePackFloat(pack, vPos[2]);
 		WritePackFloat(pack, GetGameTime());
 		WritePackCell(pack, entity);									
@@ -2735,7 +2736,7 @@ stock bool:IsWitch(client)
 {
 	if(client > 0 && IsValidEntity(client) && IsValidEdict(client))
 	{
-		decl String:strClassName[64];
+		char strClassName[64];
 		GetEdictClassname(client, strClassName, sizeof(strClassName));
 		return StrEqual(strClassName, "witch");
 	}
@@ -2806,11 +2807,12 @@ stock int CountPlayersWithClass( class ) {
 	return count;
 }
 
-stock bool:IsInEndingSaferoom(client)
+stock bool IsInEndingSaferoom(int client)
 {
-	decl String:class[128], Float:pos[3], Float:dpos[3];
+	char class[128];
+	float pos[3], dpos[3];
 	GetClientAbsOrigin(client, pos);
-	for (new i = MaxClients+1; i < 2048; i++)
+	for (int i = MaxClients+1; i < 2048; i++)
 	{
 		if (IsValidEntity(i) && IsValidEdict(i))
 		{
