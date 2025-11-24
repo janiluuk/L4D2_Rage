@@ -3,6 +3,14 @@
 #endif
 #define _rage_movement_included
 
+#if !defined PARACHUTE
+    #define PARACHUTE "models/props_swamp/parachute01.mdl"
+#endif
+
+#if !defined FAN_BLADE
+    #define FAN_BLADE "models/props/de_inferno/ceiling_fan_blade.mdl"
+#endif
+
 #if !defined SOUND_HELICOPTER
     #define SOUND_HELICOPTER "vehicles/airboat/fan_blade_fullthrottle_loop1.wav"
 #endif
