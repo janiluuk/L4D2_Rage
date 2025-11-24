@@ -39,6 +39,7 @@ public Plugin:myinfo =
 #include <talents>
 #include <jutils>
 #include <l4d2>
+#include <rage/skill_actions>
 #include <rage/movement>
 
 #if !defined MAX_SKILL_NAME_LENGTH
@@ -49,10 +50,11 @@ public Plugin:myinfo =
 
 enum ClassSkillInput
 {
-	ClassSkill_Special = 0,
-	ClassSkill_Secondary,
-	ClassSkill_Deploy,
-	ClassSkill_Count
+        ClassSkill_Special = 0,
+        ClassSkill_Secondary,
+        ClassSkill_Tertiary,
+        ClassSkill_Deploy,
+        ClassSkill_Count
 };
 
 enum ClassActionMode
@@ -85,9 +87,10 @@ static const char g_ClassIdentifiers[MAXCLASSES][16] =
 
 static const char g_InputIdentifiers[ClassSkill_Count][16] =
 {
-	"special",
-	"secondary",
-	"deploy"
+        "special",
+        "secondary",
+        "tertiary",
+        "deploy"
 };
 
 ClassActionMode g_ClassActionMode[MAXCLASSES][ClassSkill_Count];
@@ -101,6 +104,35 @@ int g_ClassActionCommandType[MAXCLASSES][ClassSkill_Count];
 int g_ClassActionCommandEntity[MAXCLASSES][ClassSkill_Count];
 
 ParachuteAbility g_Parachute;
+
+SkillActionSlot GetSkillActionSlotForInput(ClassSkillInput input)
+{
+        switch (input)
+        {
+                case ClassSkill_Special:
+                {
+                        return SkillAction_Primary;
+                }
+                case ClassSkill_Secondary:
+                {
+                        return SkillAction_Secondary;
+                }
+                case ClassSkill_Tertiary:
+                {
+                        return SkillAction_Tertiary;
+                }
+                default:
+                {
+                        return SkillAction_Deploy;
+                }
+        }
+}
+
+void GetActionBindingLabel(ClassSkillInput input, char[] buffer, int maxlen)
+{
+        SkillActionSlot slot = GetSkillActionSlotForInput(input);
+        GetSkillActionBindingLabel(slot, buffer, maxlen);
+}
 
 void ResetClassActionSlot(ClassTypes type, ClassSkillInput input)
 {
@@ -127,15 +159,27 @@ void ResetClassSkillConfig()
 
 ClassTypes ClassNameToType(const char[] name)
 {
-	for (int i = 0; i < view_as<int>(MAXCLASSES); i++)
-	{
-		if (StrEqual(g_ClassIdentifiers[i], name, false))
+        for (int i = 0; i < view_as<int>(MAXCLASSES); i++)
+        {
+                if (StrEqual(g_ClassIdentifiers[i], name, false))
 		{
 			return view_as<ClassTypes>(i);
 		}
 	}
 
-	return NONE;
+        return NONE;
+}
+
+void SaveClassCookie(int client, ClassTypes classType)
+{
+        if (g_hClassCookie == INVALID_HANDLE || IsFakeClient(client) || classType == NONE)
+        {
+                return;
+        }
+
+        char identifier[16];
+        strcopy(identifier, sizeof(identifier), g_ClassIdentifiers[classType]);
+        SetClientCookie(client, g_hClassCookie, identifier);
 }
 
 BuiltinAction BuiltinNameToAction(const char[] name)
@@ -531,15 +575,20 @@ void HandleDeployInput(int client, ClassTypes classType, bool holdingShift, bool
 
 public OnPluginStart( )
 {
-	// Concommands
+        // Concommands
         RegConsoleCmd("sm_class", CmdClassMenu, "Shows the class selection menu");
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows clClearMessagesass descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
+        RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
+        RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
+        RegConsoleCmd("skill_action_3", CmdSkillAction3, "Trigger your tertiary class action");
+        RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (look down + SHIFT by default)");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
+        g_hClassCookie = RegClientCookie("rage_class_choice", "Rage preferred class", CookieAccess_Public);
         RegAdminCmd("sm_ragem", CmdRageMenu, ADMFLAG_ROOT, "Debug & Manage");
-	RegAdminCmd("sm_hide", HideCommand, ADMFLAG_ROOT, "Hide player");
+        RegAdminCmd("sm_hide", HideCommand, ADMFLAG_ROOT, "Hide player");
         RegAdminCmd("sm_rage_plugins", CmdPlugins, ADMFLAG_ROOT, "List plugins");
-	RegAdminCmd("sm_yay", GrenadeCommand, ADMFLAG_ROOT, "Test grenades");
+        RegAdminCmd("sm_yay", GrenadeCommand, ADMFLAG_ROOT, "Test grenades");
 	RegAdminCmd("sm_hud", Cmd_PrintToHUD, ADMFLAG_ROOT, "Test HUD");
 	RegAdminCmd("sm_hud_clear", Cmd_ClearHUD, ADMFLAG_ROOT, "Clear HUD");
 	RegAdminCmd("sm_hud_delete", Cmd_DeleteHUD, ADMFLAG_ROOT, "Delete HUD");
@@ -612,11 +661,12 @@ public OnPluginStart( )
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_left_start_area",Event_LeftStartArea);
 	HookEvent("heal_begin", Event_HealBegin, EventHookMode_Pre);
-	HookEvent("revive_begin", Event_ReviveBegin, EventHookMode_Pre);
-	HookEvent("weapon_fire", Event_WeaponFire);
-	HookEvent("server_cvar", Event_ServerCvar, EventHookMode_Pre);
+        HookEvent("revive_begin", Event_ReviveBegin, EventHookMode_Pre);
+        HookEvent("weapon_fire", Event_WeaponFire);
+        HookEvent("server_cvar", Event_ServerCvar, EventHookMode_Pre);
 
-	LoadClassSkillConfig();
+        LoadSkillActionBindings();
+        LoadClassSkillConfig();
 
 	// Convars
 	new Handle:hVersion = CreateConVar("talents_version", PLUGIN_VERSION, "Version of this release", FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_DONTRECORD);
@@ -776,14 +826,19 @@ public void GetPlayerSkillReadyHint(client) {
 
 public void SetupClasses(client, class)
 {
-	if (!client
-		|| !IsValidEntity(client)
-		|| !IsClientInGame(client)
-		|| !IsPlayerAlive(client)
-		|| GetClientTeam(client) != 2)
-	return;
-	
-	ClientData[client].ChosenClass = view_as<ClassTypes>(class);
+        if (!client
+                || !IsValidEntity(client)
+                || !IsClientInGame(client)
+                || !IsPlayerAlive(client)
+                || GetClientTeam(client) != 2)
+        return;
+
+        char primaryBind[64];
+        char deployBind[64];
+        GetActionBindingLabel(ClassSkill_Special, primaryBind, sizeof(primaryBind));
+        GetActionBindingLabel(ClassSkill_Deploy, deployBind, sizeof(deployBind));
+
+        ClientData[client].ChosenClass = view_as<ClassTypes>(class);
 ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_DROP_INTERVAL);
 ClientData[client].SpecialLimit = GetConVarInt(SPECIAL_SKILL_LIMIT);
 new MaxPossibleHP = GetConVarInt(NONE_HEALTH);
@@ -792,11 +847,12 @@ DisableAllUpgrades(client);
 switch (view_as<ClassTypes>(class))
 {
 
-		case soldier:	
-		{
-			char text[64];
+                case soldier:
+                {
+                        char text[64];
+                        text[0] = '\0';
                         if (g_bAirstrike == true) {
-                                text = "Press MIDDLE BUTTON or type !skill for Airstrike!";
+                                Format(text, sizeof(text), "Press %s for Airstrike!", primaryBind);
                         }
 
                         PrintHintText(client,"You have armor, fast attack rate and movement %s", text );
@@ -805,13 +861,13 @@ switch (view_as<ClassTypes>(class))
 			MaxPossibleHP = GetConVarInt(SOLDIER_HEALTH);
 		}
 		
-		case medic:
-		{
-                        PrintHintText(client,"Hold CROUCH to heal others. Look down and press SHIFT to drop medkits & supplies.\nPress MIDDLE button or type !skill to throw healing grenade!");
-			CreateTimer(GetConVarFloat(MEDIC_HEALTH_INTERVAL), TimerDetectHealthChanges, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-			ClientData[client].SpecialLimit = GetConVarInt(MEDIC_MAX_ITEMS);
-			MaxPossibleHP = GetConVarInt(MEDIC_HEALTH);
-		}
+                case medic:
+                {
+                        PrintHintText(client,"Hold CROUCH to heal others. Look down and press %s to drop medkits & supplies.\nPress %s to throw a healing grenade!", deployBind, primaryBind);
+                        CreateTimer(GetConVarFloat(MEDIC_HEALTH_INTERVAL), TimerDetectHealthChanges, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+                        ClientData[client].SpecialLimit = GetConVarInt(MEDIC_MAX_ITEMS);
+                        MaxPossibleHP = GetConVarInt(MEDIC_HEALTH);
+                }
 		
                 case athlete:
                 {
@@ -836,24 +892,24 @@ switch (view_as<ClassTypes>(class))
 			ClientData[client].SpecialDropInterval = 120;
 			ClientData[client].SpecialLimit = 3;
 
-			if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK)) {
-				text = ", You're immune to Tank knockdowns!";
-			} 
+                        if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK)) {
+                                text = ", You're immune to Tank knockdowns!";
+                        }
 
-                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress MIDDLE button or type !skill to activate Berzerk mode!", text);
-			MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
-		}
+                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
+                        MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
+                }
 		
-		case engineer:
+                case engineer:
+                {
+                        PrintHintText(client,"Press %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, deployBind);
+                        MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
+                        ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
+                }
+
+                case saboteur:
 		{
-                        PrintHintText(client,"Press MIDDLE button or type !skill to deploy turrets. Look down and press SHIFT to drop ammo supplies!");
-			MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
-			ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
-		}
-		
-		case saboteur:
-		{
-                        PrintHintText(client,"Look down and press SHIFT to drop mines! Hold CROUCH 3 sec to go invisible.\nPress MIDDLE or !skill to summon Decoy. Use !extendedsight for wallhack");
+                        PrintHintText(client,"Use %s to drop mines! Hold CROUCH 3 sec to go invisible.\nPress %s to summon a Decoy. Toggle extended sight from your menu for wallhack support", deployBind, primaryBind);
 			MaxPossibleHP = GetConVarInt(SABOTEUR_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(SABOTEUR_MAX_BOMBS);
 //			ToggleNightVision(client);
@@ -1171,9 +1227,10 @@ public void OnMapEnd()
 
 public void OnConfigsExecuted()
 {
-	LoadClassSkillConfig();
-	RefreshClassSkillAssignments();
-	OnPluginReady();
+        LoadSkillActionBindings();
+        LoadClassSkillConfig();
+        RefreshClassSkillAssignments();
+        OnPluginReady();
 }
 
 public OnPluginReady() {
@@ -1212,12 +1269,41 @@ void ResetPlugin()
 
 public OnClientPutInServer(client)
 {
-	if (!client || !IsValidEntity(client) || !IsClientInGame(client) || g_bPluginLoaded == false)
-	return;
+        if (!client || !IsValidEntity(client) || !IsClientInGame(client) || g_bPluginLoaded == false)
+        return;
 
-	ResetClientVariables(client);
-	RebuildCache();
-	HookPlayer(client);
+        g_iQueuedClass[client] = 0;
+        ResetClientVariables(client);
+        RebuildCache();
+        HookPlayer(client);
+}
+
+public void OnClientCookiesCached(int client)
+{
+        if (g_hClassCookie == INVALID_HANDLE || IsFakeClient(client) || !IsClientInGame(client))
+        {
+                return;
+        }
+
+        char stored[32];
+        GetClientCookie(client, g_hClassCookie, stored, sizeof(stored));
+        TrimString(stored);
+
+        if (stored[0] == '\0')
+        {
+                return;
+        }
+
+        ClassTypes storedClass = ClassNameToType(stored);
+        if (storedClass == NONE)
+        {
+                return;
+        }
+
+        LastClassConfirmed[client] = view_as<int>(storedClass);
+        g_iQueuedClass[client] = 0;
+
+        PrintToChat(client, "%sRestored your %s class. Use the class menu to change it again.", PRINT_PREFIX, MENU_OPTIONS[storedClass]);
 }
 
 void DmgHookUnhook(bool enabled)
@@ -1263,9 +1349,10 @@ public Action:OnWeaponEquip(client, weapon)
 
 public OnClientDisconnect(client)
 {
-	UnhookPlayer(false);
-	RebuildCache();
-	ResetClientVariables(client);
+        UnhookPlayer(false);
+        RebuildCache();
+        ResetClientVariables(client);
+        g_iQueuedClass[client] = 0;
 }
 
 // Inform other plugins.
@@ -1286,6 +1373,53 @@ public void useCustomCommand(char[] pluginName, int client, int entity, int type
 public Action CmdUseSkill(int client, int args)
 {
         useSpecialSkill(client, 0);
+        return Plugin_Handled;
+}
+
+bool TryExecuteSkillInput(int client, ClassSkillInput input)
+{
+        if (client < 1 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return false;
+        }
+
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                PrintHintText(client, "Select a class from the Rage menu first.");
+                return false;
+        }
+
+        if (!TryTriggerClassSkillAction(client, classType, input))
+        {
+                PrintHintText(client, "No action is bound to that input for %s.", MENU_OPTIONS[classType]);
+                return false;
+        }
+
+        return true;
+}
+
+public Action CmdSkillAction1(int client, int args)
+{
+        TryExecuteSkillInput(client, ClassSkill_Special);
+        return Plugin_Handled;
+}
+
+public Action CmdSkillAction2(int client, int args)
+{
+        TryExecuteSkillInput(client, ClassSkill_Secondary);
+        return Plugin_Handled;
+}
+
+public Action CmdSkillAction3(int client, int args)
+{
+        TryExecuteSkillInput(client, ClassSkill_Tertiary);
+        return Plugin_Handled;
+}
+
+public Action CmdDeploymentAction(int client, int args)
+{
+        TryExecuteSkillInput(client, ClassSkill_Deploy);
         return Plugin_Handled;
 }
 
@@ -1383,12 +1517,16 @@ public ShowBar(client, String:msg[], Float:pos, Float:max)
 
 public Event_RoundChange(Handle:event, String:name[], bool:dontBroadcast)
 {
-	for (new i = 1; i < MAXPLAYERS; i++)
-	{
-		ResetClientVariables(i);
-		LastClassConfirmed[i] = 0;
-		DisableAllUpgrades(i);
-	}
+        for (new i = 1; i < MAXPLAYERS; i++)
+        {
+                ResetClientVariables(i);
+                if (g_iQueuedClass[i] != 0)
+                {
+                        LastClassConfirmed[i] = g_iQueuedClass[i];
+                }
+                g_iQueuedClass[i] = 0;
+                DisableAllUpgrades(i);
+        }
 
 	DmgHookUnhook(false);
 	
