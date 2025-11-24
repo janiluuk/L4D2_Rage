@@ -1540,45 +1540,16 @@ void ApplyClassModel(int client, ClassTypes classType)
                 return;
         }
 
-        char model[PLATFORM_MAX_PATH];
-        
-        // Assign models based on class
-        // Using L4D2 survivors that fit the class theme
-        switch (classType)
+        // Get model from ClassCustomModels array
+        int classIndex = view_as<int>(classType);
+        if (classIndex < 0 || classIndex >= sizeof(ClassCustomModels))
         {
-                case soldier:  // Soldier/Soldierboy - Bill (military veteran)
-                {
-                        model = "models/survivors/survivor_namvet.mdl";
-                }
-                case athlete:  // Ninja/Athlete - Ellis (athletic, energetic)
-                {
-                        model = "models/survivors/survivor_mechanic.mdl";
-                }
-                case medic:  // Medic - Rochelle (supportive, caring)
-                {
-                        model = "models/survivors/survivor_producer.mdl";
-                }
-                case saboteur:  // Saboteur - Zoey (stealthy, tactical)
-                {
-                        model = "models/survivors/survivor_teenangst.mdl";
-                }
-                case commando:  // Commando/Trooper - Francis (tough biker)
-                {
-                        model = "models/survivors/survivor_biker.mdl";
-                }
-                case engineer:  // Engineer - Coach (builder, support)
-                {
-                        model = "models/survivors/survivor_coach.mdl";
-                }
-                case brawler:  // Brawler - Louis (resilient)
-                {
-                        model = "models/survivors/survivor_manager.mdl";
-                }
-                default:  // Default to Nick
-                {
-                        model = "models/survivors/survivor_gambler.mdl";
-                }
+                PrintDebugAll("Invalid class index %d for model assignment", classIndex);
+                return;
         }
+
+        char model[PLATFORM_MAX_PATH];
+        strcopy(model, sizeof(model), ClassCustomModels[classIndex]);
         
         // Precache and set the model
         if (!IsModelPrecached(model))
