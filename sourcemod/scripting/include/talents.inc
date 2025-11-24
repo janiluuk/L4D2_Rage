@@ -5,6 +5,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <left4dhooks>
+#include <clientprefs>
 #include <rage/const>
 #include <rage/debug>
 //#include <rage/classes>
@@ -21,6 +22,8 @@ new Handle:g_hfwdOnPlayerClassChange;
 new g_iSkillCounter = -1;
 new Handle:g_hSkillArray = INVALID_HANDLE;
 new Handle:g_hSkillTypeArray = INVALID_HANDLE;
+Handle g_hClassCookie = INVALID_HANDLE;
+char g_ClassDescriptions[MAXCLASSES][128];
 
 //Menu Handlers
 new Handle:g_hSkillMenu = INVALID_HANDLE;
@@ -153,6 +156,7 @@ stock int b_attackerTarget[MAXPLAYERS+1];
 // Player Related Variables
 
 new LastClassConfirmed[MAXPLAYERS+1];
+int g_iQueuedClass[MAXPLAYERS+1];
 new bool:g_bInSaferoom[MAXPLAYERS+1];
 new Float:g_SpawnPos[MAXPLAYERS+1][3];
 new bool:RoundStarted =false;
@@ -251,5 +255,8 @@ new Handle:SPECIAL_SKILL_LIMIT;
 #include <rage/effects>
 #include <rage/menus>
 #include <rage/perks>
+#include <rage/admin_commands>
+#include <rage/class_commands>
 #include <rage/commands>
+
 

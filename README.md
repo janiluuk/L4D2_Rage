@@ -1,74 +1,101 @@
 # L4D2: Rage Edition
 
-A celebratory remix of Left 4 Dead 2 that turns every round into a playable action movie. Rage Edition keeps the co-op chaos you love and layers on bold classes, dramatic abilities, and a stack of quality-of-life touches that make the whole server feel alive.
+A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a playable action movie. Rage Edition keeps the co-op chaos you love and layers on bold classes, dramatic abilities, and a stack of quality-of-life touches that make the whole server feel alive.
 
 ## Core Features
-- Sourcemod 1.21 compatible
+- Sourcemod 1.12 compatible
 - Plugin-based architecture: drop in new perks or classes via `RageCore` and optional skill plugins
-- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, deploy)
+- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, tertiary, deploy)
+- Class descriptions live in the same config so server owners can tune both abilities and flavor text together
 - Modular perk system with negative effects and combo chaining; class-based skins and custom class definitions
-- Optional HUD with alerts, kill counter and supply warnings
-- Expanded help system with class descriptions and a night vision tutorial
+- New menu system. Hold ALT to show menu, move and select with WASD keys. Release ALT to exit
+- Additional admin menu aligned with the new menu system
+- Toggle between 3rd person view modes. Either always, on melee weapon or off. Setting persists for clients
+- Optional HUD with alerts, class specific info, and stats
+- Expanded help system with class descriptions and tutorials
 - Adjustable adrenaline, pills, revive and heal timings
-- Rewritten invisibility and fixed gun reload glitches
-- Debug modes, admin menu and useful tools
+- Integrated functionalities: Versus match countdown, multiple equipment, self healing with configurable bot support
+- Portable turrets with 20 different shooting modes
+- Mines with 20 different types
+- Ninja kick to the face, parachute glide and other enhancements for classes. See class description for more info
+- Missile functionality rewritten with more fun in mind. Shooter will be highlighted for other infected to kill. Missiles can be shot down.
+- Debug modes, logging, streamlined release and development flow
+
+## Quick setup
+
+1. Copy `sourcemod/` into your server install (or mount it with Docker Compose).
+2. Edit `configs/rage_class_skills.cfg` to assign skills, deployables, and per-class descriptions.
+3. (Optional) Adjust cvars in `cfg/sourcemod/talents.cfg` for cooldowns, health tweaks, and limits per class.
+4. Restart the server or reload the plugins to pick up changes.
 
 ## Play your way
 
+- Players have 3 extra skill actions + deploy action. These are configurable.
+- Default inputs for the four actions are below; rebind them to your liking in `configs/rage_class_skills.cfg` or via your own keybinds.
+
+| Action               | Default input              | Notes |
+| -------------------- | -------------------------- | ----- |
+| `skill_action_1`     | Middle button              | Primary class action |
+| `skill_action_2`     | Use + Fire                 | Alternate class action |
+| `skill_action_3`     | Crouch + Use + Fire        | Extra class action |
+| `deployment_action`  | Look down and hold **Shift** | Deploy/place items |
+
+- You can trigger actions from the quick menu as well.
+- Update `configs/rage_skill_actions.cfg` if you remap these buttons so the in-game prompts match your binds.
+- Multiple equipment mode
+- You can configure the skills and add new ones
+
 ### Soldierboy
 - Moves faster, shrugs off more hits, and slashes like a blender.
-- Aims and taps `!skill` to rain down an airstrike.
+- Can order satellite strike on outside areas.
+- Fires a homing missile with `SKILL ACTION 2` and a dummy distraction missile with `SKILL ACTION 3`.
 - Flips night vision on or off whenever the fight slips into darkness.
+- Has increased health
 
 ### Ninja
 - Built for motion: sprint boosts, double jumps, and mid-air karate kicks.
+- Moves fast
 - Sprint + **Jump** together to launch a ninja kick into whatever you collide with.
 - Hold **Use** mid-air to deploy a parachute and float over chaos or escape a wipe.
+- Throws antigravity grenades
 
 ### Trooper
-- Tunes damage per weapon, reloads on instinct, and shrugs off tank knockdowns.
-- Builds rage meter to unleash a Berserk rush that melts specials.
+- Increased damage per weapon, reloads fast. Can perform tank knockdowns.
+- Builds rage meter to unleash a Berserk rush that melts specials. Activate rage with `SKILL ACTION 1`
+- Lots of health
 
 ### Medic
-- Expanded spawn options
+- Can deploy defibs and medpacks
 - Faster healing and revival; movement boost while healing
-- Throws healing orbs that glow and announce to others; cleanses bile with `sm_unvomit`
+- Summon healing orbs with `SKILL ACTION 2` that glow and announce to others; cleanses bile with `SKILL ACTION 3` button
 - Players notified when healed; healed players gain a special glow; look down + **Shift** to drop medkits/supplies
-- Default health for classless players configurable
+- Can throw healing grenades by using `SKILL ACTION 1`
 
 ### Engineer
 - Spawns ready-to-use upgrade packs
-- `!skill` opens a turret menu with two turret types and eight ammo options; look down + **Shift** to drop ammo supplies
-- Deploys protective shields and barricades doors/windows; single-turret mode for old-school play
+- Deploy action opens a turret menu with two turret types and eight ammo options; look down + **Shift** to drop ammo supplies
+- Deploys protective shields and barricades doors/windows
 - Turrets notify nearby players, can be blown up by infected and are non-blocking
-- Deployment countdowns for engineer, medic and saboteur
+- Can carry turrets around
+- Has 20 experimental type grenades like Black Hole vortices, Tesla lightning, Medic healing clouds, or an Airstrike marker. Throw with `SKILL ACTION 1`
 
 ### Saboteur
-- Faster crouch movement with visibility status
-- Dead Ringer decoy: middle-click or type `!skill` (`sm_fd`/`sm_cloak`) to vanish and drop a fake corpse
-- Extended survivor sight: `!extendedsight` reveals special infected for 20 s every 2 min
-- Night vision and 20 mine types; look down + **Shift** to plant mines that glow and warn nearby players
+- Faster crouch movement with invisibility
+- Dead Ringer decoy: Use `SKILL ACTION 1` to vanish and drop a fake corpse.
+- When invisible, reveals special infected for 20 s every 2 min
+- Deploy action covers 20 mine types; look down + **Shift** to plant mines that glow and warn nearby players
 - Reduced survivor damage, increased infected damage
 
 ## Additional Features & Commands
-- **Prototype Grenades** – Equip any grenade and press **Primary Fire** to throw. Hold **Primary Fire** and tap **Shove** (or type `sm_grenade`) to cycle through 20 experimental types like Black Hole vortices, Tesla lightning, Medic healing clouds, or an Airstrike marker.
-- **Class Skill Command** – Bind a key or type `!skill` to trigger your class's special ability. Secondary actions (Use+Attack) and deploy actions (look down + Shift) are configurable per class in `configs/rage_class_skills.cfg`.
-- **Dead Ringer Cloak** – Saboteur-only decoy and invisibility; `sm_fd` toggles the effect and `sm_cloak` triggers it immediately.
-- **Extended Survivor Sight** – Saboteur-only wallhack for 20 s on a 2 min cooldown; activate with `sm_extendedsight`.
-- **Unvomit** – Clear Boomer bile with `sm_unvomit` as a Medic cleanse.
-- **Map Music** – `!music` menu lets players enable round-start tracks. Server var `start_music_enabled` controls the default.
-- **Multiturret** – Engineer presses the class skill key (default middle mouse or `sm_skill`) to open a turret menu. Pick a gun and ammo, left-click to deploy, and press **Use** to pick it back up. Look down + **Shift** to drop ammo supplies. Admins can remove a turret via `sm_removemachine`.
-- **Ninja Kick** – Athlete leap‑kicks infected by jumping into them, knocking targets to the ground.
-- **Berserk Mode** – Commando builds rage as they deal damage; press `!skill` (or `sm_berserker`) when prompted for a short speed and damage surge.
-- **Airstrike** – Soldier aims and hits `!skill` to mark a target for a missile barrage.
-- **3rd Person Mode** – Switch to shoulder cam via the Game Options menu (`!rage`); modes include Off, Melee-only, and Always, your selection is remembered per-player, and you can bind a key (e.g., Alt) to `+rage_menu` to hold the menu open while choosing.
+- **Class Skill Actions** – Bind `skill_action_1` through `skill_action_3` and `deployment_action` to trigger your class's abilities. Inputs are fully configurable per class in `configs/rage_class_skills.cfg`.
+- Keeps chosen class throughout the campaign unless user changes it.
 
 ## Toys, tricks, and server spice
-- **Prototype grenades** – Equip one and experiment with gravity wells, lightning storms, medic clouds, and more just by cycling the throw style.
 - **Music player** – Type `!music` to choose the soundtrack, skip songs, or go silent. Preferences stick with you between maps.
 - **Away toggle** – Need a breather? Mark yourself AFK directly from the menu and hop back in when ready.
 - **Multiple equipment mode** – Pick how forgiving pickups are, from classic single-use kits to double-tap weapon swaps.
 - **Voting hub** – Launch game mode and map votes without fumbling chat commands.
+- **Custom gamemodes** - Escort mission, Jockey chase, deathmatch 1v1 modes. By choosing gamemode, available maps are updated.
 - **Command parity** – Every feature also has an `sm_` console command so you can bind keys or build macros exactly how you like.
 
 ## Soundtrack corner
@@ -80,20 +107,25 @@ Custom tracks belong in the repo-level `music/` folder. Docker Compose mounts th
 Want music out of the box? Run `python music/download_soundtrack.py --out music` to fetch MP4s for the DOOM/DOOM II gamerip directly from downloads.khinsider.com. The pull includes Zorasoft's licenseless **Project Doom** album (https://zorasoft.net/prjdoom.html) so you still get Intro Stomp, Midnight Assault, and Final Push without storing the WAVs in the repository.
 
 ## Admin corner
-Need to tidy the battlefield? `!adm` opens a dedicated panel with spawn helpers, restart controls, god mode, and slow-motion toggles. Everything is grouped for quick decisions mid-round.
+Need to tidy the battlefield? `!rageadm` opens a dedicated panel with spawn helpers, restart controls, god mode, and slow-motion toggles. Everything is grouped for quick decisions mid-round.
 
 ## Ready to tinker?
 Rage Edition is built from modular SourceMod plugins, so you can add new talents, swap out effects, or write your own class packs without touching the core. Check the `sourcemod/scripting` folder for clean, well-documented examples.
 
-Helper natives:
-
-```sourcepawn
-forward FindSkillIdByName(const char[] skillName, int &skillId);
-native int GetPlayerClassName(int client);
-```
-
-Add `RageCore.sp` to your include folder and register your skill during `OnPluginStart` or `Rage_OnPluginState`. See the multiturret plugin for a complete example.
-
-See https://forums.alliedmods.net/showthread.php?t=273312 for more info.
-
 Grab the files, drop them on your server, tweak `configs/rage_class_skills.cfg` to taste, and let the rage weekend begin.
+
+## Credits
+
+Rage Edition grew out of DLR keeps a mix of community talent and community open-source modules alive.
+
+- Core talents and class system by DLR team, Ken, Neil, Spirit, panxiaohai, and Yani.
+- Scripted HUD work by Mart and Yani.
+- Extra menu system, airstrike, grenades, and Left 4 DHooks utilities by SilverShot (Silvers).
+- Satellite cannon plugin by ztar.
+- Music player by Dragokas.
+- Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.
+- In-progress jump and utility plugins from zonde306 and Yani, alongside shanapu’s shared parachute logic.
+- Enhanced graphics and custom Adawong model by LuxLuma
+- Ripping custom soundtrack by Zorasoft
+- Additional sound effects and event themes by Yaniho
+- Alliedmodders community

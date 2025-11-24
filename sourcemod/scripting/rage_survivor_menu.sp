@@ -3,11 +3,15 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <admin>
 #include <clientprefs>
 #include <extra_menu>
 #include <rage_survivor_guide>
+#include <l4d2hud>
+#include <rage/hud>
 
 #define GAMEMODE_OPTION_COUNT 11
+#define CLASS_OPTION_COUNT 7
 
 static const char g_sGameModeNames[GAMEMODE_OPTION_COUNT][] =
 {
@@ -69,6 +73,17 @@ static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
     "mp_gamemode value for Realism."
 };
 
+static const char g_sClassOptions[CLASS_OPTION_COUNT][] =
+{
+    "Soldier",
+    "Athlete",
+    "Medic",
+    "Saboteur",
+    "Commando",
+    "Engineer",
+    "Brawler"
+};
+
 #pragma semicolon 1
 #pragma newdecls required
 
@@ -78,6 +93,7 @@ int g_iSelectableEntryCount = 0;
 bool g_bGuideNativeAvailable = false;
 bool g_bExtraMenuLoaded = false;
 bool g_bMenuHeld[MAXPLAYERS + 1];
+bool g_bHudEnabled = true;
 
 enum ThirdPersonMode
 {
@@ -123,6 +139,7 @@ enum RageMenuOption
 };
 
 void AddGameModeOptions(int menu_id);
+void AddClassOptions(int menu_id);
 void TrackSelectableEntry(EXTRA_MENU_TYPE type);
 void RefreshGuideLibraryStatus();
 bool TryShowGuideMenu(int client);
@@ -131,6 +148,7 @@ bool HasRageMenuAccess(int client);
 void ApplyThirdPersonMode(int client);
 void PersistThirdPersonMode(int client);
 bool IsMeleeWeapon(int weapon);
+void SetHudEnabled(bool enabled, int activator);
 
 // ====================================================================================================
 //					PLUGIN INFO
@@ -146,7 +164,7 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-    RegAdminCmd("sm_rage", CmdRageMenu, ADMFLAG_ROOT);
+    RegConsoleCmd("sm_rage", CmdRageMenu, "Open the Rage game menu");
     RegConsoleCmd("sm_guide", CmdRageGuideMenu, "Open the Rage tutorial guide");
     RegConsoleCmd("+rage_menu", CmdRageMenuHoldStart, "Hold to open Rage menu");
     RegConsoleCmd("-rage_menu", CmdRageMenuHoldEnd, "Release to close Rage menu");
@@ -254,19 +272,20 @@ public void OnLibraryAdded(const char[] name)
         TrackSelectableEntry(MENU_SELECT_ONLY);
         ExtraMenu_AddEntry(menu_id, "3. Select team", MENU_SELECT_ONLY);
         TrackSelectableEntry(MENU_SELECT_ONLY);
-        ExtraMenu_AddEntry(menu_id, "4. Change class", MENU_SELECT_LIST);
+        ExtraMenu_AddEntry(menu_id, "4. Change class: _OPT_", MENU_SELECT_LIST);
         TrackSelectableEntry(MENU_SELECT_LIST);
+        AddClassOptions(menu_id);
 
         ExtraMenu_AddEntry(menu_id, "5. See your ranking", MENU_SELECT_ONLY);
         TrackSelectableEntry(MENU_SELECT_ONLY);
         ExtraMenu_AddEntry(menu_id, "6. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
         TrackSelectableEntry(MENU_SELECT_ADD);
         ExtraMenu_AddEntry(menu_id, "7. Vote for gamemode", MENU_SELECT_LIST);
-        TrackSelectableEntry(MENU_SELECT_LIST);
-        AddGameModeOptions(menu_id);
-        ExtraMenu_NewPage(menu_id);
+            TrackSelectableEntry(MENU_SELECT_LIST);
+            AddGameModeOptions(menu_id);
+            ExtraMenu_NewPage(menu_id);
 
-        ExtraMenu_AddEntry(menu_id, "GAME OPTIONS:", MENU_ENTRY);
+            ExtraMenu_AddEntry(menu_id, "GAME OPTIONS:", MENU_ENTRY);
         if (!buttons_nums)
             ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
         ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
@@ -424,6 +443,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         // Option indexes are 0-based, matching the order entries are added.
 
+        RageMenuOption menuOption = view_as<RageMenuOption>(option);
+
         if (option == g_iGuideOptionIndex && g_iGuideOptionIndex != -1)
         {
             if (!TryShowGuideMenu(client))
@@ -433,7 +454,14 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             return;
         }
 
-        switch (option)
+        bool adminSelection = (menuOption >= Menu_SpawnItems && menuOption <= Menu_GameSpeed);
+        if (adminSelection && !CheckCommandAccess(client, "sm_rage_admin", ADMFLAG_ROOT))
+        {
+            PrintHintText(client, "Admin-only option.");
+            return;
+        }
+
+        switch (menuOption)
         {
             case Menu_GetKit:
             {
@@ -449,7 +477,15 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             }
             case Menu_ChangeClass:
             {
-                ClientCommand(client, "sm_class");
+                if (value < 0 || value >= CLASS_OPTION_COUNT)
+                {
+                    PrintHintText(client, "Choose a class with left/right to apply it.");
+                    return;
+                }
+
+                int classIndex = value + 1; // class options skip the NONE slot
+                FakeClientCommand(client, "sm_class_set %d", classIndex);
+                PrintHintText(client, "Switching to %s", g_sClassOptions[value]);
             }
             case Menu_ViewRank:
             {
@@ -483,7 +519,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             }
             case Menu_HudToggle:
             {
-                PrintHintText(client, "HUD toggle is not configured.");
+                bool enableHud = value != 0;
+                SetHudEnabled(enableHud, client);
             }
             case Menu_MusicToggle:
             {
@@ -625,6 +662,24 @@ public void AddGameModeOptions(int menu_id)
     ExtraMenu_AddOptions(menu_id, options);
 }
 
+public void AddClassOptions(int menu_id)
+{
+    char options[256];
+    options[0] = '\0';
+
+    for (int i = 0; i < CLASS_OPTION_COUNT; i++)
+    {
+        if (options[0] != '\0')
+        {
+            StrCat(options, sizeof(options), "|");
+        }
+
+        StrCat(options, sizeof(options), g_sClassOptions[i]);
+    }
+
+    ExtraMenu_AddOptions(menu_id, options);
+}
+
 void ChangeGameModeByIndex(int client, int modeIndex)
 {
     if (modeIndex < 0 || modeIndex >= GAMEMODE_OPTION_COUNT)
@@ -673,7 +728,7 @@ void ChangeGameModeByIndex(int client, int modeIndex)
 
 public bool HasRageMenuAccess(int client)
 {
-    return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", ADMFLAG_ROOT);
+    return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", 0);
 }
 
 public bool DisplayRageMenu(int client, bool showHint)
@@ -697,6 +752,45 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);
     return true;
+}
+
+public void SetHudEnabled(bool enabled, int activator)
+{
+    if (activator > 0 && IsClientInGame(activator))
+    {
+        if (g_bHudEnabled == enabled)
+        {
+            PrintHintText(activator, "HUD is already %s.", enabled ? "on" : "off");
+            return;
+        }
+    }
+
+    g_bHudEnabled = enabled;
+
+    if (!enabled)
+    {
+        DeleteAllHUD();
+
+        if (activator > 0 && IsClientInGame(activator))
+        {
+            PrintHintText(activator, "HUD disabled.");
+        }
+
+        return;
+    }
+
+    hudPosition currentPos = view_as<hudPosition>(getCurrentHud());
+    if (currentPos < HUD_POSITION_FAR_LEFT || currentPos > HUD_POSITION_SCORE_4)
+    {
+        currentPos = HUD_POSITION_MID_TOP;
+    }
+
+    SetupMessageHud(currentPos, HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEAM_SURVIVORS);
+
+    if (activator > 0 && IsClientInGame(activator))
+    {
+        PrintHintText(activator, "HUD enabled.");
+    }
 }
 
 public bool IsMeleeWeapon(int weapon)

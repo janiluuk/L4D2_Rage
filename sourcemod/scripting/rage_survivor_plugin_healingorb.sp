@@ -2,14 +2,15 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <rage/skills>
 
 #define PLUGIN_VERSION	"0.2"
 #define CVAR_FLAGS		FCVAR_NONE
-#define PLUGIN_SKILL_NAME = "healing_ball"
-#define PLUGIN_SKILL_DESCRIPTION "Summons health orb around player to heal others."
+#define PLUGIN_SKILL_NAME "HealingOrb"
+#define PLUGIN_SKILL_DESCRIPTION "Summons a healing orb near the player to patch up allies."
 public Plugin myinfo =
 {
-	name = "[Rage] Healing ball plugin version",
+        name = "Healing orb skill",
 	author = "zonde306, Yani",
 	description = PLUGIN_SKILL_DESCRIPTION,
 	version = PLUGIN_VERSION,
@@ -24,23 +25,58 @@ public Plugin myinfo =
 #define SPRITE_GLOW		"materials/sprites/glow01.vmt"
 
 new BlueColor[4] = {80, 80, 255, 255};
-new Handle:HealingBallTimer[MAXPLAYERS+1];
+new Handle:HealingBallTimer[MAXPLAYERS+1] = { INVALID_HANDLE, ... };
 new g_BeamSprite, g_HaloSprite, g_GlowSprite;
 
 new Float:HealingBallInterval[MAXPLAYERS+1], Float:HealingBallEffect[MAXPLAYERS+1],
-	Float:HealingBallRadius[MAXPLAYERS+1], Float:HealingBallDuration[MAXPLAYERS+1];
+        Float:HealingBallRadius[MAXPLAYERS+1], Float:HealingBallDuration[MAXPLAYERS+1];
+Handle g_hHealingOrbCooldown = INVALID_HANDLE;
+float g_fHealingOrbCooldown = 30.0;
+float g_fNextHealingOrbUse[MAXPLAYERS+1];
 
-public void OnSpecialSkillUsed(int client, const char[] skillName)
+public void OnPluginStart()
 {
-	if(!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
-		return;
-	
-	HealingBallInterval[client] = 1.0;
-	HealingBallEffect[client] = 1.5);
-	HealingBallRadius[client] = 130.0);
-	HealingBallDuration[client] = 8.0;
-	HealingBallFunction(client);
-	PrintToChat(client, "\x03[Rage]\x01 Healing ball now active\x01", HealingBallDuration[client]);
+        g_hHealingOrbCooldown = CreateConVar("healing_orb_cooldown", "30.0", "Cooldown between healing orb uses in seconds.", CVAR_FLAGS, true, 0.0);
+        g_fHealingOrbCooldown = GetConVarFloat(g_hHealingOrbCooldown);
+        HookConVarChange(g_hHealingOrbCooldown, OnHealingOrbCooldownChanged);
+
+        for (int i = 1; i <= MaxClients; ++i)
+        {
+                HealingBallTimer[i] = INVALID_HANDLE;
+                g_fNextHealingOrbUse[i] = 0.0;
+        }
+}
+
+public void OnHealingOrbCooldownChanged(Handle convar, const char[] oldValue, const char[] newValue)
+{
+        g_fHealingOrbCooldown = GetConVarFloat(convar);
+}
+
+public int OnSpecialSkillUsed(int client, int skill, int type)
+{
+        char skillName[32];
+        GetPlayerSkillName(client, skillName, sizeof(skillName));
+        if(!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
+                return 0;
+
+        float now = GetEngineTime();
+        float remaining = g_fNextHealingOrbUse[client] - now;
+
+        if (remaining > 0.0)
+        {
+                PrintHintText(client, "Healing orb ready in %.0f seconds", remaining);
+                return 1;
+        }
+
+        HealingBallInterval[client] = 1.0;
+        HealingBallEffect[client] = 1.5;
+        HealingBallRadius[client] = 130.0;
+        HealingBallDuration[client] = 8.0;
+        g_fNextHealingOrbUse[client] = now + g_fHealingOrbCooldown;
+        HealingBallFunction(client);
+        PrintHintText(client, "Healing orb now active");
+
+        return 1;
 }
 
 public void OnMapStart()
@@ -55,13 +91,25 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	for(new i = 1; i <= MaxClients; ++i)
-	{
-		if(HealingBallTimer[i] != INVALID_HANDLE)
-			KillTimer(HealingBallTimer[i]);
-		
-		HealingBallTimer[i] = INVALID_HANDLE;
-	}
+        for(new i = 1; i <= MaxClients; ++i)
+        {
+                if(HealingBallTimer[i] != INVALID_HANDLE)
+                        KillTimer(HealingBallTimer[i]);
+
+                HealingBallTimer[i] = INVALID_HANDLE;
+                g_fNextHealingOrbUse[i] = 0.0;
+        }
+}
+
+public void OnClientDisconnect(int client)
+{
+        if (HealingBallTimer[client] != INVALID_HANDLE)
+        {
+                KillTimer(HealingBallTimer[client]);
+                HealingBallTimer[client] = INVALID_HANDLE;
+        }
+
+        g_fNextHealingOrbUse[client] = 0.0;
 }
 
 public Action:HealingBallFunction(Client)

@@ -21,9 +21,12 @@ static bool PressedSpecialSkillButton(int client, int buttons)
 
 static bool PressedSecondarySkillButton(int client, int buttons)
 {
-	bool pressed = (buttons & IN_ZOOM) != 0;
-	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0;
-	return pressed && !wasPressed;
+        bool pressedZoom = (buttons & IN_ZOOM) != 0;
+        bool pressedCombo = (buttons & IN_USE) != 0 && (buttons & IN_ATTACK) != 0;
+        bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0 ||
+                ((ClientData[client].LastButtons & IN_USE) != 0 && (ClientData[client].LastButtons & IN_ATTACK) != 0);
+
+        return (pressedZoom || pressedCombo) && !wasPressed;
 }
 
 static bool PressedPlantModifier(int client, int buttons)
@@ -618,4 +621,15 @@ public Action Timer_Parachute( Handle timer, any iEntity)
 		return Plugin_Continue;
 	}
 	return Plugin_Stop;
+}
+
+void RotateParachute(int index, float value, int axis)
+{
+	if (IsValidEntity(index))
+	{
+		float s_rotation[3];
+		GetEntPropVector(index, Prop_Data, "m_angRotation", s_rotation);
+		s_rotation[axis] += value;
+		TeleportEntity(index, NULL_VECTOR, s_rotation, NULL_VECTOR);
+	}
 }
