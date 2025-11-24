@@ -1898,26 +1898,26 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 			#if DEBUG
 				PrintDebugAll("Shotgun Class: %s", stClass);
 			#endif
-			hPack.WriteFloat(hPack, g_flShotgunSpasS);
-			hPack.WriteFloat(hPack, g_flShotgunSpasI);
-			hPack.WriteFloat(hPack, g_flShotgunSpasE);
+			hPack.WriteFloat( g_flShotgunSpasS);
+			hPack.WriteFloat( g_flShotgunSpasI);
+			hPack.WriteFloat( g_flShotgunSpasE);
 
 			CreateTimer(0.1, CommandoPumpShotReload, hPack);
 		}
 		else if (StrContains(bNetCl, "pumpshotgun", false) != -1)
 		{
 
-			hPack.WriteFloat(hPack, g_flPumpShotgunS);
-			hPack.WriteFloat(hPack, g_flPumpShotgunI);
-			hPack.WriteFloat(hPack, g_flPumpShotgunE);
+			hPack.WriteFloat( g_flPumpShotgunS);
+			hPack.WriteFloat( g_flPumpShotgunI);
+			hPack.WriteFloat( g_flPumpShotgunE);
 
 			CreateTimer(0.1, CommandoPumpShotReload, hPack);
 		}
 		else if (StrContains(bNetCl, "autoshotgun", false) != -1)
 		{
-			hPack.WriteFloat(hPack, g_flAutoShotgunS);
-			hPack.WriteFloat(hPack, g_flAutoShotgunI);
-			hPack.WriteFloat(hPack, g_flAutoShotgunE);
+			hPack.WriteFloat( g_flAutoShotgunS);
+			hPack.WriteFloat( g_flAutoShotgunI);
+			hPack.WriteFloat( g_flAutoShotgunE);
 
 			CreateTimer(0.1, CommandoPumpShotReload, hPack);
 		}
@@ -2002,12 +2002,12 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 
 	if (GetEntData(weapon, g_iReloadState) != 2)
 	{
-		hPack.WriteFloat(hPack, 0.2);
+		hPack.WriteFloat( 0.2);
 		CreateTimer(0.3, CommandoShotCalculate, hPack, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else
 	{
-		hPack.WriteFloat(hPack, 1.0);
+		hPack.WriteFloat( 1.0);
 		CreateTimer(0.3, CommandoShotCalculate, hPack, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	}
 	
@@ -2650,11 +2650,11 @@ public void DropBomb(client, bombType)
 
 	hPack.WriteFloat(pos[0]);
 	hPack.WriteFloat(pos[1]);
-	hPack.WriteFloat(hPack, pos[2]);
-	hPack.WriteCell(hPack, GetClientUserId(client));
-	hPack.WriteCell(hPack, RndSession);
-	hPack.WriteCell(hPack, index);
-	hPack.WriteCell(hPack, bombType);	
+	hPack.WriteFloat( pos[2]);
+	hPack.WriteCell( GetClientUserId(client));
+	hPack.WriteCell( RndSession);
+	hPack.WriteCell( index);
+	hPack.WriteCell( bombType);	
 
 
 	TE_SetupBeamRingPoint(pos, 10.0, 256.0, g_BeamSprite, g_HaloSprite, 0, 15, 0.5, 5.0, 0.0, greenColor, 10, 0);
@@ -2666,7 +2666,7 @@ public void DropBomb(client, bombType)
 
 
 	int entity = CreateBombParticleInPos(pos, BOMB_GLOW, index);
-	hPack.WriteCell(hPack, entity);	
+	hPack.WriteCell( entity);	
 	CreateTimer(GetConVarFloat(SABOTEUR_BOMB_ACTIVATE), TimerCheckBombSensors, hPack, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	EmitSoundToAll(SOUND_DROP_BOMB);
 	PrintHintTextToAll("%N planted a %s mine! (%i/%i)", client, bombName, (1+ ClientData[client].SpecialsUsed), GetConVarInt(SABOTEUR_MAX_BOMBS));
