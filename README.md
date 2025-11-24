@@ -5,7 +5,7 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 ## Core Features
 - Sourcemod 1.12 compatible
 - Plugin-based architecture: drop in new perks or classes via `RageCore` and optional skill plugins
-- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, deploy)
+- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, tertiary, deploy)
 - Modular perk system with negative effects and combo chaining; class-based skins and custom class definitions.
 - New menu system. Hold ALT to show menu, move and select with WASD keys. Release ALT to exit.
 - Additional admin menu aligned with the new menu system
@@ -23,16 +23,17 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 ## Play your way
 
 - Players have 3 extra skill actions + deploy action. These are configurable.
-- Default bindings:
+- Default inputs for the four actions are below; rebind them to your liking in `configs/rage_class_skills.cfg` or via your own keybinds.
 
-| Action name         | Default input                         | Notes                         |
-|---------------------|---------------------------------------|-------------------------------|
-| `skill_action_1`    | Middle mouse button                   | Primary active skill          |
-| `skill_action_2`    | Hold **Use** and press **Fire**       | Secondary skill               |
-| `skill_action_3`    | Hold **Crouch** + **Use** + **Fire**  | Tertiary skill                |
-| `deployment_action` | Look down and hold **Shift**          | Deploy grenades/turrets/mines |
+| Action               | Default input              | Notes |
+| -------------------- | -------------------------- | ----- |
+| `skill_action_1`     | Middle button              | Primary class action |
+| `skill_action_2`     | Use + Fire                 | Alternate class action |
+| `skill_action_3`     | Crouch + Use + Fire        | Extra class action |
+| `deployment_action`  | Look down and hold **Shift** | Deploy/place items |
 
-You can remap these in `configs/rage_class_skills.cfg` to any keys you like.
+- You can trigger actions from the quick menu as well.
+- Update `configs/rage_skill_actions.cfg` if you remap these buttons so the in-game prompts match your binds.
 - Multiple equipment mode
 - You can configure the skills and add new ones
 
@@ -78,7 +79,7 @@ You can remap these in `configs/rage_class_skills.cfg` to any keys you like.
 - Reduced survivor damage, increased infected damage
 
 ## Additional Features & Commands
-- **Class Skill Actions** – Bind four class actions (skill_action_1 through skill_action_3 plus deployment_action) to any comfortable keys. Defaults are above and can be remapped in `configs/rage_class_skills.cfg`.
+- **Class Skill Actions** – Bind `skill_action_1` through `skill_action_3` and `deployment_action` to trigger your class's abilities. Inputs are fully configurable per class in `configs/rage_class_skills.cfg`.
 - Keeps chosen class throughout the campaign unless user changes it.
 
 ## Toys, tricks, and server spice
@@ -111,7 +112,7 @@ Rage Edition grew out of DLR keeps a mix of community talent and community open-
 
 - Core talents and class system by DLR team, Ken, Neil, Spirit, panxiaohai, and Yani.
 - Scripted HUD work by Mart and Yani.
-- Extra menu system, airstrike, prototype grenades, and Left 4 DHooks utilities by SilverShot (Silvers).
+- Extra menu system, airstrike, grenades, and Left 4 DHooks utilities by SilverShot (Silvers).
 - Satellite cannon plugin by ztar.
 - Music player by Dragokas.
 - Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.

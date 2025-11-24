@@ -111,10 +111,9 @@ stock bool:CreatePlayerClassMenu(client)
 		return false;
 	}
 	
-        // if client has a class already and round has started, explain when changes apply
         if (ClientData[client].ChosenClass != NONE && RoundStarted == true)
         {
-                PrintToChat(client,"Round has started; changing class now will apply next round. You are a %s",MENU_OPTIONS[ClientData[client].ChosenClass]);
+                PrintToChat(client,"Round has started; pick a new class now and it will apply next round. You are a %s",MENU_OPTIONS[ClientData[client].ChosenClass]);
         }
 	
 	if(IsClientInGame(client) && ClientData[client].ChosenClass == NONE && RoundStarted == false)
@@ -144,19 +143,66 @@ stock bool:CreatePlayerClassMenu(client)
 
 public PanelHandler_SelectClass(Handle:menu, MenuAction:action, client, param)
 {
-        switch (action)
-        {
-                case MenuAction_Select:
-                {
-                        if (!client || param >= view_as<int>(MAXCLASSES) || GetClientTeam(client)!=2 )
-                        {
-                                return;
-                        }
+        ClassTypes OldClass;
+        OldClass = ClientData[client].ChosenClass;
 
-                        ApplyClassSelection(client, param);
+	switch (action)
+	{
+		case MenuAction_Select:
+		{
+			if (!client || param >= view_as<int>(MAXCLASSES) || GetClientTeam(client)!=2 )
+			{
+				return;
+			}
+			
+			if( GetMaxWithClass( param ) >= 0 && CountPlayersWithClass( param ) >= GetMaxWithClass( param ) && view_as<int>(ClientData[client].ChosenClass)!= param ) 
+			{
+				PrintToChat( client, "%sThe \x04%s\x01 class is full, please choose another.", PRINT_PREFIX, MENU_OPTIONS[ param ] );
+				CreatePlayerClassMenu( client );
+			} 
+			else
+			{
+                                bool classLocked = (RoundStarted == true && OldClass != NONE);
+                                ClassTypes newClass = view_as<ClassTypes>(param);
+
+                                if (classLocked)
+                                {
+                                        g_iQueuedClass[client] = param;
+                                        SaveClassCookie(client, newClass);
+                                        PrintToChat(client, "%sYou will switch to %s next round. Use the menu again if you want a different class.", PRINT_PREFIX, MENU_OPTIONS[param]);
+                                        return;
+                                }
+
+                                g_iQueuedClass[client] = 0;
+                                LastClassConfirmed[client] = param;
+                                ClientData[client].ChosenClass = newClass;
+                                SaveClassCookie(client, newClass);
+
+                                // Inform other plugins.
+                                Call_StartForward(g_hfwdOnPlayerClassChange);
+                                Call_PushCell(client);
+                                Call_PushCell(ClientData[client].ChosenClass);
+                                Call_PushCell(LastClassConfirmed[client]);
+                                Call_Finish();
+
+                                PrintToConsole(client, "Class is setting up");
+
+                                SetupClasses(client, param);
+                                EmitSoundToClient(client, SOUND_CLASS_SELECTED);
+                                RebuildCache();
+                                if(view_as<int>(OldClass) == 0)
+                                {
+                                        PrintToChatAll("\x04%N\x01 is a \x05%s\x01%s",client,MENU_OPTIONS[param],ClassTips[param]);
+                                }
+                                else
+                                {
+                                        PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01",client,MENU_OPTIONS[OldClass],MENU_OPTIONS[param]);
+                                }
+                                PrintToChat(client, "%sClass selected. Use the Rage menu to change it again.", PRINT_PREFIX);
+                        }
                 }
-                case MenuAction_Cancel:
-                {
+		case MenuAction_Cancel:
+		{
 			CloseHandle(menu);
 
 		}

@@ -90,7 +90,7 @@
 	}
 	"Skill Hint"
 	{
-		"en"		"Press the class skill key (skill_action_1, default middle mouse) to open the turret menu."
+		"en"		"Press %s to open the turret menu."
 	}
 	"Reload Machine Gun"
 	{
