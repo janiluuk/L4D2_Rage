@@ -9,13 +9,10 @@ forward bool ApplyClassSelection(int client, int classIndex);
 
 public Action CmdClassInfo(int client, int args)
 {
-        PrintToChat(client,"\x05Soldier\x01 = Has faster attack rate, runs faster and takes less damage");
-        PrintToChat(client,"\x05Athlete\x01 = Jumps higher, has parachute.");
-        PrintToChat(client,"\x05Medic\x01 = Heals others, plants medical supplies. Faster revive & heal speed");
-        PrintToChat(client,"\x05Saboteur\x01 = Can go invisible, plants powerful mines and throws special grenades");
-        PrintToChat(client,"\x05Commando\x01 = Has fast reload, deals extra damage");
-        PrintToChat(client,"\x05Engineer\x01 = Drops auto turrets and ammo");
-        PrintToChat(client,"\x05Brawler\x01 = Has Lots of health");
+        for (int classIndex = 1; classIndex < view_as<int>(MAXCLASSES); classIndex++)
+        {
+                PrintToChat(client, "\x05%s\x01 - %s", MENU_OPTIONS[classIndex], g_ClassDescriptions[classIndex]);
+        }
 
         return Plugin_Handled;
 }
@@ -77,7 +74,7 @@ stock Action CmdClasses(int client, int args)
                 {
                         static char translation[256];
 
-                        Format(translation, sizeof(translation), "\x04%N\x01 is a {green}%s{white}%s",i,MENU_OPTIONS[ClientData[i].ChosenClass], ClassTips[ClientData[i].ChosenClass]);
+                        Format(translation, sizeof(translation), "\x04%N\x01 is a {green}%s{white} - %s", i, MENU_OPTIONS[ClientData[i].ChosenClass], g_ClassDescriptions[ClientData[i].ChosenClass]);
                         ReplaceColors(translation, sizeof(translation));
                         PrintToChatAll(translation);
                 }
@@ -92,7 +89,7 @@ public Action CmdPlugins(int client, int args)
         {
                 if(ClientData[i].ChosenClass != NONE)
                 {
-                        PrintToChat(client, "\x04%N\x01 is a %s",i,MENU_OPTIONS[ClientData[i].ChosenClass]);
+                        PrintToChat(client, "\x04%N\x01 is a %s - %s", i, MENU_OPTIONS[ClientData[i].ChosenClass], g_ClassDescriptions[ClientData[i].ChosenClass]);
                 }
         }
 
