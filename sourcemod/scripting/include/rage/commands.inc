@@ -1,10 +1,10 @@
-
+ 
 
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
 
-bool ApplyClassSelection(int client, int classIndex);
+stock bool ApplyClassSelection(int client, int classIndex);
 
 public Action:Command_Debug(client, args) {
 	
