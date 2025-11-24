@@ -37,7 +37,7 @@ stock void ShowClassHud(int client, bool skillReady, const char[] readyText = ""
         }
 }
 
-stock bool:ApplyClassSelection(int client, int classIndex)
+stock bool ApplyClassSelection(int client, int classIndex)
 {
         if (client <= 0 || classIndex <= 0 || classIndex >= view_as<int>(MAXCLASSES) || GetClientTeam(client) != 2)
         {
@@ -96,7 +96,7 @@ stock bool:ApplyClassSelection(int client, int classIndex)
         return true;
 }
 
-stock bool:CreatePlayerClassMenu(client)
+stock bool CreatePlayerClassMenu(int client)
 {
         new Handle:hPanel;
 
@@ -141,7 +141,7 @@ stock bool:CreatePlayerClassMenu(client)
 	return true;
 }
 
-public PanelHandler_SelectClass(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_SelectClass(Handle menu, MenuAction action, int client, int param)
 {
         ClassTypes OldClass;
         OldClass = ClientData[client].ChosenClass;
@@ -244,7 +244,7 @@ public CreatePlayerEngineerMenu(client)
 	return true;
 }
 
-public PanelHandler_SelectEngineerItem(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_SelectEngineerItem(Handle menu, MenuAction action, int client, int param)
 {
 	switch (action)
 	{
@@ -256,7 +256,7 @@ public PanelHandler_SelectEngineerItem(Handle:menu, MenuAction:action, client, p
 	}
 }
 
-public void CalculateEngineerPlacePos(client, type)
+public void CalculateEngineerPlacePos(int client, int type)
 {
 	decl Float:vAng[3], Float:vPos[3], Float:endPos[3];
 	
@@ -327,7 +327,7 @@ public void CalculateEngineerPlacePos(client, type)
 // Medic
 ///////////////////////////////////////////////////////////////////////////////////
 
-public bool:CreatePlayerMedicMenu(client)
+public bool CreatePlayerMedicMenu(int client)
 {
 	if (!client)
 	return false;
@@ -352,7 +352,7 @@ public bool:CreatePlayerMedicMenu(client)
 	return true;
 }
 
-public PanelHandler_SelectMedicItem(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_SelectMedicItem(Handle menu, MenuAction action, int client, int param)
 {
 	switch (action)
 	{
@@ -365,7 +365,7 @@ public PanelHandler_SelectMedicItem(Handle:menu, MenuAction:action, client, para
 	}
 }
 
-public void CalculateMedicPlacePos(client, type)
+public void CalculateMedicPlacePos(int client, int type)
 {
 	decl Float:vAng[3], Float:vPos[3], Float:endPos[3];
 	
@@ -438,7 +438,7 @@ public void CalculateMedicPlacePos(client, type)
 //////////////////////////
 // Saboteur 
 //////////////////////////
-public bool:CreatePlayerSaboteurMenu(client)
+public bool CreatePlayerSaboteurMenu(int client)
 {
 	if (!client)
 	return false;
@@ -464,7 +464,7 @@ public bool:CreatePlayerSaboteurMenu(client)
 	return true;
 }
 
-public SelectSaboteurItem(Handle:menu, MenuAction:action, param1, param2)
+public void SelectSaboteurItem(Handle menu, MenuAction action, int param1, int param2)
 {
 	switch(action)
 	{
@@ -492,13 +492,13 @@ public SelectSaboteurItem(Handle:menu, MenuAction:action, param1, param2)
 // Rage menu
 ///////////////////////////////////////////////////////////////////////////////////
 
-public bool:isAdmin(client)
+public bool IsAdmin(int client)
 {
 	if (client == 0 && GetUserAdmin(client) == INVALID_ADMIN_ID) { return false; }
 	else { return true; }
 }
 
-public PanelHandler_RageMenu(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_RageMenu(Handle menu, MenuAction action, int client, int param)
 {
 	switch (action)
 	{
@@ -544,7 +544,7 @@ public PanelHandler_RageMenu(Handle:menu, MenuAction:action, client, param)
 	}
 }
 
-public RageSkillMenuHandler(Handle:hMenu, MenuAction:action, client, iSkillSelection)
+public void RageSkillMenuHandler(Menu hMenu, MenuAction action, int client, int iSkillSelection)
 {
     if(action == MenuAction_Select)
     {
@@ -557,7 +557,7 @@ public RageSkillMenuHandler(Handle:hMenu, MenuAction:action, client, iSkillSelec
 }
 
 // Format very top level admin menu entry
-public Admin_TopMainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:object_id, param, String:buffer[], maxlength) {
+public void Admin_TopMainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength) {
 
 	switch (action)
 	{
@@ -568,7 +568,7 @@ public Admin_TopMainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:obj
 	}
 }
 
-public OnAdminMenuReady(Handle:topmenu) {
+public void OnAdminMenuReady(TopMenu topmenu) {
 	
 	// Check ..
 	if (topmenu == hTopMenu) return;
@@ -597,7 +597,7 @@ new String:CommandText[][] = {
 };
 
 // Handle the switch menu items (switch player/swap players)
-public Admin_MainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:object_id, param, String:buffer[], maxlength) {
+public void Admin_MainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength) {
 	
 	new String:mnuinfo[MAX_NAME_LENGTH];
 	GetTopMenuInfoString(topmenu, object_id, mnuinfo, sizeof(mnuinfo));
@@ -624,13 +624,13 @@ public Admin_MainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:object
 	}
 }
 
-public Action:CmdRageMenu(client, args)
+public Action CmdRageMenu(int client, int args)
 {
-	if (isAdmin(client)) 
+    if (IsAdmin(client))
                 CreateRageMenu(client);
 }
 
-public CreateRageMenu(client) {
+public bool CreateRageMenu(int client) {
 
 	if (!client)
 	return false;
@@ -656,7 +656,7 @@ public CreateRageMenu(client) {
 	return true;
 }
 
-public Admin_MnuHdlr_RageOpts(Handle:menu, MenuAction:action, param1, param2) {
+public void Admin_MnuHdlr_RageOpts(Menu menu, MenuAction action, int param1, int param2) {
 
 	switch (action)
 	{
@@ -740,7 +740,7 @@ public Admin_MnuHdlr_RageOpts(Handle:menu, MenuAction:action, param1, param2) {
 	}
 }
 
-stock ShowDebugMenu(client) {
+stock void ShowDebugMenu(int client) {
 
 	new Handle:menu = CreateMenu(Admin_MnuHdlr_DebugOpts);	
 	
@@ -765,7 +765,7 @@ stock ShowDebugMenu(client) {
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-stock ShowRageMenu(client) {
+stock void ShowRageMenu(int client) {
 
     new Handle:menu = CreateMenu(Admin_MnuHdlr_RageOpts);
 	
@@ -796,7 +796,7 @@ stock ShowRageMenu(client) {
 
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
-public Admin_MnuHdlr_DebugOpts(Handle:menu, MenuAction:action, param1, param2) {
+public void Admin_MnuHdlr_DebugOpts(Menu menu, MenuAction action, int param1, int param2) {
 
 	switch (action)
 	{
