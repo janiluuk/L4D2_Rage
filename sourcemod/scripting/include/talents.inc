@@ -254,5 +254,6 @@ new Handle:SPECIAL_SKILL_LIMIT;
 #include <rage/effects>
 #include <rage/menus>
 #include <rage/perks>
+#include <rage/class_commands>
 #include <rage/commands>
 

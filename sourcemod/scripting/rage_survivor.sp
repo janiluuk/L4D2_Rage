@@ -602,8 +602,6 @@ public OnPluginStart( )
         RegAdminCmd("sm_debug", Command_Debug, ADMFLAG_GENERIC, "sm_debug [0 = Off|1 = PrintToChat|2 = LogToFile|3 = PrintToChat AND LogToFile]");
         RegAdminCmd("sm_model", CmdModel, ADMFLAG_GENERIC, "Change model to custom one");
 
-        g_hClassCookie = RegClientCookie("rage_last_class", "Last selected Rage class", CookieAccess_Protected);
-
         // Api
 
 	g_hfwdOnPlayerClassChange = CreateGlobalForward("OnPlayerClassChange", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
@@ -1310,33 +1308,9 @@ public void OnClientCookiesCached(int client)
         PrintToChat(client, "%sRestored your %s class. Use the class menu to change it again.", PRINT_PREFIX, MENU_OPTIONS[storedClass]);
 }
 
-public void OnClientCookiesCached(int client)
-{
-        if (g_hClassCookie == INVALID_HANDLE || !IsClientInGame(client) || IsFakeClient(client))
-        {
-                return;
-        }
-
-        char storedClass[8];
-        GetClientCookie(client, g_hClassCookie, storedClass, sizeof(storedClass));
-
-        int savedClass = StringToInt(storedClass);
-        if (savedClass > 0 && savedClass < view_as<int>(MAXCLASSES))
-        {
-                LastClassConfirmed[client] = savedClass;
-
-                if (ClientData[client].ChosenClass == NONE)
-                {
-                        ClientData[client].ChosenClass = view_as<ClassTypes>(savedClass);
-                }
-
-                PrintToChat(client, "%sLoaded your %s class. It will auto-apply on spawn; use the Rage menu to change anytime.", PRINT_PREFIX, MENU_OPTIONS[savedClass]);
-        }
-}
-
 void DmgHookUnhook(bool enabled)
 {
-	if( !enabled && g_bDmgHooked )
+        if( !enabled && g_bDmgHooked )
 	{
 		g_bDmgHooked = false;
 		for( int i = 1; i <= MaxClients; i++ )
