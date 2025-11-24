@@ -51,7 +51,7 @@ bool g_bRageAvailable = false;
 #include <sourcemod>
 #include <sdktools>
 #include <rage/skills>
-#pragma semicolon 2 //Who doesn't like semicolons? :)
+#pragma semicolon 1
 
 //Definitions
 #define SOUND_START "ui/pickup_secret01.wav" //Sound heard by the client that begins berserker
@@ -387,7 +387,7 @@ new g_ActiveWeaponOffset;
 new Handle:g_hForward_BerserkUse = INVALID_HANDLE;
 
 //Plugin Info
-public Plugin:myinfo = 
+public Plugin myinfo =
 {
 	name = "[Rage] Berserker Mode Plugin version",
 	author = "honorcode23, yani",
