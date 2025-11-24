@@ -578,6 +578,7 @@ public OnPluginStart( )
 {
         // Concommands
         RegConsoleCmd("sm_class", CmdClassMenu, "Shows the class selection menu");
+        RegConsoleCmd("sm_class_set", CmdClassSet, "Select a class directly");
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows clClearMessagesass descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
         RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
@@ -821,10 +822,10 @@ public RebuildCache()
 
 public void GetPlayerSkillReadyHint(client) {
 
-	int classId = view_as<int>(ClientData[client].ChosenClass);
-	if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed) {
-		PrintHintText(client,"%s", SpecialReadyTips[classId]);	
-	}
+        int classId = view_as<int>(ClientData[client].ChosenClass);
+        if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed && classId > 0 && classId < sizeof(SpecialReadyTips)) {
+                ShowClassHud(client, true, SpecialReadyTips[classId]);
+        }
 }
 
 public void SetupClasses(client, class)
