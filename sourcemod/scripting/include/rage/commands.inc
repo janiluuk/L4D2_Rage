@@ -24,7 +24,7 @@ public Action:Command_Debug(client, args) {
 	return Plugin_Handled;
 }
 
-public Action:CmdClassInfo(client, args)
+public Action CmdClassInfo(int client, int args)
 {
 	PrintToChat(client,"\x05Soldier\x01 = Has faster attack rate, runs faster and takes less damage");
 	PrintToChat(client,"\x05Athlete\x01 = Jumps higher, has parachute.");
@@ -34,7 +34,7 @@ public Action:CmdClassInfo(client, args)
 	PrintToChat(client,"\x05Engineer\x01 = Drops auto turrets and ammo");
 	PrintToChat(client,"\x05Brawler\x01 = Has Lots of health");	
 }
-public Action:CmdModel(client, args) {
+public Action CmdModel(int client, int args) {
         if (args < 1)
         {
                 ReplyToCommand(client, "\x03[Rage]\x01 Usage: \x04sm_model\x01 <model path>");
@@ -50,7 +50,7 @@ public Action:CmdModel(client, args) {
         return Plugin_Handled;
 
 }
-public Action:CmdClassMenu(client, args)
+public Action CmdClassMenu(int client, int args)
 {
         if (GetClientTeam(client) != 2)
         {
@@ -88,12 +88,12 @@ public Action:CmdClassSet(int client, int args)
         return Plugin_Handled;
 }
 
-public Action:CreatePlayerClassMenuDelay(Handle:hTimer, any:client)
+public Action CreatePlayerClassMenuDelay(Handle hTimer, any client)
 {
 	CreatePlayerClassMenu(client);
 }
 
-stock Action:CmdClasses(client, args)
+stock Action CmdClasses(int client, int args)
 {	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -110,7 +110,7 @@ stock Action:CmdClasses(client, args)
 	}
 }
 
-public Action:CmdPlugins(client, args)
+public Action CmdPlugins(int client, int args)
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -274,9 +274,9 @@ public Action Cmd_PrintToHUD(int client, int args) {
 	return Plugin_Handled;
 }
 
-public Action:GrenadeCommand(client, args)
+public Action GrenadeCommand(int client, int args)
 {
-	if (isAdmin(client)) {
+        if (IsAdmin(client)) {
 		// Index
 		int index;
 		char str[3];
@@ -294,9 +294,9 @@ public Action:GrenadeCommand(client, args)
 	return Plugin_Handled;
 }
 
-public Action:HideCommand(client, args)
+public Action HideCommand(int client, int args)
 {
-	if (client > 0 && IsClientInGame(client) && isAdmin(client)) {
+        if (client > 0 && IsClientInGame(client) && IsAdmin(client)) {
 
 		new String:str[32];
 		new type=GetCmdArg(1, str, 32);
