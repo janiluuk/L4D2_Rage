@@ -587,20 +587,7 @@ public OnPluginStart( )
         RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (look down + SHIFT by default)");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
         g_hClassCookie = RegClientCookie("rage_class_choice", "Rage preferred class", CookieAccess_Public);
-        RegAdminCmd("sm_ragem", CmdRageMenu, ADMFLAG_ROOT, "Debug & Manage");
-        RegAdminCmd("sm_hide", HideCommand, ADMFLAG_ROOT, "Hide player");
-        RegAdminCmd("sm_rage_plugins", CmdPlugins, ADMFLAG_ROOT, "List plugins");
-        RegAdminCmd("sm_yay", GrenadeCommand, ADMFLAG_ROOT, "Test grenades");
-	RegAdminCmd("sm_hud", Cmd_PrintToHUD, ADMFLAG_ROOT, "Test HUD");
-	RegAdminCmd("sm_hud_clear", Cmd_ClearHUD, ADMFLAG_ROOT, "Clear HUD");
-	RegAdminCmd("sm_hud_delete", Cmd_DeleteHUD, ADMFLAG_ROOT, "Delete HUD");
-	RegAdminCmd("sm_hud_close", Cmd_CloseHUD, ADMFLAG_ROOT, "Delete HUD");
-	RegAdminCmd("sm_hud_get", Cmd_GetHud, ADMFLAG_ROOT, "Delete HUD");
-	RegAdminCmd("sm_hud_set", Cmd_SetHud, ADMFLAG_ROOT, "Delete HUD");
-        RegAdminCmd("sm_hud_setup", Cmd_SetupHud, ADMFLAG_ROOT, "Delete HUD");
-        RegAdminCmd("sm_setvictim", Cmd_SetVictim, ADMFLAG_ROOT, "Set horde to attack player #");
-        RegAdminCmd("sm_debug", Command_Debug, ADMFLAG_GENERIC, "sm_debug [0 = Off|1 = PrintToChat|2 = LogToFile|3 = PrintToChat AND LogToFile]");
-        RegAdminCmd("sm_model", CmdModel, ADMFLAG_GENERIC, "Change model to custom one");
+        RegisterAdminCommands();
 
         // Api
 
@@ -1306,6 +1293,39 @@ public void OnClientCookiesCached(int client)
         g_iQueuedClass[client] = 0;
 
         PrintToChat(client, "%sRestored your %s class. Use the class menu to change it again.", PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+        NotifySelectedClassHint(client);
+}
+
+void NotifySelectedClassHint(int client)
+{
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return;
+        }
+
+        ClassTypes classType = ClientData[client].ChosenClass;
+
+        if (classType == NONE && LastClassConfirmed[client] != 0)
+        {
+                classType = view_as<ClassTypes>(LastClassConfirmed[client]);
+        }
+
+        if (classType == NONE)
+        {
+                return;
+        }
+
+        PrintHintText(client, "Class selected: %s", MENU_OPTIONS[classType]);
+}
+
+public Action TimerAnnounceSelectedClass(Handle timer, any data)
+{
+        for (int i = 1; i <= MaxClients; i++)
+        {
+                NotifySelectedClassHint(i);
+        }
+
+        return Plugin_Stop;
 }
 
 void DmgHookUnhook(bool enabled)
@@ -1538,10 +1558,11 @@ public Event_RoundChange(Handle:event, String:name[], bool:dontBroadcast)
 
 public Event_RoundStart(Handle:event, String:name[], bool:dontBroadcast)
 {
-	if( g_iPlayerSpawn == true && RoundStarted == true )
-		CreateTimer(1.0, TimerStart, _, TIMER_FLAG_NO_MAPCHANGE);
-	
-	RoundStarted = true;
+        if( g_iPlayerSpawn == true && RoundStarted == true )
+                CreateTimer(1.0, TimerStart, _, TIMER_FLAG_NO_MAPCHANGE);
+
+        RoundStarted = true;
+        CreateTimer(2.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void OnRoundState(int roundstate)
@@ -1677,6 +1698,7 @@ public Event_PlayerTeam(Handle:hEvent, String:sName[], bool:bDontBroadcast)
         {
                 ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
                 PrintToChat(client, "\x01You are currently a \x04%s\x01. Mid-round changes apply next round.", MENU_OPTIONS[LastClassConfirmed[client]]);
+                NotifySelectedClassHint(client);
         }
 }
 
