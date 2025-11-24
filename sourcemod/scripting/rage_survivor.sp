@@ -604,7 +604,7 @@ public OnPluginStart( )
         // Concommands
         RegConsoleCmd("sm_class", CmdClassMenu, "Shows the class selection menu");
         RegConsoleCmd("sm_class_set", CmdClassSet, "Select a class directly");
-        RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows clClearMessagesass descriptions");
+        RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows class descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
         RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
         RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
