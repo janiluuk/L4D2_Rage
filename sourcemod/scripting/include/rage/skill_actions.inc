@@ -66,10 +66,11 @@ void LoadSkillActionBindings()
 void GetSkillActionBindingLabel(SkillActionSlot slot, char[] buffer, int maxlen)
 {
     buffer[0] = '\0';
-    if (slot < 0 || slot >= SkillActionSlot_Count)
+    int slotIndex = view_as<int>(slot);
+    if (slotIndex < 0 || slotIndex >= SkillActionSlot_Count)
     {
         return;
     }
 
-    strcopy(buffer, maxlen, g_SkillActionBindings[slot]);
+    strcopy(buffer, maxlen, g_SkillActionBindings[slotIndex]);
 }

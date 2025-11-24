@@ -26,13 +26,15 @@ public Action Command_Debug(int client, int args) {
 
 public Action CmdClassInfo(int client, int args)
 {
-	PrintToChat(client,"\x05Soldier\x01 = Has faster attack rate, runs faster and takes less damage");
-	PrintToChat(client,"\x05Athlete\x01 = Jumps higher, has parachute.");
-	PrintToChat(client,"\x05Medic\x01 = Heals others, plants medical supplies. Faster revive & heal speed");
-	PrintToChat(client,"\x05Saboteur\x01 = Can go invisible, plants powerful mines and throws special grenades");
-	PrintToChat(client,"\x05Commando\x01 = Has fast reload, deals extra damage");
-	PrintToChat(client,"\x05Engineer\x01 = Drops auto turrets and ammo");
-	PrintToChat(client,"\x05Brawler\x01 = Has Lots of health");	
+        PrintToChat(client,"\x05Soldier\x01 = Has faster attack rate, runs faster and takes less damage");
+        PrintToChat(client,"\x05Athlete\x01 = Jumps higher, has parachute.");
+        PrintToChat(client,"\x05Medic\x01 = Heals others, plants medical supplies. Faster revive & heal speed");
+        PrintToChat(client,"\x05Saboteur\x01 = Can go invisible, plants powerful mines and throws special grenades");
+        PrintToChat(client,"\x05Commando\x01 = Has fast reload, deals extra damage");
+        PrintToChat(client,"\x05Engineer\x01 = Drops auto turrets and ammo");
+        PrintToChat(client,"\x05Brawler\x01 = Has Lots of health");
+
+        return Plugin_Handled;
 }
 public Action CmdModel(int client, int args) {
         if (args < 1)
@@ -55,9 +57,11 @@ public Action CmdClassMenu(int client, int args)
         if (GetClientTeam(client) != 2)
         {
                 PrintToChat(client, "%sOnly Survivors can choose a class.", PRINT_PREFIX);
-                return;
+                return Plugin_Handled;
         }
         CreatePlayerClassMenu(client);
+
+        return Plugin_Handled;
 }
 
 public Action CmdClassSet(int client, int args)
@@ -90,12 +94,14 @@ public Action CmdClassSet(int client, int args)
 
 public Action CreatePlayerClassMenuDelay(Handle hTimer, any client)
 {
-	CreatePlayerClassMenu(client);
+        CreatePlayerClassMenu(client);
+
+        return Plugin_Stop;
 }
 
 stock Action CmdClasses(int client, int args)
-{	
-	for (new i = 1; i <= MaxClients; i++)
+{
+        for (new i = 1; i <= MaxClients; i++)
 	{
 
 
@@ -104,21 +110,25 @@ stock Action CmdClasses(int client, int args)
 			static char translation[256];
 
 			Format(translation, sizeof(translation), "\x04%N\x01 is a {green}%s{white}%s",i,MENU_OPTIONS[ClientData[i].ChosenClass], ClassTips[ClientData[i].ChosenClass]);
-			ReplaceColors(translation, sizeof(translation));
-			PrintToChatAll(translation);
-		}
-	}
+                        ReplaceColors(translation, sizeof(translation));
+                        PrintToChatAll(translation);
+                }
+        }
+
+        return Plugin_Handled;
 }
 
 public Action CmdPlugins(int client, int args)
 {
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if(ClientData[i].ChosenClass != NONE)
-		{
-			PrintToChat(client, "\x04%N\x01 is a %s",i,MENU_OPTIONS[ClientData[i].ChosenClass]);
-		}
-	}
+        for (new i = 1; i <= MaxClients; i++)
+        {
+                if(ClientData[i].ChosenClass != NONE)
+                {
+                        PrintToChat(client, "\x04%N\x01 is a %s",i,MENU_OPTIONS[ClientData[i].ChosenClass]);
+                }
+        }
+
+        return Plugin_Handled;
 }
 
 public Action Cmd_SetVictim(int client, int args) {
