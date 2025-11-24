@@ -568,7 +568,7 @@ public void Admin_TopMainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObje
 	}
 }
 
-public void OnAdminMenuReady(TopMenu topmenu) {
+public void OnAdminMenuReady(Handle topmenu) {
 	
 	// Check ..
 	if (topmenu == hTopMenu) return;
