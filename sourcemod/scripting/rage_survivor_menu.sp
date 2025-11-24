@@ -726,7 +726,7 @@ void ChangeGameModeByIndex(int client, int modeIndex)
 
 public bool HasRageMenuAccess(int client)
 {
-    return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", ADMFLAG_NONE);
+    return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", 0);
 }
 
 public bool DisplayRageMenu(int client, bool showHint)
@@ -752,7 +752,7 @@ public bool DisplayRageMenu(int client, bool showHint)
     return true;
 }
 
-void SetHudEnabled(bool enabled, int activator)
+public void SetHudEnabled(bool enabled, int activator)
 {
     if (activator > 0 && IsClientInGame(activator))
     {
