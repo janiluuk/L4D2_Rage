@@ -167,7 +167,7 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "skillkeys"))
             {
-                PrintGuideLine(param1, "Bind !skill for your class ability and !deploy for build/throw actions so you can react without typing.");
+                PrintGuideLine(param1, "Bind skill_action_1 through skill_action_3 plus deployment_action so you can react without typing. Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "thirdperson"))
@@ -182,7 +182,7 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             }
             else if (StrEqual(info, "binds"))
             {
-                PrintGuideLine(param1, "Common binds: bind a key to say !skill, !deploy, !music, !unvomit or !extendedsight for one-tap support.");
+                PrintGuideLine(param1, "Common binds: map skill_action_1/2/3 and deployment_action to comfortable keys, plus !music, !unvomit or !extendedsight for one-tap support.");
                 DisplayControlsMenu(param1);
             }
         }
@@ -709,7 +709,7 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "turrets"))
             {
-                PrintGuideLine(param1, "Engineers open the turret picker with !skill, choose turret + ammo, left-click to place and USE to pack it up.");
+                PrintGuideLine(param1, "Engineers open the turret picker with skill_action_1 (middle mouse), choose turret + ammo, left-click to place and USE to pack it up.");
             }
             else if (StrEqual(info, "mines"))
             {
@@ -723,7 +723,7 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "airsupport"))
             {
-                PrintGuideLine(param1, "Soldiers press !skill to mark an F-18 airstrike, while Commandos use !skill for the satellite cannon once rage is ready.");
+                PrintGuideLine(param1, "Soldiers press skill_action_1 to mark an F-18 airstrike, while Commandos use skill_action_1 for the satellite cannon once rage is ready.");
             }
             else if (StrEqual(info, "support"))
             {
