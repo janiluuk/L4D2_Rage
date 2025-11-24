@@ -2721,9 +2721,9 @@ public void CreateAirStrike(int client) {
 		pack.WriteCell(GetClientUserId(client));
 		pack.WriteFloat(vPos[0]);
 		pack.WriteFloat(vPos[1]);
-		hPack.WriteFloat(pack, vPos[2]);
-		hPack.WriteFloat(pack, GetGameTime());
-		hPack.WriteCell(pack, entity);									
+		pack.WriteFloat(vPos[2]);
+		pack.WriteFloat(GetGameTime());
+		pack.WriteCell(entity);									
 		CreateTimer(1.0, TimerAirstrike, pack, TIMER_FLAG_NO_MAPCHANGE ); 	
  		CreateTimer(10.0, DeleteParticles, entity, TIMER_FLAG_NO_MAPCHANGE ); 													
 	} 
