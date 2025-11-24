@@ -10,7 +10,7 @@
 #define PLUGIN_SKILL_DESCRIPTION "Summons a healing orb near the player to patch up allies."
 public Plugin myinfo =
 {
-	name = "[Rage] Healing orb skill",
+        name = "Healing orb skill",
 	author = "zonde306, Yani",
 	description = PLUGIN_SKILL_DESCRIPTION,
 	version = PLUGIN_VERSION,
@@ -46,12 +46,12 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
         if(!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
                 return 0;
 	
-	HealingBallInterval[client] = 1.0;
-	HealingBallEffect[client] = 1.5;
-	HealingBallRadius[client] = 130.0;
+        HealingBallInterval[client] = 1.0;
+        HealingBallEffect[client] = 1.5;
+        HealingBallRadius[client] = 130.0;
         HealingBallDuration[client] = 8.0;
         HealingBallFunction(client);
-        PrintToChat(client, "\x03[Rage]\x01 Healing orb now active\x01", HealingBallDuration[client]);
+        PrintHintText(client, "Healing orb now active");
 
         return 1;
 }
