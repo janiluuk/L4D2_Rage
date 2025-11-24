@@ -449,6 +449,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             }
             case Menu_ChangeClass:
             {
+                PrintHintText(client, "Opening class picker with !class. Locked classes change next round.");
+                PrintToChat(client, "[Rage] Use the menu to pick a class. If you're already set, the new choice applies next round.");
                 ClientCommand(client, "sm_class");
             }
             case Menu_ViewRank:

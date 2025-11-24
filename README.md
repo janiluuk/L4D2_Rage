@@ -5,7 +5,7 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 ## Core Features
 - Sourcemod 1.12 compatible
 - Plugin-based architecture: drop in new perks or classes via `RageCore` and optional skill plugins
-- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, deploy)
+- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, tertiary, deploy)
 - Modular perk system with negative effects and combo chaining; class-based skins and custom class definitions.
 - New menu system. Hold ALT to show menu, move and select with WASD keys. Release ALT to exit.
 - Additional admin menu aligned with the new menu system
@@ -22,8 +22,18 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 
 ## Play your way
 
-- Players have 3 extra skill actions + deploy action. These are configurable. 
-- Deploy action is mapped to SHIFT. You can also deploy from quick menu
+- Players have 3 extra skill actions + deploy action. These are configurable.
+- Default inputs for the four actions are below; rebind them to your liking in `configs/rage_class_skills.cfg` or via your own keybinds.
+
+| Action               | Default input              | Notes |
+| -------------------- | -------------------------- | ----- |
+| `skill_action_1`     | Middle button              | Primary class action |
+| `skill_action_2`     | Use + Fire                 | Alternate class action |
+| `skill_action_3`     | Crouch + Use + Fire        | Extra class action |
+| `deployment_action`  | Look down and hold **Shift** | Deploy/place items |
+
+- You can trigger actions from the quick menu as well.
+- Update `configs/rage_skill_actions.cfg` if you remap these buttons so the in-game prompts match your binds.
 - Multiple equipment mode
 - You can configure the skills and add new ones
 
@@ -69,7 +79,7 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - Reduced survivor damage, increased infected damage
 
 ## Additional Features & Commands
-- **Class Skill Command** – Bind a key or type `!skill` to trigger your class's special ability. Secondary actions (Use+Attack) and deploy actions (look down + Shift) are configurable per class in `configs/rage_class_skills.cfg`.
+- **Class Skill Actions** – Bind `skill_action_1` through `skill_action_3` and `deployment_action` to trigger your class's abilities. Inputs are fully configurable per class in `configs/rage_class_skills.cfg`.
 - Keeps chosen class throughout the campaign unless user changes it.
 
 ## Toys, tricks, and server spice

@@ -1,6 +1,7 @@
 #define PLUGIN_VERSION "1.0"
 
 #include <sourcemod>
+#include <rage/skill_actions>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -20,6 +21,13 @@ public void OnPluginStart()
 
     CreateNative("RageGuide_ShowMainMenu", Native_ShowGuideMenu);
     RegPluginLibrary("rage_survivor_guide");
+
+    LoadSkillActionBindings();
+}
+
+public void OnConfigsExecuted()
+{
+    LoadSkillActionBindings();
 }
 
 public int Native_ShowGuideMenu(Handle plugin, int numParams)
@@ -54,6 +62,14 @@ void PrintGuideLine(int client, const char[] message)
     PrintToChat(client, "\x04[Rage]\x01 %s", message);
 }
 
+void GetBindingStrings(char[] action1, int len1, char[] action2, int len2, char[] action3, int len3, char[] deploy, int len4)
+{
+    GetSkillActionBindingLabel(SkillAction_Primary, action1, len1);
+    GetSkillActionBindingLabel(SkillAction_Secondary, action2, len2);
+    GetSkillActionBindingLabel(SkillAction_Tertiary, action3, len3);
+    GetSkillActionBindingLabel(SkillAction_Deploy, deploy, len4);
+}
+
 void DisplayGuideMainMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_GuideMain);
@@ -79,7 +95,11 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Rage Edition is a modular class overhaul for Left 4 Dead 2 with perk-driven gameplay.");
-                PrintGuideLine(param1, "Every survivor picks a class with unique passives plus a !skill ability, so coordinate before leaving the saferoom.");
+                char action1[64], action2[64], action3[64], deploy[64];
+                char overviewLine[192];
+                GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
+                Format(overviewLine, sizeof(overviewLine), "Every survivor picks a class with unique passives plus abilities bound to %s, %s, and %s, so coordinate before leaving the saferoom.", action1, action2, action3);
+                PrintGuideLine(param1, overviewLine);
                 DisplayGuideMainMenu(param1);
             }
             else if (StrEqual(info, "classes"))
@@ -200,7 +220,11 @@ public int MenuHandler_Features(Menu menu, MenuAction action, int param1, int pa
             }
             else if (StrEqual(info, "skill"))
             {
-                PrintGuideLine(param1, "Bind !skill for class abilities and USE the deploy prompt to place turrets, shields and mines.");
+                char action1[64], action2[64], action3[64], deploy[64];
+                char skillLine[192];
+                GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
+                Format(skillLine, sizeof(skillLine), "Bind %s, %s and %s for class abilities and use %s to place turrets, shields and mines.", action1, action2, action3, deploy);
+                PrintGuideLine(param1, skillLine);
             }
             else if (StrEqual(info, "thirdperson"))
             {
@@ -251,13 +275,17 @@ public int MenuHandler_Soldier(Menu menu, MenuAction action, int param1, int par
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Soldiers run faster, shrug off damage and excel as the frontline tank for the squad.");
             }
             else if (StrEqual(info, "skill"))
             {
-                PrintGuideLine(param1, "Aim at a target and press !skill to call in the F-18 missile barrage. Give teammates a warning before painting.");
+                char skillLine[160];
+                Format(skillLine, sizeof(skillLine), "Aim at a target and press %s to call in the F-18 missile barrage. Give teammates a warning before painting.", action1);
+                PrintGuideLine(param1, skillLine);
             }
             else if (StrEqual(info, "utility"))
             {
@@ -357,17 +385,23 @@ public int MenuHandler_Commando(Menu menu, MenuAction action, int param1, int pa
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Commandos flex between rifles, shotguns and SMGs with baked-in damage bonuses for each slot.");
             }
             else if (StrEqual(info, "berserk"))
             {
-                PrintGuideLine(param1, "Build rage by dealing damage, then press !skill or !berserker to enter Berserk for huge speed and tank immunity.");
+                char berserkLine[192];
+                Format(berserkLine, sizeof(berserkLine), "Build rage by dealing damage, then press %s (or the berserker shortcut) to enter Berserk for huge speed and tank immunity.", action2);
+                PrintGuideLine(param1, berserkLine);
             }
             else if (StrEqual(info, "satellite"))
             {
-                PrintGuideLine(param1, "Use your class !skill for a satellite strike instead of the F-18 barrage. Call targets and clear the circle.");
+                char satelliteLine[192];
+                Format(satelliteLine, sizeof(satelliteLine), "Use %s for a satellite strike instead of the F-18 barrage. Call targets and clear the circle.", action1);
+                PrintGuideLine(param1, satelliteLine);
             }
             else if (StrEqual(info, "finishers"))
             {
@@ -410,17 +444,23 @@ public int MenuHandler_Medic(Menu menu, MenuAction action, int param1, int param
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Medics pulse heals to nearby survivors and thrive when glued to the front line.");
             }
             else if (StrEqual(info, "skill"))
             {
-                PrintGuideLine(param1, "Your class !skill boosts every heal—kits and pills restore more and you move faster while supporting.");
+                char boostLine[192];
+                Format(boostLine, sizeof(boostLine), "Your %s boosts every heal—kits and pills restore more and you move faster while supporting.", action1);
+                PrintGuideLine(param1, boostLine);
             }
             else if (StrEqual(info, "orbs"))
             {
-                PrintGuideLine(param1, "Use your secondary !skill to toss healing orbs that glow and ping the team. You can also drop med items for others.");
+                char orbLine[192];
+                Format(orbLine, sizeof(orbLine), "Use %s to toss healing orbs that glow and ping the team. You can also drop med items for others.", action2);
+                PrintGuideLine(param1, orbLine);
             }
             else if (StrEqual(info, "support"))
             {
@@ -463,17 +503,23 @@ public int MenuHandler_Engineer(Menu menu, MenuAction action, int param1, int pa
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Engineers fortify pushes with build kits, deployables and turrets that hold choke points.");
             }
             else if (StrEqual(info, "deploy"))
             {
-                PrintGuideLine(param1, "!skill opens the build wheel: choose deployable types, place them, then reclaim with USE when safe.");
+                char deployLine[192];
+                Format(deployLine, sizeof(deployLine), "%s opens the build wheel: choose deployable types, place them, then reclaim with USE when safe.", action1);
+                PrintGuideLine(param1, deployLine);
             }
             else if (StrEqual(info, "skill"))
             {
-                PrintGuideLine(param1, "Use !skill to open the turret menu, pick a gun and ammo, left-click to deploy and press USE to pick it up.");
+                char turretLine[192];
+                Format(turretLine, sizeof(turretLine), "Use %s to open the turret menu, pick a gun and ammo, left-click to deploy and press USE to pick it up.", action1);
+                PrintGuideLine(param1, turretLine);
             }
             else if (StrEqual(info, "defense"))
             {
@@ -517,13 +563,17 @@ public int MenuHandler_Saboteur(Menu menu, MenuAction action, int param1, int pa
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Saboteurs scout ahead with lower gun damage but brutal gadgets that control space.");
             }
             else if (StrEqual(info, "stealth"))
             {
-                PrintGuideLine(param1, "Use the Dead Ringer !skill (aliases !fd or !cloak) to vanish, drop a fake corpse and sprint past ambushes.");
+                char stealthLine[192];
+                Format(stealthLine, sizeof(stealthLine), "Use the Dead Ringer %s trigger to vanish, drop a fake corpse and sprint past ambushes.", action1);
+                PrintGuideLine(param1, stealthLine);
             }
             else if (StrEqual(info, "sight"))
             {
@@ -531,7 +581,9 @@ public int MenuHandler_Saboteur(Menu menu, MenuAction action, int param1, int pa
             }
             else if (StrEqual(info, "mines"))
             {
-                PrintGuideLine(param1, "Hold SHIFT to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.");
+                char minesLine[192];
+                Format(minesLine, sizeof(minesLine), "Use %s to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.", deploy);
+                PrintGuideLine(param1, minesLine);
             }
             else if (StrEqual(info, "tips"))
             {
@@ -581,9 +633,13 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "skill"))
             {
-                PrintGuideLine(param1, "Bind a key to !skill (or type the command) to trigger your class ability consistently every round.");
+                char bindLine[192];
+                Format(bindLine, sizeof(bindLine), "Bind keys to %s, %s and %s to trigger your class abilities consistently every round.", action1, action2, action3);
+                PrintGuideLine(param1, bindLine);
             }
             else if (StrEqual(info, "grenades"))
             {
@@ -591,7 +647,9 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "healingorb"))
             {
-                PrintGuideLine(param1, "Medics use their secondary !skill to throw a glowing healing orb from the main skills plugin. Toss it between fights to top the team off.");
+                char orbLine[192];
+                Format(orbLine, sizeof(orbLine), "Medics use %s to throw a glowing healing orb from the main skills plugin. Toss it between fights to top the team off.", action2);
+                PrintGuideLine(param1, orbLine);
             }
             else if (StrEqual(info, "deadringer"))
             {
@@ -603,7 +661,9 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "multiturret"))
             {
-                PrintGuideLine(param1, "Engineers open the turret picker with !skill, choose turret + ammo, left-click to place and USE to pick up.");
+                char turretLine[192];
+                Format(turretLine, sizeof(turretLine), "Engineers open the turret picker with %s, choose turret + ammo, left-click to place and USE to pick up.", action1);
+                PrintGuideLine(param1, turretLine);
             }
             else if (StrEqual(info, "music"))
             {
@@ -615,7 +675,9 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "berserk"))
             {
-                PrintGuideLine(param1, "Commandos hit !berserker or !skill once rage is full. Berserk grants burst damage and immunity to tank knockdowns.");
+                char berserkLine[192];
+                Format(berserkLine, sizeof(berserkLine), "Commandos hit !berserker or %s once rage is full. Berserk grants burst damage and immunity to tank knockdowns.", action2);
+                PrintGuideLine(param1, berserkLine);
             }
             else if (StrEqual(info, "satellite"))
             {
@@ -623,7 +685,9 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "airstrike"))
             {
-                PrintGuideLine(param1, "Soldiers aim and press !skill to mark a strike zone; warn teammates before raining missiles.");
+                char airstrikeLine[192];
+                Format(airstrikeLine, sizeof(airstrikeLine), "Soldiers aim and press %s to mark a strike zone; warn teammates before raining missiles.", action1);
+                PrintGuideLine(param1, airstrikeLine);
             }
             DisplaySkillMenu(param1);
         }
@@ -715,6 +779,8 @@ public int MenuHandler_Tips(Menu menu, MenuAction action, int param1, int param2
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "team"))
             {
                 PrintGuideLine(param1, "Mix roles - Soldier tanks, Medic heals, Engineer builds cover, Saboteur scouts and Athlete runs objectives.");
@@ -729,7 +795,9 @@ public int MenuHandler_Tips(Menu menu, MenuAction action, int param1, int param2
             }
             else if (StrEqual(info, "shortcuts"))
             {
-                PrintGuideLine(param1, "Bind !skill, !music, !unvomit, !extendedsight and !ragetutorial for instant access mid-fight.");
+                char shortcutLine[192];
+                Format(shortcutLine, sizeof(shortcutLine), "Bind %s, %s and %s alongside music, unvomit, extended sight and tutorial shortcuts for instant access mid-fight.", action1, action2, action3);
+                PrintGuideLine(param1, shortcutLine);
             }
             DisplayTipsMenu(param1);
         }
