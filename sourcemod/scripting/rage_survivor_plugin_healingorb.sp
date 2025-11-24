@@ -42,10 +42,10 @@ public void OnPluginStart()
 public int OnSpecialSkillUsed(int client, int skill, int type)
 {
         char skillName[32];
-        GetPlayerSkillName(client, skillName, sizeof(skillName));
+        FindSkillNameById(skill, skillName, sizeof(skillName));
         if(!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
                 return 0;
-	
+
         HealingBallInterval[client] = 1.0;
         HealingBallEffect[client] = 1.5;
         HealingBallRadius[client] = 130.0;
