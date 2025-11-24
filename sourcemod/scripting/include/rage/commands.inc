@@ -1,5 +1,8 @@
- 
- 
+#if defined _RAGE_COMMANDS_INC
+        #endinput
+#endif
+#define _RAGE_COMMANDS_INC
+
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>

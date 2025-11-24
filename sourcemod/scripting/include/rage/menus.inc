@@ -54,13 +54,7 @@ public bool ApplyClassSelection(int client, int classIndex)
         }
 
         LastClassConfirmed[client] = classIndex;
-
-        if (g_hClassCookie != INVALID_HANDLE)
-        {
-                char classValue[8];
-                IntToString(classIndex, classValue, sizeof(classValue));
-                SetClientCookie(client, g_hClassCookie, classValue);
-        }
+        SaveClassCookie(client, view_as<ClassTypes>(classIndex));
 
         if (RoundStarted == true && hasActiveClass && view_as<int>(oldClass) != classIndex)
         {
