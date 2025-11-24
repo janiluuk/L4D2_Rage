@@ -4230,7 +4230,8 @@ stock bool GetRandomBool()
 
 stock int CreateExplosion(const float vPos[3], const float vAng[3], int iDamage = 0, int iRadius = 500, int iFlags = 0)
 {
-	int iExplosion = CreateEntityByName("env_explosion");
+#pragma unused vAng
+int iExplosion = CreateEntityByName("env_explosion");
 	int iPhysExplosion = CreateEntityByName("env_physexplosion");
 	int iExplosion_Effect = CreateEntityByName("info_particle_system");
 

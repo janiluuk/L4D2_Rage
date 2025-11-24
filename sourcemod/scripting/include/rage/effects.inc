@@ -119,7 +119,9 @@ stock PushEntity(client, Float:clientEyeAngle[3], Float:power)
 
 stock HurtEntity(client, attacker, Float:amount, type)
 {
-	new damage = RoundFloat(amount);
+#pragma unused attacker
+
+new damage = RoundFloat(amount);
 	if (IsValidEntity(client))
 	{
 		decl String:sUser[256], String:sDamage[11], String:sType[11];
@@ -142,7 +144,10 @@ stock HurtEntity(client, attacker, Float:amount, type)
 
 stock CreateExplosion(Float:expPos[3], attacker = 0, bool:panic = true)
 {
-	decl String:sRadius[16], String:sPower[16], String:sInterval[11];
+#pragma unused attacker
+#pragma unused panic
+
+decl String:sRadius[16], String:sPower[16], String:sInterval[11];
 	new Float:flMxDistance = 450.0;
 	new Float:power = GetConVarFloat(SABOTEUR_BOMB_POWER);
 	//new iDamageSurv = GetConVarInt(SABOTEUR_BOMB_DAMAGE_SURV);

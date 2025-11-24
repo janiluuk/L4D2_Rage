@@ -1040,34 +1040,34 @@ Action Cmd_SpawnThrow(int client, int args)
 }
 Action Cmd_DoFX(int client, int args)
 {
-	// Validate
-	if( !client )
-	{
-		ReplyToCommand(client, "Command can only be used %s", IsDedicatedServer() ? "in game on a dedicated server." : "in chat on a Listen server.");
-		return;
-	}
+// Validate
+if( !client )
+{
+ReplyToCommand(client, "Command can only be used %s", IsDedicatedServer() ? "in game on a dedicated server." : "in chat on a Listen server.");
+return Plugin_Handled;
+}
 
-	if( args != 2 )
-	{
-		ReplyToCommand(client, "Usage: sm_grenade_env <entityid> <type>  <1=Bomb, 2=Cluster, 3=Firework, 4=Smoke, 5=Black Hole, 6=Flashbang, 7=Shield, 8=Tesla, 9=Chemical, 10=Freeze, 11=Medic, 12=Vaporizer, 13=Extinguisher, 14=Glow, 15=Anti-Gravity, 16=Fire Cluster, 17=Bullets, 18=Flak, 19=Airstrike, 20=Weapon>");
-		return;
-	}
+if( args != 2 )
+{
+ReplyToCommand(client, "Usage: sm_grenade_env <entityid> <type>  <1=Bomb, 2=Cluster, 3=Firework, 4=Smoke, 5=Black Hole, 6=Flashbang, 7=Shield, 8=Tesla, 9=Chemical, 10=Freeze, 11=Medic, 12=Vaporizer, 13=Extinguisher, 14=Glow, 15=Anti-Gravity, 16=Fire Cluster, 17=Bullets, 18=Flak, 19=Airstrike, 20=Weapon>");
+return Plugin_Handled;
+}
 
 	// Index
 	char sTemp[4];
 	GetCmdArg(1, sTemp, sizeof(sTemp));
 	int ent = StringToInt(sTemp);
-	// Index
-	if (!IsValidEntity(ent)) {
-		ReplyToCommand(client, "invalid entity %i", ent);
-		return ;
-	}
+// Index
+if (!IsValidEntity(ent)) {
+ReplyToCommand(client, "invalid entity %i", ent);
+return Plugin_Handled;
+}
 	GetCmdArg(2, sTemp, sizeof(sTemp));
 	int index = StringToInt(sTemp);
 	
-	DoPrjEffects(ent, index);
+DoPrjEffects(ent, index);
 
-	return ;
+return Plugin_Handled;
 }
 Action Cmd_SpawnSpawn(int client, int args)
 {
@@ -1263,9 +1263,8 @@ Action Cmd_Grenade(int client, int args)
 
 void ShowGrenadeMenu(int client)
 {
-	return;
-	// Validate weapon
-	int iWeapon = GetPlayerWeaponSlot(client, 2);
+// Validate weapon
+int iWeapon = GetPlayerWeaponSlot(client, 2);
 	if( iWeapon > MaxClients && IsValidEntity(iWeapon) )
 	{
 		int type = IsGrenade(iWeapon);
@@ -5763,7 +5762,7 @@ bool _TraceFilter(int entity, int contentsMask)
 	return true;
 }
 
-bool SetTeleportEndPoint(int client, float vPos[3])
+stock bool SetTeleportEndPoint(int client, float vPos[3])
 {
 	GetClientEyePosition(client, vPos);
 	static float vAng[3];
@@ -5792,7 +5791,7 @@ bool SetTeleportEndPoint(int client, float vPos[3])
 	return true;
 }
 
-bool ExcludeSelf_Filter(int entity, int contentsMask, any client)
+stock bool ExcludeSelf_Filter(int entity, int contentsMask, any client)
 {
 	if( entity == client )
 		return false;
