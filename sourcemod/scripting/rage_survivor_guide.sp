@@ -94,10 +94,10 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "overview"))
             {
-                PrintGuideLine(param1, "Rage Edition is a modular class overhaul for Left 4 Dead 2 with perk-driven gameplay.");
-                PrintGuideLine(param1, "Open this tutorial anytime with !guide or the Rage admin menu (Open Rage tutorial guide).");
-                PrintGuideLine(param1, "Every survivor picks a class with unique passives plus four class actions, so coordinate before leaving the saferoom.");
-                PrintGuideLine(param1, "Bind skill_action_1/2/3 and deployment_action to easy keys (defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift).");
+                PrintGuideLine(param1, "Rage Edition is a modular class overhaul with perk-driven abilities.");
+                PrintGuideLine(param1, "Open this tutorial anytime with !guide or the Rage admin menu.");
+                PrintGuideLine(param1, "Pick a class, bind the four actions, and coordinate before leaving the saferoom.");
+                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
                 DisplayGuideMainMenu(param1);
             }
             else if (StrEqual(info, "classes"))
@@ -165,22 +165,23 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "skillkeys"))
             {
-                PrintGuideLine(param1, "Bind skill_action_1 through skill_action_3 plus deployment_action so you can react without typing. Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
+                PrintGuideLine(param1, "Bind skill_action_1/2/3 + deployment_action so you can react without typing.");
+                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "thirdperson"))
             {
-                PrintGuideLine(param1, "Open !rage and pick Third person to toggle Off, Melee only or Always. Your choice saves between rounds.");
+                PrintGuideLine(param1, "Open !rage > Third person to pick Off, Melee only, or Always. Choice saves between rounds.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "hudmusic"))
             {
-                PrintGuideLine(param1, "Use the admin menu to toggle the HUD overlay, opt into custom music or adjust volume without leaving the fight.");
+                PrintGuideLine(param1, "Use the admin menu to toggle the HUD overlay and enable/disable custom music.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "binds"))
             {
-                PrintGuideLine(param1, "Common binds: map skill_action_1/2/3 and deployment_action to comfortable keys, plus !music, !unvomit or !extendedsight for one-tap support.");
+                PrintGuideLine(param1, "Handy binds: skill_action_1/2/3, deployment_action, !music, !unvomit, !extendedsight.");
                 DisplayControlsMenu(param1);
             }
         }

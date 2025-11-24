@@ -23,6 +23,7 @@ new g_iSkillCounter = -1;
 new Handle:g_hSkillArray = INVALID_HANDLE;
 new Handle:g_hSkillTypeArray = INVALID_HANDLE;
 Handle g_hClassCookie = INVALID_HANDLE;
+char g_ClassDescriptions[MAXCLASSES][128];
 
 //Menu Handlers
 new Handle:g_hSkillMenu = INVALID_HANDLE;
@@ -254,5 +255,8 @@ new Handle:SPECIAL_SKILL_LIMIT;
 #include <rage/effects>
 #include <rage/menus>
 #include <rage/perks>
+#include <rage/admin_commands>
+#include <rage/class_commands>
 #include <rage/commands>
+
 
