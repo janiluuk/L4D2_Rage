@@ -201,8 +201,8 @@ public void PanelHandler_SelectClass(Handle menu, MenuAction action, int client,
                                 PrintToChat(client, "%sClass selected. Use the Rage menu to change it again.", PRINT_PREFIX);
                         }
                 }
-		case MenuAction_Cancel:
-		{
+                case MenuAction_Cancel:
+                {
 			CloseHandle(menu);
 
 		}
