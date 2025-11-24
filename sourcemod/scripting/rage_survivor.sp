@@ -793,6 +793,7 @@ public ResetClientVariables(client)
 	ClientData[client].LastDropTime = 0.0;
 	g_bInSaferoom[client] = false;
 	g_bHide[client] = false;
+	g_bClassSelectionThirdPerson[client] = false;
 	
 	if (g_ReadyTimer[client] != null) 
 	{ 
@@ -859,6 +860,9 @@ ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_DROP_INTERVAL);
 ClientData[client].SpecialLimit = GetConVarInt(SPECIAL_SKILL_LIMIT);
 new MaxPossibleHP = GetConVarInt(NONE_HEALTH);
 DisableAllUpgrades(client);
+
+// Apply class-specific model
+ApplyClassModel(client, view_as<ClassTypes>(class));
 
 switch (view_as<ClassTypes>(class))
 {
@@ -1423,6 +1427,167 @@ public Action CmdUseSkill(int client, int args)
 {
         useSpecialSkill(client, 0);
         return Plugin_Handled;
+}
+
+// Global state for tracking third-person during class selection
+bool g_bClassSelectionThirdPerson[MAXPLAYERS + 1];
+float g_fThirdPersonTime = 8.0; // How long to stay in third person
+
+public Action CmdClassSet(int client, int args)
+{
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+
+        if (args < 1)
+        {
+                PrintToChat(client, "[Rage] Usage: sm_class_set <class_index>");
+                PrintToChat(client, "[Rage] 1=Soldier, 2=Athlete, 3=Medic, 4=Saboteur, 5=Commando, 6=Engineer, 7=Brawler");
+                return Plugin_Handled;
+        }
+
+        char arg[8];
+        GetCmdArg(1, arg, sizeof(arg));
+        int classIndex = StringToInt(arg);
+
+        if (classIndex < 1 || classIndex >= view_as<int>(MAXCLASSES))
+        {
+                PrintToChat(client, "[Rage] Invalid class index. Use 1-7.");
+                return Plugin_Handled;
+        }
+
+        // Enable third person view for class preview
+        ForceThirdPersonView(client, g_fThirdPersonTime);
+        g_bClassSelectionThirdPerson[client] = true;
+
+        // Change to the selected class
+        SetupClasses(client, classIndex);
+        SaveClassCookie(client, view_as<ClassTypes>(classIndex));
+
+        // Schedule return to normal view
+        CreateTimer(g_fThirdPersonTime, Timer_ReturnFromThirdPerson, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+
+        return Plugin_Handled;
+}
+
+public Action CmdClassMenu(int client, int args)
+{
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+
+        PrintToChat(client, "[Rage] Use the main Rage menu (sm_rage or hold ALT) to select your class.");
+        return Plugin_Handled;
+}
+
+public Action CmdClassInfo(int client, int args)
+{
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+
+        PrintToChat(client, "[Rage] === Class Descriptions ===");
+        for (int i = 1; i < view_as<int>(MAXCLASSES); i++)
+        {
+                PrintToChat(client, "[Rage] %s: %s", MENU_OPTIONS[i], g_ClassDescriptions[i]);
+        }
+        return Plugin_Handled;
+}
+
+public Action CmdClasses(int client, int args)
+{
+        return CmdClassInfo(client, args);
+}
+
+// Timer to return player from third person after class selection
+public Action Timer_ReturnFromThirdPerson(Handle timer, int userid)
+{
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Stop;
+        }
+
+        if (g_bClassSelectionThirdPerson[client])
+        {
+                ClientCommand(client, "firstperson");
+                g_bClassSelectionThirdPerson[client] = false;
+        }
+
+        return Plugin_Stop;
+}
+
+// Force third person view for specified duration
+void ForceThirdPersonView(int client, float duration)
+{
+        if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+                return;
+        }
+
+        float gameTime = GetGameTime();
+        SetEntPropFloat(client, Prop_Send, "m_TimeForceExternalView", gameTime + duration);
+}
+
+// Apply class-specific character model
+void ApplyClassModel(int client, ClassTypes classType)
+{
+        if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+                return;
+        }
+
+        char model[PLATFORM_MAX_PATH];
+        
+        // Assign models based on class
+        // Using L4D2 survivors that fit the class theme
+        switch (classType)
+        {
+                case soldier:  // Soldier/Soldierboy - Bill (military veteran)
+                {
+                        model = "models/survivors/survivor_namvet.mdl";
+                }
+                case athlete:  // Ninja/Athlete - Ellis (athletic, energetic)
+                {
+                        model = "models/survivors/survivor_mechanic.mdl";
+                }
+                case medic:  // Medic - Rochelle (supportive, caring)
+                {
+                        model = "models/survivors/survivor_producer.mdl";
+                }
+                case saboteur:  // Saboteur - Zoey (stealthy, tactical)
+                {
+                        model = "models/survivors/survivor_teenangst.mdl";
+                }
+                case commando:  // Commando/Trooper - Francis (tough biker)
+                {
+                        model = "models/survivors/survivor_biker.mdl";
+                }
+                case engineer:  // Engineer - Coach (builder, support)
+                {
+                        model = "models/survivors/survivor_coach.mdl";
+                }
+                case brawler:  // Brawler - Louis (resilient)
+                {
+                        model = "models/survivors/survivor_manager.mdl";
+                }
+                default:  // Default to Nick
+                {
+                        model = "models/survivors/survivor_gambler.mdl";
+                }
+        }
+        
+        // Precache and set the model
+        if (!IsModelPrecached(model))
+        {
+                PrecacheModel(model, true);
+        }
+        
+        SetEntityModel(client, model);
+        PrintDebugAll("Applied model %s to client %d (class: %d)", model, client, classType);
 }
 
 bool TryExecuteSkillInput(int client, ClassSkillInput input)
