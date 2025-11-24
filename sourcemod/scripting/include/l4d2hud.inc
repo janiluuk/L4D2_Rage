@@ -2,6 +2,8 @@
 //Created by https://github.com/Jackzmc
 //See it here: https://github.com/Jackzmc/sourcemod-plugins/blob/master/scripting/include/l4d2hud.inc
 
+#include <jutils>
+
 enum hudPosition {
     HUD_POSITION_FAR_LEFT, 
     HUD_POSITION_FAR_RIGHT,

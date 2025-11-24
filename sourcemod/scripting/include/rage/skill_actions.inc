@@ -67,7 +67,7 @@ void GetSkillActionBindingLabel(SkillActionSlot slot, char[] buffer, int maxlen)
 {
     buffer[0] = '\0';
     int slotIndex = view_as<int>(slot);
-    if (slotIndex < 0 || slotIndex >= SkillActionSlot_Count)
+    if (slotIndex < 0 || slotIndex >= view_as<int>(SkillActionSlot_Count))
     {
         return;
     }

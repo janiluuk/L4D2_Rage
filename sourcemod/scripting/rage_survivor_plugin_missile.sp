@@ -133,14 +133,14 @@ int LaunchMissile(int client, bool homing)
     GetClientEyePosition(client, eyePos);
     GetClientEyeAngles(client, eyeAng);
 
-    float forward[3];
-    GetAngleVectors(eyeAng, forward, NULL_VECTOR, NULL_VECTOR);
-    NormalizeVector(forward, forward);
+    float vecForward[3];
+    GetAngleVectors(eyeAng, vecForward, NULL_VECTOR, NULL_VECTOR);
+    NormalizeVector(vecForward, vecForward);
 
     float spawnPos[3];
-    spawnPos[0] = eyePos[0] + (forward[0] * 32.0);
-    spawnPos[1] = eyePos[1] + (forward[1] * 32.0);
-    spawnPos[2] = eyePos[2] + (forward[2] * 16.0);
+    spawnPos[0] = eyePos[0] + (vecForward[0] * 32.0);
+    spawnPos[1] = eyePos[1] + (vecForward[1] * 32.0);
+    spawnPos[2] = eyePos[2] + (vecForward[2] * 16.0);
 
     int projectile = CreateEntityByName("grenade_launcher_projectile");
     if (projectile == -1)
@@ -156,9 +156,9 @@ int LaunchMissile(int client, bool homing)
     SetEntProp(projectile, Prop_Send, "m_iTeamNum", GetClientTeam(client));
 
     float velocity[3];
-    velocity[0] = forward[0] * g_fMissileSpeed;
-    velocity[1] = forward[1] * g_fMissileSpeed;
-    velocity[2] = forward[2] * g_fMissileSpeed;
+    velocity[0] = vecForward[0] * g_fMissileSpeed;
+    velocity[1] = vecForward[1] * g_fMissileSpeed;
+    velocity[2] = vecForward[2] * g_fMissileSpeed;
 
     TeleportEntity(projectile, spawnPos, eyeAng, velocity);
 
