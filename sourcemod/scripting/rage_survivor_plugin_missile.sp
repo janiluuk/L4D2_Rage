@@ -12,6 +12,7 @@
 #define MISSILE_SPEED_DEFAULT 950.0
 #define HOMING_TURN_STRENGTH_DEFAULT 0.65
 #define HOMING_RANGE_DEFAULT 1200.0
+#define MAX_ENTITY_LIMIT 4096
 
 public Plugin myinfo =
 {
@@ -30,9 +31,9 @@ float g_fMissileSpeed = MISSILE_SPEED_DEFAULT;
 float g_fHomingStrength = HOMING_TURN_STRENGTH_DEFAULT;
 float g_fHomingRange = HOMING_RANGE_DEFAULT;
 
-bool g_bHomingMissile[2049];
-Handle g_hHomingTimer[2049];
-int g_iMissileOwner[2049];
+bool g_bHomingMissile[MAX_ENTITY_LIMIT];
+Handle g_hHomingTimer[MAX_ENTITY_LIMIT];
+int g_iMissileOwner[MAX_ENTITY_LIMIT];
 
 public void OnPluginStart()
 {
@@ -40,9 +41,9 @@ public void OnPluginStart()
     g_hHomingStrength = CreateConVar("l4d2_missile_homing_strength", "0.65", "Turn strength for homing missiles (0-1 range).");
     g_hHomingRange = CreateConVar("l4d2_missile_homing_range", "1200.0", "Maximum search distance for homing targets.");
 
-    HookConVarChange(g_hMissileSpeed, OnMissileSettingsChanged);
-    HookConVarChange(g_hHomingStrength, OnMissileSettingsChanged);
-    HookConVarChange(g_hHomingRange, OnMissileSettingsChanged);
+    g_hMissileSpeed.AddChangeHook(OnMissileSettingsChanged);
+    g_hHomingStrength.AddChangeHook(OnMissileSettingsChanged);
+    g_hHomingRange.AddChangeHook(OnMissileSettingsChanged);
 
     UpdateSettings();
 }
@@ -54,12 +55,11 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-    for (int i = 0; i < sizeof(g_hHomingTimer); i++)
+    for (int i = 0; i < MAX_ENTITY_LIMIT; i++)
     {
         if (g_hHomingTimer[i] != null)
         {
-            CloseHandle(g_hHomingTimer[i]);
-            g_hHomingTimer[i] = null;
+            delete g_hHomingTimer[i];
         }
         g_bHomingMissile[i] = false;
         g_iMissileOwner[i] = 0;
@@ -68,15 +68,14 @@ public void OnMapEnd()
 
 public void OnEntityDestroyed(int entity)
 {
-    if (entity <= 0 || entity >= sizeof(g_hHomingTimer))
+    if (entity <= 0 || entity >= MAX_ENTITY_LIMIT)
     {
         return;
     }
 
     if (g_hHomingTimer[entity] != null)
     {
-        CloseHandle(g_hHomingTimer[entity]);
-        g_hHomingTimer[entity] = null;
+        delete g_hHomingTimer[entity];
     }
 
     g_bHomingMissile[entity] = false;
@@ -115,16 +114,16 @@ public int OnCustomCommand(char[] name, int client, int entity, int type)
     return 1;
 }
 
-public void OnMissileSettingsChanged(Handle convar, const char[] oldValue, const char[] newValue)
+public void OnMissileSettingsChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
     UpdateSettings();
 }
 
 void UpdateSettings()
 {
-    g_fMissileSpeed = GetConVarFloat(g_hMissileSpeed);
-    g_fHomingStrength = GetConVarFloat(g_hHomingStrength);
-    g_fHomingRange = GetConVarFloat(g_hHomingRange);
+    g_fMissileSpeed = g_hMissileSpeed.FloatValue;
+    g_fHomingStrength = g_hHomingStrength.FloatValue;
+    g_fHomingRange = g_hHomingRange.FloatValue;
 }
 
 int LaunchMissile(int client, bool homing)
@@ -162,18 +161,18 @@ int LaunchMissile(int client, bool homing)
 
     TeleportEntity(projectile, spawnPos, eyeAng, velocity);
 
-    if (projectile < sizeof(g_bHomingMissile))
+    if (projectile < MAX_ENTITY_LIMIT)
     {
         g_bHomingMissile[projectile] = homing;
         g_iMissileOwner[projectile] = client;
+        
+        if (homing)
+        {
+            g_hHomingTimer[projectile] = CreateTimer(0.05, Timer_UpdateHoming, EntIndexToEntRef(projectile), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+        }
     }
 
     SDKHook(projectile, SDKHook_Touch, MissileTouch);
-
-    if (homing && projectile < sizeof(g_hHomingTimer))
-    {
-        g_hHomingTimer[projectile] = CreateTimer(0.05, Timer_UpdateHoming, EntIndexToEntRef(projectile), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-    }
 
     return projectile;
 }
@@ -186,15 +185,14 @@ public Action MissileTouch(int entity, int other)
 
 void CleanupMissile(int entity)
 {
-    if (entity <= 0 || entity >= sizeof(g_hHomingTimer))
+    if (entity <= 0 || entity >= MAX_ENTITY_LIMIT)
     {
         return;
     }
 
     if (g_hHomingTimer[entity] != null)
     {
-        CloseHandle(g_hHomingTimer[entity]);
-        g_hHomingTimer[entity] = null;
+        delete g_hHomingTimer[entity];
     }
 
     g_bHomingMissile[entity] = false;
@@ -204,7 +202,7 @@ void CleanupMissile(int entity)
 public Action Timer_UpdateHoming(Handle timer, any ref)
 {
     int missile = EntRefToEntIndex(ref);
-    if (missile == INVALID_ENT_REFERENCE || missile <= 0 || missile >= sizeof(g_bHomingMissile))
+    if (missile == INVALID_ENT_REFERENCE || missile <= 0 || missile >= MAX_ENTITY_LIMIT)
     {
         return Plugin_Stop;
     }
