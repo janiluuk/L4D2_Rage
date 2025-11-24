@@ -10,9 +10,95 @@ bool g_bNB;
 // Class menu
 ///////////////////////////////////////////////////////////////////////////////////
 
+stock void ShowClassHud(int client, bool skillReady, const char[] readyText = "")
+{
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return;
+        }
+
+        char className[32];
+        Format(className, sizeof(className), "%s", MENU_OPTIONS[ClientData[client].ChosenClass]);
+
+        if (skillReady)
+        {
+                if (readyText[0] != '\0')
+                {
+                        PrintHintText(client, "Class: %s — %s", className, readyText);
+                }
+                else
+                {
+                        PrintHintText(client, "Class: %s — skill ready", className);
+                }
+        }
+        else
+        {
+                PrintHintText(client, "Class: %s", className);
+        }
+}
+
+stock bool ApplyClassSelection(int client, int classIndex)
+{
+        if (client <= 0 || classIndex <= 0 || classIndex >= view_as<int>(MAXCLASSES) || GetClientTeam(client) != 2)
+        {
+                return false;
+        }
+
+        ClassTypes oldClass = ClientData[client].ChosenClass;
+        bool hasActiveClass = oldClass != NONE;
+
+        if (GetMaxWithClass(classIndex) >= 0 && CountPlayersWithClass(classIndex) >= GetMaxWithClass(classIndex) && view_as<int>(oldClass) != classIndex)
+        {
+                PrintToChat(client, "%sThe \x04%s\x01 class is full, please choose another.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
+                return false;
+        }
+
+        LastClassConfirmed[client] = classIndex;
+
+        if (g_hClassCookie != INVALID_HANDLE)
+        {
+                char classValue[8];
+                IntToString(classIndex, classValue, sizeof(classValue));
+                SetClientCookie(client, g_hClassCookie, classValue);
+        }
+
+        if (RoundStarted == true && hasActiveClass && view_as<int>(oldClass) != classIndex)
+        {
+                PrintToChat(client, "%sQueued %s. It will apply next round; use the Rage menu to change again if needed.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
+                return false;
+        }
+
+        ClientData[client].ChosenClass = view_as<ClassTypes>(classIndex);
+
+        Call_StartForward(g_hfwdOnPlayerClassChange);
+        Call_PushCell(client);
+        Call_PushCell(ClientData[client].ChosenClass);
+        Call_PushCell(LastClassConfirmed[client]);
+        Call_Finish();
+
+        PrintToConsole(client, "Class is setting up");
+
+        SetupClasses(client, classIndex);
+        EmitSoundToClient(client, SOUND_CLASS_SELECTED);
+        RebuildCache();
+
+        if (view_as<int>(oldClass) == 0)
+        {
+                PrintToChatAll("\x04%N\x01 is a \x05%s\x01%s", client, MENU_OPTIONS[classIndex], ClassTips[classIndex]);
+        }
+        else
+        {
+                PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01", client, MENU_OPTIONS[oldClass], MENU_OPTIONS[classIndex]);
+        }
+
+        PrintToChat(client, "%sSelected %s. You can use the Rage menu to change again; mid-round changes take effect next round.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
+        ShowClassHud(client, false);
+        return true;
+}
+
 stock bool:CreatePlayerClassMenu(client)
 {
-	new Handle:hPanel;
+        new Handle:hPanel;
 
 	decl String:buffer[256];
 	if((hPanel = CreatePanel()) == INVALID_HANDLE)
@@ -25,12 +111,11 @@ stock bool:CreatePlayerClassMenu(client)
 		return false;
 	}
 	
-	// if client has a class already and round has started, dont give them the menu
-	if (ClientData[client].ChosenClass != NONE && RoundStarted == true)
-	{
-		PrintToChat(client,"Round has started, your class is locked, You are a %s",MENU_OPTIONS[ClientData[client].ChosenClass]);
-		return false;
-	}
+        // if client has a class already and round has started, explain when changes apply
+        if (ClientData[client].ChosenClass != NONE && RoundStarted == true)
+        {
+                PrintToChat(client,"Round has started; changing class now will apply next round. You are a %s",MENU_OPTIONS[ClientData[client].ChosenClass]);
+        }
 	
 	if(IsClientInGame(client) && ClientData[client].ChosenClass == NONE && RoundStarted == false)
 	{
@@ -59,54 +144,19 @@ stock bool:CreatePlayerClassMenu(client)
 
 public PanelHandler_SelectClass(Handle:menu, MenuAction:action, client, param)
 {
-	ClassTypes OldClass;
-	OldClass = ClientData[client].ChosenClass;
+        switch (action)
+        {
+                case MenuAction_Select:
+                {
+                        if (!client || param >= view_as<int>(MAXCLASSES) || GetClientTeam(client)!=2 )
+                        {
+                                return;
+                        }
 
-	switch (action)
-	{
-		case MenuAction_Select:
-		{
-			if (!client || param >= view_as<int>(MAXCLASSES) || GetClientTeam(client)!=2 )
-			{
-				return;
-			}
-			
-			if( GetMaxWithClass( param ) >= 0 && CountPlayersWithClass( param ) >= GetMaxWithClass( param ) && view_as<int>(ClientData[client].ChosenClass)!= param ) 
-			{
-				PrintToChat( client, "%sThe \x04%s\x01 class is full, please choose another.", PRINT_PREFIX, MENU_OPTIONS[ param ] );
-				CreatePlayerClassMenu( client );
-			} 
-			else
-			{
-				//DrawConfirmPanel(client, param);
-				
-				LastClassConfirmed[client] = param;
-				ClientData[client].ChosenClass = view_as<ClassTypes>(param);	
-
-				// Inform other plugins.
-				Call_StartForward(g_hfwdOnPlayerClassChange);
-				Call_PushCell(client);
-				Call_PushCell(ClientData[client].ChosenClass);
-				Call_PushCell(LastClassConfirmed[client]);
-				Call_Finish();				
-
-				PrintToConsole(client, "Class is setting up");
-				
-				SetupClasses(client, param);
-				EmitSoundToClient(client, SOUND_CLASS_SELECTED);
-				RebuildCache();
-				if(view_as<int>(OldClass) == 0)
-				{
-					PrintToChatAll("\x04%N\x01 is a \x05%s\x01%s",client,MENU_OPTIONS[param],ClassTips[param]);
-				}	
-				else
-				{
-					PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01",client,MENU_OPTIONS[OldClass],MENU_OPTIONS[param]);
-				}
-			}
-		}
-		case MenuAction_Cancel:
-		{
+                        ApplyClassSelection(client, param);
+                }
+                case MenuAction_Cancel:
+                {
 			CloseHandle(menu);
 
 		}

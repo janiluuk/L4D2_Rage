@@ -153,6 +153,7 @@ stock int b_attackerTarget[MAXPLAYERS+1];
 // Player Related Variables
 
 new LastClassConfirmed[MAXPLAYERS+1];
+Handle g_hClassCookie = INVALID_HANDLE;
 new bool:g_bInSaferoom[MAXPLAYERS+1];
 new Float:g_SpawnPos[MAXPLAYERS+1][3];
 new bool:RoundStarted =false;

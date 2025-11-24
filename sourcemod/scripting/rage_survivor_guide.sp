@@ -58,9 +58,10 @@ void DisplayGuideMainMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_GuideMain);
     SetMenuTitle(menu, "Rage Tutorial Guide");
-    AddMenuItem(menu, "overview", "What is Rage Edition?");
+    AddMenuItem(menu, "overview", "Quick start & how to open this guide");
     AddMenuItem(menu, "classes", "Survivor class guides");
-    AddMenuItem(menu, "skills", "Special skills & commands");
+    AddMenuItem(menu, "controls", "Controls & core features");
+    AddMenuItem(menu, "skills", "Skills & deployables");
     AddMenuItem(menu, "gamemodes", "Game modes overview");
     AddMenuItem(menu, "tips", "Gameplay tips");
     SetMenuExitButton(menu, true);
@@ -78,12 +79,18 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Rage Edition is a modular class overhaul for Left 4 Dead 2 with perk-driven gameplay.");
-                PrintGuideLine(param1, "Every survivor picks a class with unique passives plus a !skill ability, so coordinate before leaving the saferoom.");
+                PrintGuideLine(param1, "Open this tutorial anytime with !guide or the Rage admin menu (Open Rage tutorial guide).");
+                PrintGuideLine(param1, "Every survivor picks a class with unique passives plus four class actions, so coordinate before leaving the saferoom.");
+                PrintGuideLine(param1, "Bind skill_action_1/2/3 and deployment_action to easy keys (defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift).");
                 DisplayGuideMainMenu(param1);
             }
             else if (StrEqual(info, "classes"))
             {
                 DisplayClassListMenu(param1);
+            }
+            else if (StrEqual(info, "controls"))
+            {
+                DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "skills"))
             {
@@ -110,14 +117,70 @@ void DisplayClassListMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_ClassList);
     SetMenuTitle(menu, "Survivor Classes");
-    AddMenuItem(menu, "soldier", "Soldier");
-    AddMenuItem(menu, "athlete", "Athlete");
-    AddMenuItem(menu, "commando", "Commando");
-    AddMenuItem(menu, "medic", "Medic");
-    AddMenuItem(menu, "engineer", "Engineer");
-    AddMenuItem(menu, "saboteur", "Saboteur");
+    AddMenuItem(menu, "soldier", "Soldier (frontline tank)");
+    AddMenuItem(menu, "athlete", "Athlete (movement expert)");
+    AddMenuItem(menu, "commando", "Commando (damage specialist)");
+    AddMenuItem(menu, "medic", "Medic (team sustain)");
+    AddMenuItem(menu, "engineer", "Engineer (builder)");
+    AddMenuItem(menu, "saboteur", "Saboteur (stealth scout)");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
+}
+
+void DisplayControlsMenu(int client)
+{
+    Menu menu = CreateMenu(MenuHandler_Controls);
+    SetMenuTitle(menu, "Controls & Core Features");
+    AddMenuItem(menu, "skillkeys", "Skill & deploy buttons");
+    AddMenuItem(menu, "thirdperson", "Third-person camera");
+    AddMenuItem(menu, "hudmusic", "HUD & music toggles");
+    AddMenuItem(menu, "binds", "Quick binds & chat commands");
+    SetMenuExitBackButton(menu, true);
+    DisplayMenu(menu, client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int param2)
+{
+    switch (action)
+    {
+        case MenuAction_Select:
+        {
+            char info[32];
+            GetMenuItem(menu, param2, info, sizeof(info));
+            if (StrEqual(info, "skillkeys"))
+            {
+                PrintGuideLine(param1, "Bind skill_action_1 through skill_action_3 plus deployment_action so you can react without typing. Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "thirdperson"))
+            {
+                PrintGuideLine(param1, "Open !rage and pick Third person to toggle Off, Melee only or Always. Your choice saves between rounds.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "hudmusic"))
+            {
+                PrintGuideLine(param1, "Use the admin menu to toggle the HUD overlay, opt into custom music or adjust volume without leaving the fight.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "binds"))
+            {
+                PrintGuideLine(param1, "Common binds: map skill_action_1/2/3 and deployment_action to comfortable keys, plus !music, !unvomit or !extendedsight for one-tap support.");
+                DisplayControlsMenu(param1);
+            }
+        }
+        case MenuAction_Cancel:
+        {
+            if (param2 == MenuCancel_ExitBack)
+            {
+                DisplayGuideMainMenu(param1);
+            }
+        }
+        case MenuAction_End:
+        {
+            CloseHandle(menu);
+        }
+    }
+    return 0;
 }
 
 public int MenuHandler_ClassList(Menu menu, MenuAction action, int param1, int param2)
@@ -173,9 +236,9 @@ void DisplaySoldierMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Soldier);
     SetMenuTitle(menu, "Soldier Guide");
     AddMenuItem(menu, "overview", "Role overview");
-    AddMenuItem(menu, "airstrike", "Airstrike skill");
-    AddMenuItem(menu, "weapons", "Weapon handling");
-    AddMenuItem(menu, "nightvision", "Night vision");
+    AddMenuItem(menu, "airstrike", "Active skill: Airstrike");
+    AddMenuItem(menu, "weapons", "Passives: Weapons & toughness");
+    AddMenuItem(menu, "nightvision", "Utility: Night vision");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -190,22 +253,22 @@ public int MenuHandler_Soldier(Menu menu, MenuAction action, int param1, int par
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "overview"))
             {
-                PrintGuideLine(param1, "Soldiers run faster, shrug off damage and excel as the frontline tank for the squad.");
+                PrintGuideLine(param1, "Soldiers run faster, shrug off damage and anchor the front so others can push objectives.");
                 DisplaySoldierMenu(param1);
             }
             else if (StrEqual(info, "airstrike"))
             {
-                PrintGuideLine(param1, "Aim at a target and press !skill to call in the F-18 missile barrage. Give teammates a warning before painting.");
+                PrintGuideLine(param1, "Aim at a target and press skill_action_1 (default: middle mouse) to call the F-18 barrage. Warn teammates before painting and keep sight on the mark.");
                 DisplaySoldierMenu(param1);
             }
             else if (StrEqual(info, "weapons"))
             {
-                PrintGuideLine(param1, "Ninja-level melee swings and faster gun handling let you stagger commons with blades or rifles alike.");
+                PrintGuideLine(param1, "Faster weapon handling and melee stagger let you bully commons while absorbing chip damage for the team.");
                 DisplaySoldierMenu(param1);
             }
             else if (StrEqual(info, "nightvision"))
             {
-                PrintGuideLine(param1, "Toggle night vision with the N key (or bind sm_nightvision) to scout stormy maps and spot spawns.");
+                PrintGuideLine(param1, "Toggle night vision with N (or sm_nightvision) to scout storms, spot spawns and watch flanks.");
                 DisplaySoldierMenu(param1);
             }
         }
@@ -228,9 +291,9 @@ void DisplayAthleteMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Athlete);
     SetMenuTitle(menu, "Athlete Guide");
-    AddMenuItem(menu, "mobility", "Mobility perks");
-    AddMenuItem(menu, "parachute", "Parachute & jumps");
-    AddMenuItem(menu, "ninja", "Ninja kick");
+    AddMenuItem(menu, "mobility", "Role & mobility perks");
+    AddMenuItem(menu, "parachute", "Air control & parachute");
+    AddMenuItem(menu, "ninja", "Active skill: Ninja kick");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -245,17 +308,17 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "mobility"))
             {
-                PrintGuideLine(param1, "Athletes sprint faster and get mobility perks like bunnyhop, double jump, long jump and high jump.");
+                PrintGuideLine(param1, "Athletes sprint faster with bunnyhop, double jump, long jump and high jump tools for objective play.");
                 DisplayAthleteMenu(param1);
             }
             else if (StrEqual(info, "parachute"))
             {
-                PrintGuideLine(param1, "Hold USE in mid-air to pop the parachute, glide safely, and chain long jumps without fall damage.");
+                PrintGuideLine(param1, "Hold USE in mid-air to pop the parachute, glide safely and chain long jumps without fall damage.");
                 DisplayAthleteMenu(param1);
             }
             else if (StrEqual(info, "ninja"))
             {
-                PrintGuideLine(param1, "Sprint + JUMP together to launch a ninja kick into infected and knock them down.");
+                PrintGuideLine(param1, "Sprint + JUMP together to launch a ninja kick that knocks infected down and opens a gap.");
                 DisplayAthleteMenu(param1);
             }
         }
@@ -278,10 +341,10 @@ void DisplayCommandoMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Commando);
     SetMenuTitle(menu, "Commando Guide");
-    AddMenuItem(menu, "damage", "Damage tuning");
-    AddMenuItem(menu, "satellite", "Satellite cannon");
-    AddMenuItem(menu, "berserk", "Berserk mode");
-    AddMenuItem(menu, "reload", "Reload & finishers");
+    AddMenuItem(menu, "damage", "Role & damage tuning");
+    AddMenuItem(menu, "satellite", "Active skill: Satellite cannon");
+    AddMenuItem(menu, "berserk", "Berserk meter");
+    AddMenuItem(menu, "reload", "Passives: Reload & finishers");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -301,17 +364,17 @@ public int MenuHandler_Commando(Menu menu, MenuAction action, int param1, int pa
             }
             else if (StrEqual(info, "satellite"))
             {
-                PrintGuideLine(param1, "Use your class !skill for a satellite strike instead of the F-18 barrage. Berserk stays on secondary, so warn teammates before painting the target zone.");
+                PrintGuideLine(param1, "Use skill_action_1 (default: middle mouse) for the satellite strike instead of the F-18. Berserk stays on secondary, so warn teammates before painting the zone.");
                 DisplayCommandoMenu(param1);
             }
             else if (StrEqual(info, "berserk"))
             {
-                PrintGuideLine(param1, "Build rage by dealing damage, then press !skill or !berserker to enter Berserk for huge speed and tank immunity.");
+                PrintGuideLine(param1, "Build rage by dealing damage, then press skill_action_1 or !berserker to enter Berserk for huge speed and tank immunity.");
                 DisplayCommandoMenu(param1);
             }
             else if (StrEqual(info, "reload"))
             {
-                PrintGuideLine(param1, "You reload faster and can stomp downed infected. Sprint forward to execute specials before they recover.");
+                PrintGuideLine(param1, "Faster reloads and ground finishers reward aggression. Sprint forward to execute specials before they recover.");
                 DisplayCommandoMenu(param1);
             }
         }
@@ -334,9 +397,9 @@ void DisplayMedicMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Medic);
     SetMenuTitle(menu, "Medic Guide");
-    AddMenuItem(menu, "aura", "Healing aura");
-    AddMenuItem(menu, "orbs", "Healing orbs & drops");
-    AddMenuItem(menu, "support", "Revive & cleanse");
+    AddMenuItem(menu, "aura", "Role & healing aura");
+    AddMenuItem(menu, "orbs", "Active skill: Healing orbs");
+    AddMenuItem(menu, "support", "Utility: Revive & cleanse");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -351,12 +414,12 @@ public int MenuHandler_Medic(Menu menu, MenuAction action, int param1, int param
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "aura"))
             {
-                PrintGuideLine(param1, "Medics pulse heals to nearby survivors and get movement boosts while healing - stay near the front line.");
+                PrintGuideLine(param1, "Medics pulse heals to nearby survivors and move faster while healing - stay near the front line.");
                 DisplayMedicMenu(param1);
             }
             else if (StrEqual(info, "orbs"))
             {
-                PrintGuideLine(param1, "Use your secondary !skill to toss healing orbs that glow and ping the team. You can also drop med items for others.");
+                PrintGuideLine(param1, "Use your secondary skill_action_2 (default: Use+Fire) to toss glowing healing orbs and drop med items between fights.");
                 DisplayMedicMenu(param1);
             }
             else if (StrEqual(info, "support"))
@@ -384,9 +447,9 @@ void DisplayEngineerMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Engineer);
     SetMenuTitle(menu, "Engineer Guide");
-    AddMenuItem(menu, "kits", "Upgrade kits");
-    AddMenuItem(menu, "turrets", "Turret workshop");
-    AddMenuItem(menu, "defense", "Defensive tools");
+    AddMenuItem(menu, "kits", "Role & upgrade kits");
+    AddMenuItem(menu, "turrets", "Active skill: Turret workshop");
+    AddMenuItem(menu, "defense", "Utility: Defenses & pickups");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -406,7 +469,7 @@ public int MenuHandler_Engineer(Menu menu, MenuAction action, int param1, int pa
             }
             else if (StrEqual(info, "turrets"))
             {
-                PrintGuideLine(param1, "Use !skill to open the turret menu, pick a gun and ammo, left-click to deploy and press USE to pick it up.");
+                PrintGuideLine(param1, "Use skill_action_1 (default: middle mouse) to open the turret menu, pick a gun and ammo, left-click to deploy and press USE to pick it up.");
                 DisplayEngineerMenu(param1);
             }
             else if (StrEqual(info, "defense"))
@@ -434,9 +497,9 @@ void DisplaySaboteurMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Saboteur);
     SetMenuTitle(menu, "Saboteur Guide");
-    AddMenuItem(menu, "stealth", "Cloak & stealth");
-    AddMenuItem(menu, "sight", "Extended sight");
-    AddMenuItem(menu, "mines", "Mines & gadgets");
+    AddMenuItem(menu, "stealth", "Active skill: Cloak & stealth");
+    AddMenuItem(menu, "sight", "Utility: Extended sight");
+    AddMenuItem(menu, "mines", "Gadgets & mines");
     AddMenuItem(menu, "damage", "Damage profile");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
@@ -452,7 +515,7 @@ public int MenuHandler_Saboteur(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "stealth"))
             {
-                PrintGuideLine(param1, "Use the Dead Ringer !skill (aliases !fd or !cloak) to vanish, drop a fake corpse and sprint past ambushes.");
+                PrintGuideLine(param1, "Use skill_action_1 (default: middle mouse) to vanish with the Dead Ringer, drop a fake corpse and sprint past ambushes.");
                 DisplaySaboteurMenu(param1);
             }
             else if (StrEqual(info, "sight"))
@@ -489,18 +552,15 @@ public int MenuHandler_Saboteur(Menu menu, MenuAction action, int param1, int pa
 void DisplaySkillMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Skills);
-    SetMenuTitle(menu, "Special Skills & Commands");
-    AddMenuItem(menu, "skill", "Class skill command");
-    AddMenuItem(menu, "grenades", "Prototype grenades");
-    AddMenuItem(menu, "healingorb", "Healing orb toss");
-    AddMenuItem(menu, "deadringer", "Dead Ringer");
-    AddMenuItem(menu, "sight", "Extended sight");
-    AddMenuItem(menu, "multiturret", "Multiturret controls");
-    AddMenuItem(menu, "music", "Music player");
-    AddMenuItem(menu, "unvomit", "Unvomit cleanse");
-    AddMenuItem(menu, "berserk", "Berserk reminders");
-    AddMenuItem(menu, "satellite", "Satellite cannon");
-    AddMenuItem(menu, "airstrike", "Airstrike reminders");
+    SetMenuTitle(menu, "Skills & Deployables");
+    AddMenuItem(menu, "sheet", "Skill quick sheet (all classes)");
+    AddMenuItem(menu, "grenades", "Prototype grenade wheel");
+    AddMenuItem(menu, "healingorb", "Medic healing orb");
+    AddMenuItem(menu, "turrets", "Engineer turrets");
+    AddMenuItem(menu, "mines", "Saboteur mines");
+    AddMenuItem(menu, "recon", "Recon tools (cloak & sight)");
+    AddMenuItem(menu, "airsupport", "Airstrike & satellite");
+    AddMenuItem(menu, "support", "Support commands");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -513,49 +573,43 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
-            if (StrEqual(info, "skill"))
+            if (StrEqual(info, "sheet"))
             {
-                PrintGuideLine(param1, "Bind a key to !skill (or type the command) to trigger your class ability consistently every round.");
+                PrintGuideLine(param1, "Quick skill sheet:");
+                PrintGuideLine(param1, "Soldier: skill_action_1 (middle mouse by default) marks an F-18 airstrike where you aim. Hold sight until jets finish.");
+                PrintGuideLine(param1, "Commando: build rage with damage, then press skill_action_1 for the satellite cannon or !berserker for a speed burst.");
+                PrintGuideLine(param1, "Athlete: sprint + jump together for the ninja kick gap opener; hold USE mid-air to deploy the parachute.");
+                PrintGuideLine(param1, "Medic: tap skill_action_2 (Use+Fire) to throw a healing orb; stay near teammates for the healing aura.");
+                PrintGuideLine(param1, "Engineer: press skill_action_1 (middle mouse) to pick a turret and ammo, left-click to place, USE to pack it up.");
+                PrintGuideLine(param1, "Saboteur: skill_action_1 drops a fake corpse and cloaks you; hold SHIFT to plant mines, and !extendedsight pings specials for 20s.");
             }
             else if (StrEqual(info, "grenades"))
             {
-                PrintGuideLine(param1, "Equip any grenade, hold FIRE and tap SHOVE (or use sm_grenade) to cycle through experimental prototypes.");
+                PrintGuideLine(param1, "Equip any grenade, hold FIRE and tap SHOVE (or use sm_grenade) to cycle through experimental prototypes before throwing.");
             }
             else if (StrEqual(info, "healingorb"))
             {
-                PrintGuideLine(param1, "Medics use their secondary !skill to throw a glowing healing orb from the main skills plugin. Toss it between fights to top the team off.");
+                PrintGuideLine(param1, "Medics use their secondary skill_action_2 (Use+Fire) to toss glowing healing orbs that top off teammates between fights.");
             }
-            else if (StrEqual(info, "deadringer"))
+            else if (StrEqual(info, "turrets"))
             {
-                PrintGuideLine(param1, "Saboteurs can type !fd or !cloak to drop a fake corpse, gain invisibility and reset aggro.");
+                PrintGuideLine(param1, "Engineers open the turret picker with skill_action_1 (middle mouse), choose turret + ammo, left-click to place and USE to pack it up.");
             }
-            else if (StrEqual(info, "sight"))
+            else if (StrEqual(info, "mines"))
             {
-                PrintGuideLine(param1, "!extendedsight paints special infected through walls for 20 seconds with a two-minute cooldown.");
+                PrintGuideLine(param1, "Saboteurs hold SHIFT to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.");
             }
-            else if (StrEqual(info, "multiturret"))
+            else if (StrEqual(info, "recon"))
             {
-                PrintGuideLine(param1, "Engineers open the turret picker with !skill, choose turret + ammo, left-click to place and USE to pick up.");
+                PrintGuideLine(param1, "Saboteurs use skill_action_1 for the decoy cloak and !extendedsight to ping specials through walls for 20 seconds.");
             }
-            else if (StrEqual(info, "music"))
+            else if (StrEqual(info, "airsupport"))
             {
-                PrintGuideLine(param1, "Type !music to opt into custom tracks, adjust volume or disable songs per map.");
+                PrintGuideLine(param1, "Soldiers press skill_action_1 to mark an F-18 airstrike, while Commandos use skill_action_1 for the satellite cannon once rage is ready.");
             }
-            else if (StrEqual(info, "unvomit"))
+            else if (StrEqual(info, "support"))
             {
-                PrintGuideLine(param1, "Medics can cleanse Boomer bile with !unvomit to keep survivors firing.");
-            }
-            else if (StrEqual(info, "berserk"))
-            {
-                PrintGuideLine(param1, "Commandos hit !berserker or !skill once rage is full. Berserk grants burst damage and immunity to tank knockdowns.");
-            }
-            else if (StrEqual(info, "satellite"))
-            {
-                PrintGuideLine(param1, "Commandos call the satellite cannon with their class skill while Berserk stays on secondary. Expect a short startup before the orbital blast lands.");
-            }
-            else if (StrEqual(info, "airstrike"))
-            {
-                PrintGuideLine(param1, "Soldiers aim and press !skill to mark a strike zone; warn teammates before raining missiles.");
+                PrintGuideLine(param1, "Quick helpers: !music to manage custom tracks, !unvomit for Medic bile cleanse, and !berserker for the Commando rage burst.");
             }
             DisplaySkillMenu(param1);
         }
@@ -661,7 +715,7 @@ public int MenuHandler_Tips(Menu menu, MenuAction action, int param1, int param2
             }
             else if (StrEqual(info, "shortcuts"))
             {
-                PrintGuideLine(param1, "Bind !skill, !music, !unvomit, !extendedsight and !ragetutorial for instant access mid-fight.");
+                PrintGuideLine(param1, "Bind skill_action_1/2/3 plus deployment_action, and add shortcuts for !music, !unvomit, !extendedsight and !ragetutorial for instant access mid-fight.");
             }
             DisplayTipsMenu(param1);
         }

@@ -8,6 +8,7 @@
 #include <rage_survivor_guide>
 
 #define GAMEMODE_OPTION_COUNT 11
+#define CLASS_OPTION_COUNT 7
 
 static const char g_sGameModeNames[GAMEMODE_OPTION_COUNT][] =
 {
@@ -69,6 +70,17 @@ static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
     "mp_gamemode value for Realism."
 };
 
+static const char g_sClassOptions[CLASS_OPTION_COUNT][] =
+{
+    "Soldier",
+    "Athlete",
+    "Medic",
+    "Saboteur",
+    "Commando",
+    "Engineer",
+    "Brawler"
+};
+
 #pragma semicolon 1
 #pragma newdecls required
 
@@ -123,6 +135,7 @@ enum RageMenuOption
 };
 
 void AddGameModeOptions(int menu_id);
+void AddClassOptions(int menu_id);
 void TrackSelectableEntry(EXTRA_MENU_TYPE type);
 void RefreshGuideLibraryStatus();
 bool TryShowGuideMenu(int client);
@@ -254,8 +267,9 @@ public void OnLibraryAdded(const char[] name)
         TrackSelectableEntry(MENU_SELECT_ONLY);
         ExtraMenu_AddEntry(menu_id, "3. Select team", MENU_SELECT_ONLY);
         TrackSelectableEntry(MENU_SELECT_ONLY);
-        ExtraMenu_AddEntry(menu_id, "4. Change class", MENU_SELECT_LIST);
+        ExtraMenu_AddEntry(menu_id, "4. Change class: _OPT_", MENU_SELECT_LIST);
         TrackSelectableEntry(MENU_SELECT_LIST);
+        AddClassOptions(menu_id);
 
         ExtraMenu_AddEntry(menu_id, "5. See your ranking", MENU_SELECT_ONLY);
         TrackSelectableEntry(MENU_SELECT_ONLY);
@@ -449,7 +463,15 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             }
             case Menu_ChangeClass:
             {
-                ClientCommand(client, "sm_class");
+                if (value < 0 || value >= CLASS_OPTION_COUNT)
+                {
+                    PrintHintText(client, "Choose a class with left/right to apply it.");
+                    return;
+                }
+
+                int classIndex = value + 1; // class options skip the NONE slot
+                FakeClientCommand(client, "sm_class_set %d", classIndex);
+                PrintHintText(client, "Switching to %s", g_sClassOptions[value]);
             }
             case Menu_ViewRank:
             {
@@ -620,6 +642,24 @@ public void AddGameModeOptions(int menu_id)
         }
 
         StrCat(options, sizeof(options), g_sGameModeNames[i]);
+    }
+
+    ExtraMenu_AddOptions(menu_id, options);
+}
+
+public void AddClassOptions(int menu_id)
+{
+    char options[256];
+    options[0] = '\0';
+
+    for (int i = 0; i < CLASS_OPTION_COUNT; i++)
+    {
+        if (options[0] != '\0')
+        {
+            StrCat(options, sizeof(options), "|");
+        }
+
+        StrCat(options, sizeof(options), g_sClassOptions[i]);
     }
 
     ExtraMenu_AddOptions(menu_id, options);

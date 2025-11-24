@@ -35,6 +35,7 @@ public Plugin:myinfo =
 
 #include <adminmenu>
 #include <sdktools>
+#include <clientprefs>
 #include <l4d2hud>
 #include <talents>
 #include <jutils>
@@ -533,6 +534,7 @@ public OnPluginStart( )
 {
 	// Concommands
         RegConsoleCmd("sm_class", CmdClassMenu, "Shows the class selection menu");
+        RegConsoleCmd("sm_class_set", CmdClassSet, "Select a class directly");
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows clClearMessagesass descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
@@ -546,12 +548,14 @@ public OnPluginStart( )
 	RegAdminCmd("sm_hud_close", Cmd_CloseHUD, ADMFLAG_ROOT, "Delete HUD");
 	RegAdminCmd("sm_hud_get", Cmd_GetHud, ADMFLAG_ROOT, "Delete HUD");
 	RegAdminCmd("sm_hud_set", Cmd_SetHud, ADMFLAG_ROOT, "Delete HUD");
-	RegAdminCmd("sm_hud_setup", Cmd_SetupHud, ADMFLAG_ROOT, "Delete HUD");
-	RegAdminCmd("sm_setvictim", Cmd_SetVictim, ADMFLAG_ROOT, "Set horde to attack player #");
-	RegAdminCmd("sm_debug", Command_Debug, ADMFLAG_GENERIC, "sm_debug [0 = Off|1 = PrintToChat|2 = LogToFile|3 = PrintToChat AND LogToFile]");
-	RegAdminCmd("sm_model", CmdModel, ADMFLAG_GENERIC, "Change model to custom one");
+        RegAdminCmd("sm_hud_setup", Cmd_SetupHud, ADMFLAG_ROOT, "Delete HUD");
+        RegAdminCmd("sm_setvictim", Cmd_SetVictim, ADMFLAG_ROOT, "Set horde to attack player #");
+        RegAdminCmd("sm_debug", Command_Debug, ADMFLAG_GENERIC, "sm_debug [0 = Off|1 = PrintToChat|2 = LogToFile|3 = PrintToChat AND LogToFile]");
+        RegAdminCmd("sm_model", CmdModel, ADMFLAG_GENERIC, "Change model to custom one");
 
-	// Api
+        g_hClassCookie = RegClientCookie("rage_last_class", "Last selected Rage class", CookieAccess_Protected);
+
+        // Api
 
 	g_hfwdOnPlayerClassChange = CreateGlobalForward("OnPlayerClassChange", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
 	g_hfwdOnSpecialSkillUsed = CreateGlobalForward("OnSpecialSkillUsed", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
@@ -768,10 +772,10 @@ public RebuildCache()
 
 public void GetPlayerSkillReadyHint(client) {
 
-	int classId = view_as<int>(ClientData[client].ChosenClass);
-	if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed) {
-		PrintHintText(client,"%s", SpecialReadyTips[classId]);	
-	}
+        int classId = view_as<int>(ClientData[client].ChosenClass);
+        if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed && classId > 0 && classId < sizeof(SpecialReadyTips)) {
+                ShowClassHud(client, true, SpecialReadyTips[classId]);
+        }
 }
 
 public void SetupClasses(client, class)
@@ -794,9 +798,9 @@ switch (view_as<ClassTypes>(class))
 
 		case soldier:	
 		{
-			char text[64];
+                        char text[96];
                         if (g_bAirstrike == true) {
-                                text = "Press MIDDLE BUTTON or type !skill for Airstrike!";
+                                text = "Press skill_action_1 (middle mouse) for Airstrike!";
                         }
 
                         PrintHintText(client,"You have armor, fast attack rate and movement %s", text );
@@ -807,7 +811,7 @@ switch (view_as<ClassTypes>(class))
 		
 		case medic:
 		{
-                        PrintHintText(client,"Hold CROUCH to heal others. Look down and press SHIFT to drop medkits & supplies.\nPress MIDDLE button or type !skill to throw healing grenade!");
+                        PrintHintText(client,"Hold CROUCH to heal others. Look down and press SHIFT to drop medkits & supplies.\nPress skill_action_1 (middle mouse) to throw healing grenade!");
 			CreateTimer(GetConVarFloat(MEDIC_HEALTH_INTERVAL), TimerDetectHealthChanges, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 			ClientData[client].SpecialLimit = GetConVarInt(MEDIC_MAX_ITEMS);
 			MaxPossibleHP = GetConVarInt(MEDIC_HEALTH);
@@ -840,20 +844,20 @@ switch (view_as<ClassTypes>(class))
 				text = ", You're immune to Tank knockdowns!";
 			} 
 
-                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress MIDDLE button or type !skill to activate Berzerk mode!", text);
+                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress skill_action_1 (middle mouse) to activate Berserk mode!", text);
 			MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
 		}
 		
 		case engineer:
 		{
-                        PrintHintText(client,"Press MIDDLE button or type !skill to deploy turrets. Look down and press SHIFT to drop ammo supplies!");
+                        PrintHintText(client,"Press skill_action_1 (middle mouse) to deploy turrets. Look down and press SHIFT to drop ammo supplies!");
 			MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
 		}
 		
 		case saboteur:
 		{
-                        PrintHintText(client,"Look down and press SHIFT to drop mines! Hold CROUCH 3 sec to go invisible.\nPress MIDDLE or !skill to summon Decoy. Use !extendedsight for wallhack");
+                        PrintHintText(client,"Look down and press SHIFT to drop mines! Hold CROUCH 3 sec to go invisible.\nPress skill_action_1 (middle mouse) to summon Decoy. Use !extendedsight for wallhack");
 			MaxPossibleHP = GetConVarInt(SABOTEUR_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(SABOTEUR_MAX_BOMBS);
 //			ToggleNightVision(client);
@@ -1212,12 +1216,36 @@ void ResetPlugin()
 
 public OnClientPutInServer(client)
 {
-	if (!client || !IsValidEntity(client) || !IsClientInGame(client) || g_bPluginLoaded == false)
-	return;
+        if (!client || !IsValidEntity(client) || !IsClientInGame(client) || g_bPluginLoaded == false)
+        return;
 
 	ResetClientVariables(client);
 	RebuildCache();
 	HookPlayer(client);
+}
+
+public void OnClientCookiesCached(int client)
+{
+        if (g_hClassCookie == INVALID_HANDLE || !IsClientInGame(client) || IsFakeClient(client))
+        {
+                return;
+        }
+
+        char storedClass[8];
+        GetClientCookie(client, g_hClassCookie, storedClass, sizeof(storedClass));
+
+        int savedClass = StringToInt(storedClass);
+        if (savedClass > 0 && savedClass < view_as<int>(MAXCLASSES))
+        {
+                LastClassConfirmed[client] = savedClass;
+
+                if (ClientData[client].ChosenClass == NONE)
+                {
+                        ClientData[client].ChosenClass = view_as<ClassTypes>(savedClass);
+                }
+
+                PrintToChat(client, "%sLoaded your %s class. It will auto-apply on spawn; use the Rage menu to change anytime.", PRINT_PREFIX, MENU_OPTIONS[savedClass]);
+        }
 }
 
 void DmgHookUnhook(bool enabled)
@@ -1263,9 +1291,10 @@ public Action:OnWeaponEquip(client, weapon)
 
 public OnClientDisconnect(client)
 {
-	UnhookPlayer(false);
-	RebuildCache();
-	ResetClientVariables(client);
+        UnhookPlayer(false);
+        RebuildCache();
+        ResetClientVariables(client);
+        LastClassConfirmed[client] = 0;
 }
 
 // Inform other plugins.
@@ -1383,12 +1412,11 @@ public ShowBar(client, String:msg[], Float:pos, Float:max)
 
 public Event_RoundChange(Handle:event, String:name[], bool:dontBroadcast)
 {
-	for (new i = 1; i < MAXPLAYERS; i++)
-	{
-		ResetClientVariables(i);
-		LastClassConfirmed[i] = 0;
-		DisableAllUpgrades(i);
-	}
+        for (new i = 1; i < MAXPLAYERS; i++)
+        {
+                ResetClientVariables(i);
+                DisableAllUpgrades(i);
+        }
 
 	DmgHookUnhook(false);
 	
@@ -1503,11 +1531,11 @@ public Event_PlayerTeam(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 	new client = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	new team = GetEventInt(hEvent, "team");
 	
-	if (team == 2 && LastClassConfirmed[client] != 0)
-	{
-		ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
-		PrintToChat(client, "\x01You are currently a \x04%s", MENU_OPTIONS[LastClassConfirmed[client]]);
-	}
+        if (team == 2 && LastClassConfirmed[client] != 0)
+        {
+                ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                PrintToChat(client, "\x01You are currently a \x04%s\x01. Mid-round changes apply next round.", MENU_OPTIONS[LastClassConfirmed[client]]);
+        }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////

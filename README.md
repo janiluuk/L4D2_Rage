@@ -22,8 +22,17 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 
 ## Play your way
 
-- Players have 3 extra skill actions + deploy action. These are configurable. 
-- Deploy action is mapped to SHIFT. You can also deploy from quick menu
+- Players have 3 extra skill actions + deploy action. These are configurable.
+- Default bindings:
+
+| Action name         | Default input                         | Notes                         |
+|---------------------|---------------------------------------|-------------------------------|
+| `skill_action_1`    | Middle mouse button                   | Primary active skill          |
+| `skill_action_2`    | Hold **Use** and press **Fire**       | Secondary skill               |
+| `skill_action_3`    | Hold **Crouch** + **Use** + **Fire**  | Tertiary skill                |
+| `deployment_action` | Look down and hold **Shift**          | Deploy grenades/turrets/mines |
+
+You can remap these in `configs/rage_class_skills.cfg` to any keys you like.
 - Multiple equipment mode
 - You can configure the skills and add new ones
 
@@ -69,7 +78,7 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - Reduced survivor damage, increased infected damage
 
 ## Additional Features & Commands
-- **Class Skill Command** – Bind a key or type `!skill` to trigger your class's special ability. Secondary actions (Use+Attack) and deploy actions (look down + Shift) are configurable per class in `configs/rage_class_skills.cfg`.
+- **Class Skill Actions** – Bind four class actions (skill_action_1 through skill_action_3 plus deployment_action) to any comfortable keys. Defaults are above and can be remapped in `configs/rage_class_skills.cfg`.
 - Keeps chosen class throughout the campaign unless user changes it.
 
 ## Toys, tricks, and server spice

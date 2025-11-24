@@ -1,8 +1,10 @@
-
+ 
 
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+
+stock bool ApplyClassSelection(int client, int classIndex);
 
 public Action:Command_Debug(client, args) {
 	
@@ -50,12 +52,40 @@ public Action:CmdModel(client, args) {
 }
 public Action:CmdClassMenu(client, args)
 {
-	if (GetClientTeam(client) != 2)
-	{
-		PrintToChat(client, "%sOnly Survivors can choose a class.", PRINT_PREFIX);
-		return;
-	}
-	CreatePlayerClassMenu(client);
+        if (GetClientTeam(client) != 2)
+        {
+                PrintToChat(client, "%sOnly Survivors can choose a class.", PRINT_PREFIX);
+                return;
+        }
+        CreatePlayerClassMenu(client);
+}
+
+public Action:CmdClassSet(int client, int args)
+{
+        if (GetClientTeam(client) != 2)
+        {
+                PrintToChat(client, "%sOnly Survivors can choose a class.", PRINT_PREFIX);
+                return Plugin_Handled;
+        }
+
+        if (args < 1)
+        {
+                PrintToChat(client, "%sSelect a class number between 1 and %d.", PRINT_PREFIX, view_as<int>(MAXCLASSES) - 1);
+                return Plugin_Handled;
+        }
+
+        char arg[16];
+        GetCmdArg(1, arg, sizeof(arg));
+
+        int classIndex = StringToInt(arg);
+        if (classIndex <= 0 || classIndex >= view_as<int>(MAXCLASSES))
+        {
+                PrintToChat(client, "%sSelect a class number between 1 and %d.", PRINT_PREFIX, view_as<int>(MAXCLASSES) - 1);
+                return Plugin_Handled;
+        }
+
+        ApplyClassSelection(client, classIndex);
+        return Plugin_Handled;
 }
 
 public Action:CreatePlayerClassMenuDelay(Handle:hTimer, any:client)
