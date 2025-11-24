@@ -44,10 +44,11 @@ public Plugin:myinfo =
 #include <rage/movement>
 
 #if !defined MAX_SKILL_NAME_LENGTH
-	#define MAX_SKILL_NAME_LENGTH 32
+        #define MAX_SKILL_NAME_LENGTH 32
 #endif
 
 #define CLASS_SKILL_CONFIG "configs/rage_class_skills.cfg"
+#define CLASS_DESCRIPTION_LENGTH 128
 
 enum ClassSkillInput
 {
@@ -76,9 +77,9 @@ enum BuiltinAction
 
 static const char g_ClassIdentifiers[MAXCLASSES][16] =
 {
-	"none",
-	"soldier",
-	"athlete",
+        "none",
+        "soldier",
+        "athlete",
 	"medic",
 	"saboteur",
 	"commando",
@@ -92,6 +93,18 @@ static const char g_InputIdentifiers[ClassSkill_Count][16] =
         "secondary",
         "tertiary",
         "deploy"
+};
+
+static const char g_DefaultClassDescriptions[MAXCLASSES][CLASS_DESCRIPTION_LENGTH] =
+{
+        "No class selected yet.",
+        "Frontline fighter with faster movement, heavier armor, and brutal melee swings.",
+        "Movement expert with high jumps, aerial control, and a parachute for safe drops.",
+        "Team sustain lead who heals faster, drops supplies, and throws restorative grenades.",
+        "Stealthy scout with cloak, fast crouch movement, and a toolkit of motion-sensitive mines.",
+        "Damage specialist with faster reloads, heavier hits, and crowd control during tank fights.",
+        "Builder who deploys turrets, ammo packs, and experimental grenades to lock down chokepoints.",
+        "Heavy bruiser with a massive health pool built to soak damage for the squad."
 };
 
 ClassActionMode g_ClassActionMode[MAXCLASSES][ClassSkill_Count];
@@ -137,9 +150,9 @@ void GetActionBindingLabel(ClassSkillInput input, char[] buffer, int maxlen)
 
 void ResetClassActionSlot(ClassTypes type, ClassSkillInput input)
 {
-	g_ClassActionMode[type][input] = ActionMode_None;
-	g_ClassActionBuiltin[type][input] = Builtin_None;
-	g_ClassActionSkillIdMap[type][input] = -1;
+        g_ClassActionMode[type][input] = ActionMode_None;
+        g_ClassActionBuiltin[type][input] = Builtin_None;
+        g_ClassActionSkillIdMap[type][input] = -1;
 	g_ClassActionTriggerType[type][input] = 0;
 	g_ClassActionSkillName[type][input][0] = '\0';
 	g_ClassActionCommandPlugin[type][input][0] = '\0';
@@ -149,11 +162,16 @@ void ResetClassActionSlot(ClassTypes type, ClassSkillInput input)
 
 void ResetClassSkillConfig()
 {
-	for (int i = 0; i < view_as<int>(MAXCLASSES); i++)
-	{
-		for (int j = 0; j < view_as<int>(ClassSkill_Count); j++)
-		{
-			ResetClassActionSlot(view_as<ClassTypes>(i), view_as<ClassSkillInput>(j));
+        for (int i = 0; i < view_as<int>(MAXCLASSES); i++)
+        {
+                strcopy(g_ClassDescriptions[i], CLASS_DESCRIPTION_LENGTH, g_DefaultClassDescriptions[i]);
+        }
+
+        for (int i = 0; i < view_as<int>(MAXCLASSES); i++)
+        {
+                for (int j = 0; j < view_as<int>(ClassSkill_Count); j++)
+                {
+                        ResetClassActionSlot(view_as<ClassTypes>(i), view_as<ClassSkillInput>(j));
 		}
 	}
 }
@@ -332,20 +350,27 @@ void LoadClassSkillConfig()
 				continue;
 			}
 
-			for (int i = 0; i < view_as<int>(ClassSkill_Count); i++)
-			{
-				char value[64];
-				kv.GetString(g_InputIdentifiers[i], value, sizeof(value), "");
-				if (value[0] != '\0')
-				{
-					ApplyActionDefinition(classType, view_as<ClassSkillInput>(i), value);
-				}
-			}
-		}
-		while (kv.GotoNextKey(false));
+                        for (int i = 0; i < view_as<int>(ClassSkill_Count); i++)
+                        {
+                                char value[64];
+                                kv.GetString(g_InputIdentifiers[i], value, sizeof(value), "");
+                                if (value[0] != '\0')
+                                {
+                                        ApplyActionDefinition(classType, view_as<ClassSkillInput>(i), value);
+                                }
+                        }
 
-		kv.GoBack();
-	}
+                        char description[CLASS_DESCRIPTION_LENGTH];
+                        kv.GetString("description", description, sizeof(description), "");
+                        if (description[0] != '\0')
+                        {
+                                strcopy(g_ClassDescriptions[classType], CLASS_DESCRIPTION_LENGTH, description);
+                        }
+                }
+                while (kv.GotoNextKey(false));
+
+                kv.GoBack();
+        }
 
 	delete kv;
 	ResolveClassSkillIds();
@@ -1306,6 +1331,7 @@ public void OnClientCookiesCached(int client)
         g_iQueuedClass[client] = 0;
 
         PrintToChat(client, "%sRestored your %s class. Use the class menu to change it again.", PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+        NotifySelectedClassHint(client);
 }
 
 void DmgHookUnhook(bool enabled)
@@ -1538,10 +1564,11 @@ public Event_RoundChange(Handle:event, String:name[], bool:dontBroadcast)
 
 public Event_RoundStart(Handle:event, String:name[], bool:dontBroadcast)
 {
-	if( g_iPlayerSpawn == true && RoundStarted == true )
-		CreateTimer(1.0, TimerStart, _, TIMER_FLAG_NO_MAPCHANGE);
-	
-	RoundStarted = true;
+        if( g_iPlayerSpawn == true && RoundStarted == true )
+                CreateTimer(1.0, TimerStart, _, TIMER_FLAG_NO_MAPCHANGE);
+
+        RoundStarted = true;
+        CreateTimer(2.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void OnRoundState(int roundstate)
@@ -1647,6 +1674,7 @@ public Event_PlayerTeam(Handle:hEvent, String:sName[], bool:bDontBroadcast)
         {
                 ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
                 PrintToChat(client, "\x01You are currently a \x04%s\x01. Mid-round changes apply next round.", MENU_OPTIONS[LastClassConfirmed[client]]);
+                NotifySelectedClassHint(client);
         }
 }
 

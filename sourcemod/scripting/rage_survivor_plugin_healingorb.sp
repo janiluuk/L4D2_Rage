@@ -30,12 +30,20 @@ new g_BeamSprite, g_HaloSprite, g_GlowSprite;
 
 new Float:HealingBallInterval[MAXPLAYERS+1], Float:HealingBallEffect[MAXPLAYERS+1],
         Float:HealingBallRadius[MAXPLAYERS+1], Float:HealingBallDuration[MAXPLAYERS+1];
+Handle g_hHealingOrbCooldown = INVALID_HANDLE;
+float g_fHealingOrbCooldown = 30.0;
+float g_fNextHealingOrbUse[MAXPLAYERS+1];
 
 public void OnPluginStart()
 {
+        g_hHealingOrbCooldown = CreateConVar("healing_orb_cooldown", "30.0", "Cooldown between healing orb uses in seconds.", CVAR_FLAGS, true, 0.0);
+        g_fHealingOrbCooldown = GetConVarFloat(g_hHealingOrbCooldown);
+        HookConVarChange(g_hHealingOrbCooldown, OnHealingOrbCooldownChanged);
+
         for (int i = 1; i <= MaxClients; ++i)
         {
                 HealingBallTimer[i] = INVALID_HANDLE;
+                g_fNextHealingOrbUse[i] = 0.0;
         }
 }
 
@@ -68,13 +76,25 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	for(new i = 1; i <= MaxClients; ++i)
-	{
-		if(HealingBallTimer[i] != INVALID_HANDLE)
-			KillTimer(HealingBallTimer[i]);
-		
-		HealingBallTimer[i] = INVALID_HANDLE;
-	}
+        for(new i = 1; i <= MaxClients; ++i)
+        {
+                if(HealingBallTimer[i] != INVALID_HANDLE)
+                        KillTimer(HealingBallTimer[i]);
+
+                HealingBallTimer[i] = INVALID_HANDLE;
+                g_fNextHealingOrbUse[i] = 0.0;
+        }
+}
+
+public void OnClientDisconnect(int client)
+{
+        if (HealingBallTimer[client] != INVALID_HANDLE)
+        {
+                KillTimer(HealingBallTimer[client]);
+                HealingBallTimer[client] = INVALID_HANDLE;
+        }
+
+        g_fNextHealingOrbUse[client] = 0.0;
 }
 
 public Action:HealingBallFunction(Client)
