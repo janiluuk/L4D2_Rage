@@ -155,7 +155,7 @@ stock int b_attackerTarget[MAXPLAYERS+1];
 // Player Related Variables
 
 new LastClassConfirmed[MAXPLAYERS+1];
-new int g_iQueuedClass[MAXPLAYERS+1];
+int g_iQueuedClass[MAXPLAYERS+1];
 new bool:g_bInSaferoom[MAXPLAYERS+1];
 new Float:g_SpawnPos[MAXPLAYERS+1][3];
 new bool:RoundStarted =false;
