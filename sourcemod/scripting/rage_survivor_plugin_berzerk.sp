@@ -51,7 +51,8 @@ bool g_bRageAvailable = false;
 #include <sourcemod>
 #include <sdktools>
 #include <rage/skills>
-#pragma semicolon 2 //Who doesn't like semicolons? :)
+#pragma semicolon 1
+#pragma newdecls required
 
 //Definitions
 #define SOUND_START "ui/pickup_secret01.wav" //Sound heard by the client that begins berserker
@@ -126,196 +127,196 @@ bool g_bRageAvailable = false;
 //--------------------------------------------------------------------------------
 
 //------------------------------Strings-------------------------------------------
-new String:g_sBerserkMusic[PLATFORM_MAX_PATH]; //Path for the music file to play when berserker mode is running
-new String:g_sKeyToBind[12]; //Key to bind to activate berserker. If set to nothing, +ZOOM will be taken instead, or, by !berserker command.
+char g_sBerserkMusic[PLATFORM_MAX_PATH]; //Path for the music file to play when berserker mode is running
+char g_sKeyToBind[12]; //Key to bind to activate berserker. If set to nothing, +ZOOM will be taken instead, or, by !berserker command.
 
 //------------------------------Integers------------------------------------------
-new g_iTeam[MAXPLAYERS+1]; //Player team index
-new g_iEffect[MAXPLAYERS+1]; //client effect entity id
-new g_iZerkTime[MAXPLAYERS+1];
+int g_iTeam[MAXPLAYERS+1]; //Player team index
+int g_iEffect[MAXPLAYERS+1]; //client effect entity id
+int g_iZerkTime[MAXPLAYERS+1];
 
-new g_iKillCount[MAXPLAYERS+1]; //Common infected kill count for survivors
-new g_iKillCountExtra[MAXPLAYERS+1]; //Common infected kill count, under berserker for survivors (To grant additional health).
-new g_iDamageCount[MAXPLAYERS+1]; //Damage count for infected. Based on the number of times the infected attacks a survivor.(Soon, based on the amount of damage)
-new g_iWhoVomited[MAXPLAYERS+1]; //Who was the last who vomited a player
+int g_iKillCount[MAXPLAYERS+1]; //Common infected kill count for survivors
+int g_iKillCountExtra[MAXPLAYERS+1]; //Common infected kill count, under berserker for survivors (To grant additional health).
+int g_iDamageCount[MAXPLAYERS+1]; //Damage count for infected. Based on the number of times the infected attacks a survivor.(Soon, based on the amount of damage)
+int g_iWhoVomited[MAXPLAYERS+1]; //Who was the last who vomited a player
 
 //---------------------------------Bools-------------------------------------------
-new bool:g_bIsIncapacitated[MAXPLAYERS+1] = { false }; //Is the player incapacitated?
-new bool:g_bHasBerserker[MAXPLAYERS+1] = { false }; //Is the player under berserker mode?
-new bool:g_bBerserkerEnabled[MAXPLAYERS+1] = { false }; //Is berserker ready to be used?
-new bool:g_bHasFireBullets[MAXPLAYERS+1] = { false }; //Has the player fire bullets?
+bool g_bIsIncapacitated[MAXPLAYERS+1]; //Is the player incapacitated?
+bool g_bHasBerserker[MAXPLAYERS+1]; //Is the player under berserker mode?
+bool g_bBerserkerEnabled[MAXPLAYERS+1]; //Is berserker ready to be used?
+bool g_bHasFireBullets[MAXPLAYERS+1]; //Has the player fire bullets?
 
 //Exclude Extra Damage
-new bool:g_bExBoomerED = false; //Are boomers excluded from extra damage?
-new bool:g_bExTankED = false; //Are tanks excluded from extra damage?
-new bool:g_bExChargerED = false; //Are Chargers excluded from extra damage?
-new bool:g_bExSpitterED = false; //Are Spitters excluded from extra damage?
-new bool:g_bExHunterED = false; //Are hunters excluded from extra damage?
-new bool:g_bExJockeyED = false; //Are jockeys excluded from extra damage?
-new bool:g_bExSmokerED = false; //Are smokers excluded from extra damage?
+bool g_bExBoomerED; //Are boomers excluded from extra damage?
+bool g_bExTankED; //Are tanks excluded from extra damage?
+bool g_bExChargerED; //Are Chargers excluded from extra damage?
+bool g_bExSpitterED; //Are Spitters excluded from extra damage?
+bool g_bExHunterED; //Are hunters excluded from extra damage?
+bool g_bExJockeyED; //Are jockeys excluded from extra damage?
+bool g_bExSmokerED; //Are smokers excluded from extra damage?
 
 //Exclude Fire Shield
-new bool:g_bExBoomerFS = false; //Are boomers excluded from fire shield?
-new bool:g_bExTankFS = false; //Are tanks excluded from fire shield?
-new bool:g_bExChargerFS = false; //Are Chargers excluded from fire shield?
-new bool:g_bExSpitterFS = false; //Are Spitters excluded from fire shield?
-new bool:g_bExHunterFS = false; //Are hunters excluded from fire shield?
-new bool:g_bExJockeyFS = false; //Are jockeys excluded from fire shield?
-new bool:g_bExSmokerFS = false; //Are smokers excluded from fire shield?
+bool g_bExBoomerFS; //Are boomers excluded from fire shield?
+bool g_bExTankFS; //Are tanks excluded from fire shield?
+bool g_bExChargerFS; //Are Chargers excluded from fire shield?
+bool g_bExSpitterFS; //Are Spitters excluded from fire shield?
+bool g_bExHunterFS; //Are hunters excluded from fire shield?
+bool g_bExJockeyFS; //Are jockeys excluded from fire shield?
+bool g_bExSmokerFS; //Are smokers excluded from fire shield?
 
 //Exclude Extra Health
-new bool:g_bExBoomerEIH = false; //Are boomers excluded from extra health?
-new bool:g_bExTankEIH = false; //Are tanks excluded from extra health?
-new bool:g_bExChargerEIH = false; //Are Chargers excluded from extra health?
-new bool:g_bExSpitterEIH = false; //Are Spitters excluded from extra health?
-new bool:g_bExHunterEIH = false; //Are hunters excluded from extra health?
-new bool:g_bExJockeyEIH = false; //Are jockeys excluded from extra health?
-new bool:g_bExSmokerEIH = false; //Are smokers excluded from extra health?
+bool g_bExBoomerEIH; //Are boomers excluded from extra health?
+bool g_bExTankEIH; //Are tanks excluded from extra health?
+bool g_bExChargerEIH; //Are Chargers excluded from extra health?
+bool g_bExSpitterEIH; //Are Spitters excluded from extra health?
+bool g_bExHunterEIH; //Are hunters excluded from extra health?
+bool g_bExJockeyEIH; //Are jockeys excluded from extra health?
+bool g_bExSmokerEIH; //Are smokers excluded from extra health?
 
 //Exclude Lethal Bite
-new bool:g_bExBoomerLB = false; //Are boomers excluded from lethal bite?
-new bool:g_bExTankLB = false; //Are tanks excluded from lethal bite?
-new bool:g_bExChargerLB = false; //Are Chargers excluded from lethal bite?
-new bool:g_bExSpitterLB = false; //Are Spitters excluded from lethal bite?
-new bool:g_bExHunterLB = false; //Are hunters excluded from lethal bite?
-new bool:g_bExJockeyLB = false; //Are jockeys excluded from lethal bite?
-new bool:g_bExSmokerLB = false; //Are smokers excluded from lethal bite?
+bool g_bExBoomerLB; //Are boomers excluded from lethal bite?
+bool g_bExTankLB; //Are tanks excluded from lethal bite?
+bool g_bExChargerLB; //Are Chargers excluded from lethal bite?
+bool g_bExSpitterLB; //Are Spitters excluded from lethal bite?
+bool g_bExHunterLB; //Are hunters excluded from lethal bite?
+bool g_bExJockeyLB; //Are jockeys excluded from lethal bite?
+bool g_bExSmokerLB; //Are smokers excluded from lethal bite?
 
 //Exclude Berserker Yell
-new bool:g_bExBoomerBY = false; //Are boomers excluded from berserker yell?
-new bool:g_bExTankBY = false; //Are tanks excluded from berserker yell?
-new bool:g_bExChargerBY = false; //Are Chargers excluded from berserker yell?
-new bool:g_bExSpitterBY = false; //Are Spitters excluded from berserker yell?
-new bool:g_bExHunterBY = false; //Are hunters excluded from berserker yell?
-new bool:g_bExJockeyBY = false; //Are jockeys excluded from berserker yell?
-new bool:g_bExSmokerBY = false; //Are smokers excluded from berserker yell?
+bool g_bExBoomerBY; //Are boomers excluded from berserker yell?
+bool g_bExTankBY; //Are tanks excluded from berserker yell?
+bool g_bExChargerBY; //Are Chargers excluded from berserker yell?
+bool g_bExSpitterBY; //Are Spitters excluded from berserker yell?
+bool g_bExHunterBY; //Are hunters excluded from berserker yell?
+bool g_bExJockeyBY; //Are jockeys excluded from berserker yell?
+bool g_bExSmokerBY; //Are smokers excluded from berserker yell?
 
 //Exclude everything
-new bool:g_bExALLBoomer = false; //Are boomers excluded from ALL features?
-new bool:g_bExALLTank = false; //Are tanks excluded from ALL features?
-new bool:g_bExALLCharger = false; //Are Chargers excluded from ALL features?
-new bool:g_bExALLSpitter = false; //Are Spitters excluded from ALL features?
-new bool:g_bExALLHunter = false; //Are hunters excluded from ALL features?
-new bool:g_bExALLJockey = false; //Are jockeys excluded from ALL features?
-new bool:g_bExALLSmoker = false; //Are smokers excluded from ALL features?
+bool g_bExALLBoomer; //Are boomers excluded from ALL features?
+bool g_bExALLTank; //Are tanks excluded from ALL features?
+bool g_bExALLCharger; //Are Chargers excluded from ALL features?
+bool g_bExALLSpitter; //Are Spitters excluded from ALL features?
+bool g_bExALLHunter; //Are hunters excluded from ALL features?
+bool g_bExALLJockey; //Are jockeys excluded from ALL features?
+bool g_bExALLSmoker; //Are smokers excluded from ALL features?
 
-new bool:g_bIsPouncing[MAXPLAYERS+1] = { false }; //Is the infected pouncing a survivor?
-new bool:g_bIsChoking[MAXPLAYERS+1] = { false }; //Is the infected choking a survivor?
-new bool:g_bIsRiding[MAXPLAYERS+1] = { false }; //Is the infected jockey-riding a survivor?
+bool g_bIsPouncing[MAXPLAYERS+1]; //Is the infected pouncing a survivor?
+bool g_bIsChoking[MAXPLAYERS+1]; //Is the infected choking a survivor?
+bool g_bIsRiding[MAXPLAYERS+1]; //Is the infected jockey-riding a survivor?
 
-new bool:g_bFinaleEscape = false; // Is the rescue vehicle here?
-new bool:g_bIsVomited[MAXPLAYERS+1] = { false }; //Is the player vomited?
-new bool:g_bLBActive[MAXPLAYERS+1] = { false }; //Lethal bite active?
-new bool:g_bDidYell[MAXPLAYERS+1] = { false }; //Did yell?
-new bool:g_bIsPummeling[MAXPLAYERS+1] = { false }; //Is pummeling.
+bool g_bFinaleEscape; // Is the rescue vehicle here?
+bool g_bIsVomited[MAXPLAYERS+1]; //Is the player vomited?
+bool g_bLBActive[MAXPLAYERS+1]; //Lethal bite active?
+bool g_bDidYell[MAXPLAYERS+1]; //Did yell?
+bool g_bIsPummeling[MAXPLAYERS+1]; //Is pummeling.
 
 //-----------------------------ConVars------------------------------------
 
 //Global
-new Handle:g_cvarInfectedDuration = INVALID_HANDLE;
-new Handle:g_cvarPlayMusic = INVALID_HANDLE;
-new Handle:g_cvarBindKey = INVALID_HANDLE;
-new Handle:g_cvarCountMode = INVALID_HANDLE;
-new Handle:g_cvarCountExpireTime = INVALID_HANDLE;
-new Handle:g_cvarEffectType = INVALID_HANDLE;
-new Handle:g_cvarKeyToBind = INVALID_HANDLE;
-new Handle:g_cvarAutomaticStart = INVALID_HANDLE;
-new Handle:g_cvarChangeColor = INVALID_HANDLE;
-new Handle:g_cvarColor = INVALID_HANDLE;
-new Handle:g_cvarMusicFile = INVALID_HANDLE;
-new Handle:g_cvarDownloadMusic = INVALID_HANDLE;
-new Handle:g_cvarEnableMusicShield = INVALID_HANDLE;
-new Handle:g_cvarAdrenCheckTimer = INVALID_HANDLE;
-new Handle:g_cvarAdrenCheckEnable = INVALID_HANDLE;
-new Handle:g_cvarAllowZoomKey = INVALID_HANDLE;
-new Handle:g_cvarYell = INVALID_HANDLE;
-new Handle:g_cvarYellPower = INVALID_HANDLE;
-new Handle:g_cvarYellRadius = INVALID_HANDLE;
-new Handle:g_cvarYellLuck = INVALID_HANDLE;
-new Handle:g_cvarAnnounceType = INVALID_HANDLE;
+ConVar g_cvarInfectedDuration;
+ConVar g_cvarPlayMusic;
+ConVar g_cvarBindKey;
+ConVar g_cvarCountMode;
+ConVar g_cvarCountExpireTime;
+ConVar g_cvarEffectType;
+ConVar g_cvarKeyToBind;
+ConVar g_cvarAutomaticStart;
+ConVar g_cvarChangeColor;
+ConVar g_cvarColor;
+ConVar g_cvarMusicFile;
+ConVar g_cvarDownloadMusic;
+ConVar g_cvarEnableMusicShield;
+ConVar g_cvarAdrenCheckTimer;
+ConVar g_cvarAdrenCheckEnable;
+ConVar g_cvarAllowZoomKey;
+ConVar g_cvarYell;
+ConVar g_cvarYellPower;
+ConVar g_cvarYellRadius;
+ConVar g_cvarYellLuck;
+ConVar g_cvarAnnounceType;
 
 //Survivor
-new Handle:g_cvarSurvivorEnable = INVALID_HANDLE;
-new Handle:g_cvarSurvivorGoal = INVALID_HANDLE;
-new Handle:g_cvarSurvivorSI = INVALID_HANDLE;
-new Handle:g_cvarSurvivorSIGoal = INVALID_HANDLE;
-new Handle:g_cvarEHEnabled = INVALID_HANDLE;
-new Handle:g_cvarEHGoal = INVALID_HANDLE;
-new Handle:g_cvarEHBonusAmount = INVALID_HANDLE;
-new Handle:g_cvarEHSpecialInstant = INVALID_HANDLE;
-new Handle:g_cvarEHSpecialBonusAmount = INVALID_HANDLE;
-new Handle:g_cvarAdrenType = INVALID_HANDLE;
-new Handle:g_cvarRefillWeapon = INVALID_HANDLE;
-new Handle:g_cvarSpecialBullets = INVALID_HANDLE;
-new Handle:g_cvarIncapImmunity = INVALID_HANDLE;
-new Handle:g_cvarShovePenalty = INVALID_HANDLE;
-new Handle:g_cvarInfiniteSpecialBullets = INVALID_HANDLE;
-new Handle:g_cvarMeleeOnly = INVALID_HANDLE;
-new Handle:g_cvarEnableImmunity = INVALID_HANDLE;
-new Handle:g_cvarImmunityDuration = INVALID_HANDLE;
-new Handle:g_cvarGiveLaserSight = INVALID_HANDLE;
-new Handle:g_cvarFireWeaponsOnly = INVALID_HANDLE;
-new Handle:g_cvarFasterReload = INVALID_HANDLE;
-new Handle:g_cvarFasterShooting = INVALID_HANDLE;
-new Handle:g_cvarFasterSwinging = INVALID_HANDLE;
-new Handle:g_cvarNastyRevenge = INVALID_HANDLE;
-new Handle:g_cvarNastyRevengeProb = INVALID_HANDLE;
-new Handle:g_cvarNastyRevengeInfProb = INVALID_HANDLE;
-new Handle:g_cvarYellSurvivor = INVALID_HANDLE;
-new Handle:g_cvarYellFire = INVALID_HANDLE;
-new Handle:g_cvarIncapRestrict = INVALID_HANDLE;
-new Handle:g_cvarAdvEffectSurvivor = INVALID_HANDLE;
-new Handle:g_cvarSurvivorDuration = INVALID_HANDLE;
-new Handle:g_cvarConvertPermHealth = INVALID_HANDLE;
+ConVar g_cvarSurvivorEnable;
+ConVar g_cvarSurvivorGoal;
+ConVar g_cvarSurvivorSI;
+ConVar g_cvarSurvivorSIGoal;
+ConVar g_cvarEHEnabled;
+ConVar g_cvarEHGoal;
+ConVar g_cvarEHBonusAmount;
+ConVar g_cvarEHSpecialInstant;
+ConVar g_cvarEHSpecialBonusAmount;
+ConVar g_cvarAdrenType;
+ConVar g_cvarRefillWeapon;
+ConVar g_cvarSpecialBullets;
+ConVar g_cvarIncapImmunity;
+ConVar g_cvarShovePenalty;
+ConVar g_cvarInfiniteSpecialBullets;
+ConVar g_cvarMeleeOnly;
+ConVar g_cvarEnableImmunity;
+ConVar g_cvarImmunityDuration;
+ConVar g_cvarGiveLaserSight;
+ConVar g_cvarFireWeaponsOnly;
+ConVar g_cvarFasterReload;
+ConVar g_cvarFasterShooting;
+ConVar g_cvarFasterSwinging;
+ConVar g_cvarNastyRevenge;
+ConVar g_cvarNastyRevengeProb;
+ConVar g_cvarNastyRevengeInfProb;
+ConVar g_cvarYellSurvivor;
+ConVar g_cvarYellFire;
+ConVar g_cvarIncapRestrict;
+ConVar g_cvarAdvEffectSurvivor;
+ConVar g_cvarSurvivorDuration;
+ConVar g_cvarConvertPermHealth;
 
 //Infected
-new Handle:g_cvarInfectedEnable = INVALID_HANDLE;
-new Handle:g_cvarInfectedGoal = INVALID_HANDLE;
-new Handle:g_cvarInfectedCountType = INVALID_HANDLE;
-new Handle:g_cvarAbilityImmunity = 	INVALID_HANDLE;
-new Handle:g_cvarEDEnabled = INVALID_HANDLE;
-new Handle:g_cvarEDMultiplier = INVALID_HANDLE;
-new Handle:g_cvarEIHEnabled = INVALID_HANDLE;
-new Handle:g_cvarEIHMultiplier = INVALID_HANDLE;
-new Handle:g_cvarEDExInfected = INVALID_HANDLE;
-new Handle:g_cvarExInfected = INVALID_HANDLE;
-new Handle:g_cvarLBExInfected = INVALID_HANDLE;
-new Handle:g_cvarEIHExInfected = INVALID_HANDLE;
-new Handle:g_cvarFSExInfected = INVALID_HANDLE;
-new Handle:g_cvarBYExInfected = INVALID_HANDLE;
-new Handle:g_cvarEDEnableIncap = INVALID_HANDLE;
-new Handle:g_cvarLethalBite = INVALID_HANDLE;
-new Handle:g_cvarLethalBiteDmg = INVALID_HANDLE;
-new Handle:g_cvarLethalBiteDur = INVALID_HANDLE;
-new Handle:g_cvarLethalBiteFreq = INVALID_HANDLE;
-new Handle:g_cvarFireShield = INVALID_HANDLE;
-new Handle:g_cvarYellInfected = INVALID_HANDLE;
-new Handle:g_cvarYellDead = INVALID_HANDLE;
-new Handle:g_cvarAdvEffectInfected = INVALID_HANDLE;
-new Handle:g_cvarBlindVomit = INVALID_HANDLE;
-new Handle:g_cvarPummelSafe = INVALID_HANDLE;
+ConVar g_cvarInfectedEnable;
+ConVar g_cvarInfectedGoal;
+ConVar g_cvarInfectedCountType;
+ConVar g_cvarAbilityImmunity;
+ConVar g_cvarEDEnabled;
+ConVar g_cvarEDMultiplier;
+ConVar g_cvarEIHEnabled;
+ConVar g_cvarEIHMultiplier;
+ConVar g_cvarEDExInfected;
+ConVar g_cvarExInfected;
+ConVar g_cvarLBExInfected;
+ConVar g_cvarEIHExInfected;
+ConVar g_cvarFSExInfected;
+ConVar g_cvarBYExInfected;
+ConVar g_cvarEDEnableIncap;
+ConVar g_cvarLethalBite;
+ConVar g_cvarLethalBiteDmg;
+ConVar g_cvarLethalBiteDur;
+ConVar g_cvarLethalBiteFreq;
+ConVar g_cvarFireShield;
+ConVar g_cvarYellInfected;
+ConVar g_cvarYellDead;
+ConVar g_cvarAdvEffectInfected;
+ConVar g_cvarBlindVomit;
+ConVar g_cvarPummelSafe;
 
 //Game ConVars
 
 //--------------------------------OFFSETS----------------------------------------
 
-static g_flLagMovement = 0;
-static g_iShovePenalty = 0;
-static g_iAdrenSoundEffect = 0;
+static int g_flLagMovement;
+static int g_iShovePenalty;
+static int g_iAdrenSoundEffect;
 
 //------------------------------Timers------------------------------------------
 
-new Handle:g_hAdrenCheckHandle[MAXPLAYERS+1] = { INVALID_HANDLE, ...}; //Adrenaline effects timer handle
-new Handle:g_timerLethalBiteDur = INVALID_HANDLE; //Lethal bite duration timer handle
-new Handle:g_timerLethalBiteFreq = INVALID_HANDLE; //Lethal bite frequency timer handle
+Handle g_hAdrenCheckHandle[MAXPLAYERS+1]; //Adrenaline effects timer handle
+Handle g_timerLethalBiteDur; //Lethal bite duration timer handle
+Handle g_timerLethalBiteFreq; //Lethal bite frequency timer handle
 
 //--------------------------Other Handles--------------------------------------
-new Handle:g_hGameConf = INVALID_HANDLE; //Game file path for signatures, adresses and offsets.
-new Handle:sdkCallVomitPlayer = INVALID_HANDLE; //SDKCall, vomit or puke players.
-new Handle:sdkCallPushPlayer = INVALID_HANDLE; //SDKCall, push survivors as if the attacker was a tank.
-new Handle:sdkSetBuffer = INVALID_HANDLE;
-new Handle:sdkAdrenaline = INVALID_HANDLE;
-new Handle:sdkShove = INVALID_HANDLE;
+Handle g_hGameConf; //Game file path for signatures, adresses and offsets.
+Handle sdkCallVomitPlayer; //SDKCall, vomit or puke players.
+Handle sdkCallPushPlayer; //SDKCall, push survivors as if the attacker was a tank.
+Handle sdkSetBuffer;
+Handle sdkAdrenaline;
+Handle sdkShove;
 /****************************************************************************
 *		Dusty1091 plugin source code - Adrenaline and Pills powerups plugin
 *****************************************************************************/
@@ -324,70 +325,70 @@ new Handle:sdkShove = INVALID_HANDLE;
 //Used to track who has the weapon firing.
 //Index goes up to 18, but each index has a value indicating a client index with
 //DT so the plugin doesn't have to cycle a full 18 times per game frame
-new g_iDTRegisterIndex[64] = { -1 };
+int g_iDTRegisterIndex[64] = { -1, ... };
 //and this tracks how many have DT
-new g_iDTRegisterCount = 0;
+int g_iDTRegisterCount;
 //this tracks the current active 'weapon id' in case the player changes guns
-new g_iDTEntid[64] = { -1 };
+int g_iDTEntid[64] = { -1, ... };
 //this tracks the engine time of the next attack for the weapon, after modification
 //(modified interval + engine time)
-new Float:g_flDTNextTime[64] = { -1.0 }; 
+float g_flDTNextTime[64] = { -1.0, ... }; 
 /* ***************************************************************************/
 //similar to Double Tap
-new g_iMARegisterIndex[64] = { -1 };
+int g_iMARegisterIndex[64] = { -1, ... };
 //and this tracks how many have MA
-new g_iMARegisterCount = 0;
+int g_iMARegisterCount;
 //these are similar to those used by Double Tap
-new Float:g_flMANextTime[64] = { -1.0 };
-new g_iMAEntid[64] = { -1 };
-new g_iMAEntid_notmelee[64] = { -1 };
+float g_flMANextTime[64] = { -1.0, ... };
+int g_iMAEntid[64] = { -1, ... };
+int g_iMAEntid_notmelee[64] = { -1, ... };
 //this tracks the attack count, similar to twinSF
-new g_iMAAttCount[64] = { -1 };
+int g_iMAAttCount[64] = { -1, ... };
 /* ***************************************************************************/
 //Rates of the attacks
-new Float:g_flDT_rate;
-/*new Float:melee_speed[MAXPLAYERS+1];*/
-new Float:g_fl_reload_rate;
+float g_flDT_rate;
+/*float melee_speed[MAXPLAYERS+1];*/
+float g_fl_reload_rate;
 //Make sure we stop activity on map changes or we can get disconnects
-new bool:g_bIsLoading;
+bool g_bIsLoading;
 /* ***************************************************************************/
 //This keeps track of the default values for reload speeds for the different shotgun types
 //NOTE: I got these values from tPoncho's own source
 //NOTE: Pump and Chrome have identical values
-const Float:g_fl_AutoS = 0.666666;
-const Float:g_fl_AutoI = 0.4;
-const Float:g_fl_AutoE = 0.675;
-const Float:g_fl_SpasS = 0.5;
-const Float:g_fl_SpasI = 0.375;
-const Float:g_fl_SpasE = 0.699999;
-const Float:g_fl_PumpS = 0.5;
-const Float:g_fl_PumpI = 0.5;
-const Float:g_fl_PumpE = 0.6;
+const float g_fl_AutoS = 0.666666;
+const float g_fl_AutoI = 0.4;
+const float g_fl_AutoE = 0.675;
+const float g_fl_SpasS = 0.5;
+const float g_fl_SpasI = 0.375;
+const float g_fl_SpasE = 0.699999;
+const float g_fl_PumpS = 0.5;
+const float g_fl_PumpI = 0.5;
+const float g_fl_PumpE = 0.6;
 /* ***************************************************************************/
 //tracks if the game is L4D 2 (Support for L4D1 pending...)
-new g_i_L4D_12 = 0;
+int g_i_L4D_12;
 /* ***************************************************************************/
 //offsets
-new g_iNextPAttO		= -1;
-new g_iActiveWO			= -1;
-new g_iShotStartDurO	= -1;
-new g_iShotInsertDurO	= -1;
-new g_iShotEndDurO		= -1;
-new g_iPlayRateO		= -1;
-new g_iShotRelStateO	= -1;
-new g_iNextAttO			= -1;
-new g_iTimeIdleO		= -1;
-new g_iVMStartTimeO		= -1;
-new g_iViewModelO		= -1;
-new g_iNextSAttO		= -1;
-new g_ActiveWeaponOffset;
+int g_iNextPAttO = -1;
+int g_iActiveWO = -1;
+int g_iShotStartDurO = -1;
+int g_iShotInsertDurO = -1;
+int g_iShotEndDurO = -1;
+int g_iPlayRateO = -1;
+int g_iShotRelStateO = -1;
+int g_iNextAttO = -1;
+int g_iTimeIdleO = -1;
+int g_iVMStartTimeO = -1;
+int g_iViewModelO = -1;
+int g_iNextSAttO = -1;
+int g_ActiveWeaponOffset;
 /* ***************************************************************************/
 //****************************************************************************
 
-new Handle:g_hForward_BerserkUse = INVALID_HANDLE;
+Handle g_hForward_BerserkUse;
 
 //Plugin Info
-public Plugin:myinfo = 
+public Plugin myinfo = 
 {
 	name = "[Rage] Berserker Mode Plugin version",
 	author = "honorcode23, yani",
@@ -396,10 +397,10 @@ public Plugin:myinfo =
 	url = "http://forums.alliedmods.net/showthread.php?t=127518"
 }
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	//Left 4 dead 2 only
-	decl String:sGame[256];
+	char sGame[256];
 	GetGameFolderName(sGame, sizeof(sGame));
 	if (!StrEqual(sGame, "left4dead2", false))
 	{
@@ -659,6 +660,14 @@ public OnPluginStart()
 	
 	//**************************************************************
 	
+	// Initialize timer handles to null
+	for(int i = 0; i <= MaxClients; i++)
+	{
+		g_hAdrenCheckHandle[i] = null;
+	}
+	g_timerLethalBiteDur = null;
+	g_timerLethalBiteFreq = null;
+	
 	g_hForward_BerserkUse = CreateGlobalForward("OnBerserkerUsed", ET_Event, Param_Cell);
 }
 
@@ -884,15 +893,22 @@ public OnClientPutInServer(client)
 }
 
 //When a client is disconnected from the server
-public OnClientDisconnect(client)
+public void OnClientDisconnect(int client)
 {
 	RebuildAll();
 	if(client > 0)
 	{
-		g_iKillCount[client] = false;
-		g_iZerkTime[client] = GetConVarInt(g_cvarInfectedDuration);
-		g_iKillCountExtra[client] = false;
-		g_iDamageCount[client] = false;
+		// Clean up timer handles to prevent memory leaks
+		if(g_hAdrenCheckHandle[client] != null)
+		{
+			KillTimer(g_hAdrenCheckHandle[client]);
+			g_hAdrenCheckHandle[client] = null;
+		}
+		
+		g_iKillCount[client] = 0;
+		g_iZerkTime[client] = 0;
+		g_iKillCountExtra[client] = 0;
+		g_iDamageCount[client] = 0;
 		g_bHasBerserker[client] = false;
 		g_bBerserkerEnabled[client] = false;
 		g_bIsRiding[client] = false;
@@ -902,11 +918,13 @@ public OnClientDisconnect(client)
 		g_bIsVomited[client] = false;
 		g_bIsPummeling[client] = false;
 		g_iWhoVomited[client] = 0;
+		g_bLBActive[client] = false;
+		g_bDidYell[client] = false;
 	}
 }
 
 //When a map ends
-public OnMapEnd()
+public void OnMapEnd()
 {
 	//Obviously, an escape is not proceeding
 	g_bFinaleEscape = false;
@@ -916,9 +934,27 @@ public OnMapEnd()
 	#endif
 	ClearAll();
 	g_bIsLoading = true;
-	for(new i = 1; i <=MaxClients ; i++)
+	
+	// Properly clean up all timer handles to prevent memory leaks
+	for(int i = 1; i <= MaxClients; i++)
 	{
-		g_hAdrenCheckHandle[i] = INVALID_HANDLE;
+		if(g_hAdrenCheckHandle[i] != null)
+		{
+			KillTimer(g_hAdrenCheckHandle[i]);
+		}
+		g_hAdrenCheckHandle[i] = null;
+	}
+	
+	// Clean up global lethal bite timers
+	if(g_timerLethalBiteDur != null)
+	{
+		KillTimer(g_timerLethalBiteDur);
+		g_timerLethalBiteDur = null;
+	}
+	if(g_timerLethalBiteFreq != null)
+	{
+		KillTimer(g_timerLethalBiteFreq);
+		g_timerLethalBiteFreq = null;
 	}
 }
 
