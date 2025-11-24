@@ -1604,11 +1604,41 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
                         else
                                 CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
 
+                        CreateTimer(2.0, TimerAnnounceSelectedClassHint, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
                         ShowAthleteAbilityHint(client);
                 }
 
                 g_iPlayerSpawn = true;
         }
+}
+
+void ShowSelectedClassHint(int client)
+{
+        if (client <= 0 || client > MaxClients || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return;
+        }
+
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                PrintHintText(client, "Select a class from the Rage menu first.");
+                return;
+        }
+
+        PrintHintText(client, "You are playing as %s. Use your skill binds to activate abilities.", MENU_OPTIONS[classType]);
+}
+
+public Action TimerAnnounceSelectedClassHint(Handle timer, any userid)
+{
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || client > MaxClients)
+        {
+                return Plugin_Stop;
+        }
+
+        ShowSelectedClassHint(client);
+        return Plugin_Stop;
 }
 
 void ShowAthleteAbilityHint(int client)
