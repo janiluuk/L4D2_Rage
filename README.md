@@ -6,19 +6,27 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - Sourcemod 1.12 compatible
 - Plugin-based architecture: drop in new perks or classes via `RageCore` and optional skill plugins
 - Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, tertiary, deploy)
-- Modular perk system with negative effects and combo chaining; class-based skins and custom class definitions.
-- New menu system. Hold ALT to show menu, move and select with WASD keys. Release ALT to exit.
+- Class descriptions live in the same config so server owners can tune both abilities and flavor text together
+- Modular perk system with negative effects and combo chaining; class-based skins and custom class definitions
+- New menu system. Hold ALT to show menu, move and select with WASD keys. Release ALT to exit
 - Additional admin menu aligned with the new menu system
-- Toggle between 3rd person view modes. Either always, on melee weapon or off. Setting persists for clients.
-- Optional HUD with alerts, class specific info, and stats.
+- Toggle between 3rd person view modes. Either always, on melee weapon or off. Setting persists for clients
+- Optional HUD with alerts, class specific info, and stats
 - Expanded help system with class descriptions and tutorials
 - Adjustable adrenaline, pills, revive and heal timings
-- Integrated functionalities: Versus match countdown, multiple equipment, self healing with configurable bot support.
+- Integrated functionalities: Versus match countdown, multiple equipment, self healing with configurable bot support
 - Portable turrets with 20 different shooting modes
 - Mines with 20 different types
-- Ninja kick to the face, parachute glide and other enhancemenets for classes. See class description for more info.
-- Missile functionality rewritten with more fun in mind. Shooter will be highlighted for other infected to kill. Missiles can be shot down. 
-- Debug modes, logging, streamlined release and development flow. 
+- Ninja kick to the face, parachute glide and other enhancements for classes. See class description for more info
+- Missile functionality rewritten with more fun in mind. Shooter will be highlighted for other infected to kill. Missiles can be shot down.
+- Debug modes, logging, streamlined release and development flow
+
+## Quick setup
+
+1. Copy `sourcemod/` into your server install (or mount it with Docker Compose).
+2. Edit `configs/rage_class_skills.cfg` to assign skills, deployables, and per-class descriptions.
+3. (Optional) Adjust cvars in `cfg/sourcemod/talents.cfg` for cooldowns, health tweaks, and limits per class.
+4. Restart the server or reload the plugins to pick up changes.
 
 ## Play your way
 
@@ -57,7 +65,7 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - Lots of health
 
 ### Medic
-- Can deploy defibs and medpacks 
+- Can deploy defibs and medpacks
 - Faster healing and revival; movement boost while healing
 - Summon healing orbs with `SKILL ACTION 2` that glow and announce to others; cleanses bile with `SKILL ACTION 3` button
 - Players notified when healed; healed players gain a special glow; look down + **Shift** to drop medkits/supplies
@@ -68,7 +76,7 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - Deploy action opens a turret menu with two turret types and eight ammo options; look down + **Shift** to drop ammo supplies
 - Deploys protective shields and barricades doors/windows
 - Turrets notify nearby players, can be blown up by infected and are non-blocking
-- Can carry turrets around 
+- Can carry turrets around
 - Has 20 experimental type grenades like Black Hole vortices, Tesla lightning, Medic healing clouds, or an Airstrike marker. Throw with `SKILL ACTION 1`
 
 ### Saboteur
