@@ -443,6 +443,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         // Option indexes are 0-based, matching the order entries are added.
 
+        RageMenuOption menuOption = view_as<RageMenuOption>(option);
+
         if (option == g_iGuideOptionIndex && g_iGuideOptionIndex != -1)
         {
             if (!TryShowGuideMenu(client))
@@ -452,14 +454,14 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             return;
         }
 
-        bool adminSelection = (option >= Menu_SpawnItems && option <= Menu_GameSpeed);
+        bool adminSelection = (menuOption >= Menu_SpawnItems && menuOption <= Menu_GameSpeed);
         if (adminSelection && !CheckCommandAccess(client, "sm_rage_admin", ADMFLAG_ROOT))
         {
             PrintHintText(client, "Admin-only option.");
             return;
         }
 
-        switch (option)
+        switch (menuOption)
         {
             case Menu_GetKit:
             {
