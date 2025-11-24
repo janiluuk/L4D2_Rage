@@ -161,7 +161,8 @@ int LaunchMissile(int client, bool homing)
 
     TeleportEntity(projectile, spawnPos, eyeAng, velocity);
 
-    if (projectile < MAX_ENTITY_LIMIT)
+    // Track missile data if within array bounds
+    if (projectile >= 0 && projectile < MAX_ENTITY_LIMIT)
     {
         g_bHomingMissile[projectile] = homing;
         g_iMissileOwner[projectile] = client;
@@ -170,6 +171,10 @@ int LaunchMissile(int client, bool homing)
         {
             g_hHomingTimer[projectile] = CreateTimer(0.05, Timer_UpdateHoming, EntIndexToEntRef(projectile), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
         }
+    }
+    else
+    {
+        LogError("Missile entity %d exceeds MAX_ENTITY_LIMIT (%d). Missile tracking disabled for this entity.", projectile, MAX_ENTITY_LIMIT);
     }
 
     SDKHook(projectile, SDKHook_Touch, MissileTouch);
