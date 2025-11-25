@@ -133,9 +133,6 @@
 #define SOUND_PASS6			"animation/jets/jet_by_04_lr.wav"
 #define SOUND_PASS7			"animation/jets/jet_by_05_lr.wav"
 #define SOUND_PASS8			"animation/jets/jet_by_05_rl.wav"
-#define SOUND_EXPLODE3		"weapons/hegrenade/explode3.wav"
-#define SOUND_EXPLODE4		"weapons/hegrenade/explode4.wav"
-#define SOUND_EXPLODE5		"weapons/hegrenade/explode5.wav"
 
 // #define PARTICLE_BOMB1		"FluidExplosion_fps" // Broken? Only shows sometimes
 #define PARTICLE_BOMB2		"missile_hit1"
@@ -146,6 +143,7 @@
 #define PARTICLE_SPARKS		"fireworks_sparkshower_01e"
 #define PARTICLE_SMOKE		"rpg_smoke"
 #include <rage/skills>
+#include <rage/common>
 
 int g_iClassID = -1;
 bool g_bRageAvailable = false;

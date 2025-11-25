@@ -7,7 +7,7 @@
  * Common constants shared across Rage plugins to reduce duplication
  */
 
-// Common sound effects used across multiple plugins
+// Common explosion sound effects used across multiple plugins
 #define SOUND_EXPLODE3		"weapons/hegrenade/explode3.wav"
 #define SOUND_EXPLODE4		"weapons/hegrenade/explode4.wav"
 #define SOUND_EXPLODE5		"weapons/hegrenade/explode5.wav"
