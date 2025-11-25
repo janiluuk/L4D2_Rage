@@ -380,15 +380,14 @@ void SetGlowColor()
 	ExplodeString(sPluginCvarGlow, " ", split, 3, 4);
 	
 	int rgb[3];
-	rgb[0] = StringToInt(split[0]);
-	rgb[1] = StringToInt(split[1]);
-	rgb[2] = StringToInt(split[2]);
-	
-	// Validate RGB values are in valid range (0-255)
+	// Parse and clamp RGB values to valid range (0-255) in one step
 	for (int i = 0; i < 3; i++)
 	{
-		if (rgb[i] < 0) rgb[i] = 0;
-		if (rgb[i] > 255) rgb[i] = 255;
+		rgb[i] = StringToInt(split[i]);
+		if (rgb[i] < 0) 
+			rgb[i] = 0;
+		else if (rgb[i] > 255) 
+			rgb[i] = 255;
 	}
 	
 	// Store color as single integer: R + (G << 8) + (B << 16)
