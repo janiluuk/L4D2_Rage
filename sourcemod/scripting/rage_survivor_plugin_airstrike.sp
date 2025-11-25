@@ -113,6 +113,8 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <l4d2_airstrike>
+#include <rage/skills>
+#include <rage/common>
 #define PLUGIN_SKILL_NAME	"Airstrike"
 #define CVAR_FLAGS			FCVAR_NOTIFY
 #define CHAT_TAG			"\x03[Airstrike] \x05"
@@ -142,8 +144,6 @@
 #define PARTICLE_FIRE		"fire_medium_01"
 #define PARTICLE_SPARKS		"fireworks_sparkshower_01e"
 #define PARTICLE_SMOKE		"rpg_smoke"
-#include <rage/skills>
-#include <rage/common>
 
 int g_iClassID = -1;
 bool g_bRageAvailable = false;

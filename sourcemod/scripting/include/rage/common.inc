@@ -13,7 +13,7 @@
 #define SOUND_EXPLODE5		"weapons/hegrenade/explode5.wav"
 
 // Special Infected type constants (for plugins that need them)
-// Note: Use L4D2_Team enum from left4dhooks for team constants
+// Note: For team constants, plugins should include <left4dhooks> and use the L4D2_Team enum
 #define SI_SMOKER 	1
 #define SI_BOOMER 	2
 #define SI_HUNTER 	3
