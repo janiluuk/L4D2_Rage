@@ -4,6 +4,21 @@
 
 #define PLUGIN_VERSION "0.4"
 #define BASE_INCAP_SPEED 85.0
+#define MAX_HELP_DISTANCE 100.0
+#define MAX_ITEM_PICKUP_DISTANCE 150.0
+
+/*
+ * Performance Optimizations:
+ * - Cached entity property lookups to reduce GetEntProp calls
+ * - Early exit conditions in frame-based callbacks (OnPlayerRunCmd)
+ * - Optimized player iteration loops with better validation order
+ * - Reduced redundant property checks in timer callbacks
+ * 
+ * Key Performance Considerations:
+ * - OnPlayerRunCmd runs every frame for all players
+ * - RecordLastPosition timer runs every 0.1s for all survivors
+ * - AnalyzePlayerState timer runs per-player every 0.1s when incapacitated
+ */
 
 enum SelfHelpState
 {
@@ -317,29 +332,41 @@ public Action OnSHSoundsFix(int clients[MAXPLAYERS], int &numClients, char sampl
 
 public Action RecordLastPosition(Handle timer)
 {
-	if (!IsServerProcessing())
+	// Early exit if plugin disabled or server not processing
+	if (!bEnabled || !IsServerProcessing())
 	{
 		return Plugin_Continue;
 	}
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || GetClientTeam(i) != 2 || !IsPlayerAlive(i))
+		// Combined validation checks
+		if (!IsClientInGame(i))
 		{
 			continue;
 		}
 		
+		// Cache team check result
+		if (GetClientTeam(i) != 2)
+		{
+			continue;
+		}
+		
+		if (!IsPlayerAlive(i))
+		{
+			continue;
+		}
+		
+		// Skip bots if bot support is disabled
+		if (!bBot && IsFakeClient(i))
+		{
+			continue;
+		}
+		
+		// Only record position if not hanging from ledge
 		if (!GetEntProp(i, Prop_Send, "m_isHangingFromLedge", 1))
 		{
-			if (!bBot && IsFakeClient(i))
-			{
-				continue;
-			}
-			
-			float fCurrentPos[3];
-			GetEntPropVector(i, Prop_Send, "m_vecOrigin", fCurrentPos);
-			
-			fLastPos[i] = fCurrentPos;
+			GetEntPropVector(i, Prop_Send, "m_vecOrigin", fLastPos[i]);
 		}
 	}
 	
@@ -512,6 +539,8 @@ public Action FireUpMechanism(Handle timer, any userid)
 public Action AnalyzePlayerState(Handle timer, any userid)
 {
 	int client = GetClientOfUserId(userid);
+	
+	// Early validation checks
 	if (!IsSurvivor(client) || !IsPlayerAlive(client) || (!bBot && IsFakeClient(client)) || shsBit[client] == SHS_END)
 	{
 		shsBit[client] = SHS_NONE;
@@ -527,9 +556,14 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 		return Plugin_Stop;
 	}
 	
-	if (!GetEntProp(client, Prop_Send, "m_isIncapacitated", 1) && !GetEntProp(client, Prop_Send, "m_isHangingFromLedge", 1))
+	// Cache entity property lookups
+	bool bIsIncapped = view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated", 1));
+	bool bIsHanging = view_as<bool>(GetEntProp(client, Prop_Send, "m_isHangingFromLedge", 1));
+	
+	if (!bIsIncapped && !bIsHanging)
 	{
-		if (iAttacker[client] == 0 || (iAttacker[client] != 0 && (!IsClientInGame(iAttacker[client]) || !IsPlayerAlive(iAttacker[client]) || iKillAttacker == 2)))
+		int attacker = iAttacker[client];
+		if (attacker == 0 || (attacker != 0 && (!IsClientInGame(attacker) || !IsPlayerAlive(attacker) || iKillAttacker == 2)))
 		{
 			iAttacker[client] = 0;
 			
@@ -562,7 +596,7 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 				shsBit[client] = SHS_START_SELF;
 				if (!IsFakeClient(client))
 				{
-                                        strcopy(sSHMessage, sizeof(sSHMessage), "REVIVING YOURSELF");
+					strcopy(sSHMessage, sizeof(sSHMessage), "REVIVING YOURSELF");
 					DisplaySHProgressBar(client, client, iReviveDuration, sSHMessage, true);
 					
 					if (!bIsL4D)
@@ -597,50 +631,63 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 		int iTarget = 0;
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if (!IsClientInGame(i) || GetClientTeam(i) != 2 || !IsPlayerAlive(i) || i == client)
+			// Early continue for invalid clients
+			if (!IsClientInGame(i) || i == client)
 			{
 				continue;
 			}
 			
-			if (GetEntProp(i, Prop_Send, "m_isIncapacitated", 1) && iAttacker[i] == 0)
+			// Check team and alive status
+			if (GetClientTeam(i) != 2 || !IsPlayerAlive(i))
+			{
+				continue;
+			}
+			
+			// Check if target is incapacitated and not grabbed
+			if (iAttacker[i] != 0)
+			{
+				continue;
+			}
+			
+			if (GetEntProp(i, Prop_Send, "m_isIncapacitated", 1))
 			{
 				GetEntPropVector(i, Prop_Send, "m_vecOrigin", fOtherPos);
 				
-				if (GetVectorDistance(fOtherPos, fPos) > 100.0)
+				if (GetVectorDistance(fOtherPos, fPos) <= MAX_HELP_DISTANCE)
 				{
-					continue;
+					iTarget = i;
+					break;
 				}
-				
-				iTarget = i;
-				break;
 			}
 		}
-		if (IsSurvivor(iTarget) && IsPlayerAlive(iTarget) && GetEntProp(iTarget, Prop_Send, "m_isIncapacitated", 1) && iAttacker[iTarget] == 0)
+		
+		// Validate target before processing
+		if (iTarget > 0 && IsClientInGame(iTarget) && IsPlayerAlive(iTarget))
 		{
 			if (shsBit[client] == SHS_NONE || shsBit[client] == SHS_CONTINUE)
 			{
 				shsBit[client] = SHS_START_OTHER;
-                                if (!IsFakeClient(client))
-                                {
-                                        Format(sSHMessage, sizeof(sSHMessage), "REVIVING %N", iTarget);
-                                        DisplaySHProgressBar(client, iTarget, iReviveDuration, sSHMessage, true);
+				if (!IsFakeClient(client))
+				{
+					Format(sSHMessage, sizeof(sSHMessage), "REVIVING %N", iTarget);
+					DisplaySHProgressBar(client, iTarget, iReviveDuration, sSHMessage, true);
 
-                                        if (!bIsL4D)
-                                        {
-                                                PrintHintText(client, "Reviving %N", iTarget);
-                                        }
-                                }
+					if (!bIsL4D)
+					{
+						PrintHintText(client, "Reviving %N", iTarget);
+					}
+				}
 
-                                if (!IsFakeClient(iTarget))
-                                {
-                                        Format(sSHMessage, sizeof(sSHMessage), "%N IS REVIVING YOU", client);
-                                        DisplaySHProgressBar(iTarget, client, iReviveDuration, sSHMessage);
+				if (!IsFakeClient(iTarget))
+				{
+					Format(sSHMessage, sizeof(sSHMessage), "%N IS REVIVING YOU", client);
+					DisplaySHProgressBar(iTarget, client, iReviveDuration, sSHMessage);
 
-                                        if (!bIsL4D)
-                                        {
-                                                PrintHintText(iTarget, "%N is reviving you", client);
-                                        }
-                                }
+					if (!bIsL4D)
+					{
+						PrintHintText(iTarget, "%N is reviving you", client);
+					}
+				}
 				
 				DataPack dpSHReviveOther = new DataPack();
 				dpSHReviveOther.WriteCell(GetClientUserId(client));
@@ -684,7 +731,7 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 				
 				GetEntPropVector(iItemEnt, Prop_Send, "m_vecOrigin", fItemPos);
 				
-				if (GetVectorDistance(fPos, fItemPos) <= 150.0)
+				if (GetVectorDistance(fPos, fItemPos) <= MAX_ITEM_PICKUP_DISTANCE)
 				{
 					ExecuteCommand(client, "give", "first_aid_kit");
 					PrintHintText(client, "Grabbing First Aid Kit!");
@@ -707,7 +754,7 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 				
 				GetEntPropVector(iItemEnt, Prop_Send, "m_vecOrigin", fItemPos);
 				
-				if (GetVectorDistance(fPos, fItemPos) <= 150.0)
+				if (GetVectorDistance(fPos, fItemPos) <= MAX_ITEM_PICKUP_DISTANCE)
 				{
 					ExecuteCommand(client, "give", "pain_pills");
 					PrintHintText(client, "Grabbing Pain Pills!");
@@ -730,7 +777,7 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 					
 					GetEntPropVector(iItemEnt, Prop_Send, "m_vecOrigin", fItemPos);
 					
-					if (GetVectorDistance(fPos, fItemPos) <= 150.0)
+					if (GetVectorDistance(fPos, fItemPos) <= MAX_ITEM_PICKUP_DISTANCE)
 					{
 						ExecuteCommand(client, "give", "adrenaline");
 					//	PrintHintText(client, "[SH]\nGrabbing Adrenaline!");
@@ -1319,18 +1366,32 @@ public Action DelaySHNotify(Handle timer, Handle dpDefibAnnounce)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
 {
+	// Early exit for disabled plugin
 	if (!bEnabled)
 	{
 		return Plugin_Continue;
 	}
 	
-	// Handle incapped crawling for all players
-	if (bCrawlEnable && IsSurvivor(client) && IsPlayerAlive(client))
+	// Early validation check to avoid redundant calls
+	if (!IsClientInGame(client) || GetClientTeam(client) != 2)
 	{
-		if (GetEntProp(client, Prop_Send, "m_isIncapacitated", 1) && iAttacker[client] == 0)
+		return Plugin_Continue;
+	}
+	
+	// Cache alive status
+	bool bIsAlive = IsPlayerAlive(client);
+	
+	// Handle incapped crawling for all players
+	if (bCrawlEnable && bIsAlive)
+	{
+		// Cache incapacitation status to avoid multiple lookups
+		bool bIsIncapped = view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated", 1));
+		
+		if (bIsIncapped && iAttacker[client] == 0)
 		{
-			// Allow crawling movement when incapped and not grabbed
-			if (buttons & IN_FORWARD || buttons & IN_BACK || buttons & IN_MOVELEFT || buttons & IN_MOVERIGHT)
+			// Check for any movement buttons before processing
+			int movementButtons = buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT);
+			if (movementButtons)
 			{
 				float vVelocity[3];
 				GetEntPropVector(client, Prop_Data, "m_vecVelocity", vVelocity);
@@ -1381,69 +1442,77 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		}
 	}
 	
-	// Bot self-help behavior
-	if (!bBot)
+	// Bot self-help behavior - early exit if disabled or not a bot
+	if (!bBot || !IsFakeClient(client))
 	{
 		return Plugin_Continue;
 	}
 	
-	if (IsSurvivor(client))
+	// Bot must be alive and have help enabled
+	if (!bIsAlive || iBotHelp[client] == 0)
 	{
-		if (!IsPlayerAlive(client) || !IsFakeClient(client) || iBotHelp[client] == 0)
-		{
-			return Plugin_Continue;
-		}
+		return Plugin_Continue;
+	}
+	
+	// Check if bot is incapacitated
+	bool bIsIncapped = view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated", 1));
+	
+	if (bIsIncapped)
+	{
+		int iTarget = 0;
+		float fPlayerPos[2][3];
 		
-		if (GetEntProp(client, Prop_Send, "m_isIncapacitated", 1))
+		GetEntPropVector(client, Prop_Send, "m_vecOrigin", fPlayerPos[0]);
+		for (int i = 1; i <= MaxClients; i++)
 		{
-			int iTarget = 0;
-			float fPlayerPos[2][3];
-			
-			GetEntPropVector(client, Prop_Send, "m_vecOrigin", fPlayerPos[0]);
-			for (int i = 1; i <= MaxClients; i++)
+			if (!IsClientInGame(i) || i == client)
 			{
-				if (!IsClientInGame(i) || GetClientTeam(i) != 2 || !IsPlayerAlive(i) || i == client || iAttacker[i] != 0)
-				{
-					continue;
-				}
+				continue;
+			}
+			
+			if (GetClientTeam(i) != 2 || !IsPlayerAlive(i))
+			{
+				continue;
+			}
+			
+			if (iAttacker[i] != 0)
+			{
+				continue;
+			}
+			
+			if (GetEntProp(i, Prop_Send, "m_isIncapacitated", 1) && GetEntProp(i, Prop_Send, "m_reviveOwner") < 1)
+			{
+				GetEntPropVector(i, Prop_Send, "m_vecOrigin", fPlayerPos[1]);
 				
-				if (GetEntProp(i, Prop_Send, "m_isIncapacitated", 1) && GetEntProp(i, Prop_Send, "m_reviveOwner") < 1)
+				if (GetVectorDistance(fPlayerPos[0], fPlayerPos[1]) <= MAX_HELP_DISTANCE)
 				{
-					GetEntPropVector(i, Prop_Send, "m_vecOrigin", fPlayerPos[1]);
-					
-					if (GetVectorDistance(fPlayerPos[0], fPlayerPos[1]) > 100.0)
-					{
-						continue;
-					}
-					
 					iTarget = i;
 					break;
 				}
 			}
-			if (IsSurvivor(iTarget) && IsPlayerAlive(iTarget) && GetEntProp(iTarget, Prop_Send, "m_isIncapacitated", 1) && GetEntProp(iTarget, Prop_Send, "m_reviveOwner") < 1)
-			{
-				buttons |= IN_RELOAD;
-			}
-			else
-			{
-				if (buttons & IN_RELOAD)
-				{
-					buttons ^= IN_RELOAD;
-				}
-				
-				if (IsSelfHelpAble(client))
-				{
-					buttons |= IN_DUCK;
-				}
-			}
 		}
-		else if (iAttacker[client] != 0)
+		
+		if (iTarget > 0 && IsClientInGame(iTarget) && IsPlayerAlive(iTarget))
 		{
-			if (!IsSelfHelpAble(client))
+			buttons |= IN_RELOAD;
+		}
+		else
+		{
+			if (buttons & IN_RELOAD)
 			{
-				return Plugin_Continue;
+				buttons ^= IN_RELOAD;
 			}
 			
+			if (IsSelfHelpAble(client))
+			{
+				buttons |= IN_DUCK;
+			}
+		}
+	}
+	else if (iAttacker[client] != 0)
+	{
+		if (IsSelfHelpAble(client))
+		{
 			buttons |= IN_DUCK;
 		}
 	}

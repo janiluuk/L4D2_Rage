@@ -91,19 +91,23 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - Keeps chosen class throughout the campaign unless user changes it.
 
 ## Predicaments Plugin
-Enhances survivor gameplay with self-help mechanics and struggle system:
+Enhances survivor gameplay with self-help mechanics, struggle system, and crawling:
 - **Self-Revival**: Revive yourself from incapacitation by holding CROUCH and consuming pills, adrenaline, or first-aid kits
 - **Ledge Rescue**: Pull yourself up from ledges using available medical items
 - **Pin Escape**: Break free from Special Infected (Smoker, Hunter, Jockey, Charger) by struggling or using items
 - **Teammate Revival**: Incapacitated survivors can revive other incapacitated teammates by pressing RELOAD
-- **Struggle System**: Mash CROUCH to build up struggle progress and escape from pins
+- **Struggle System**: Mash CROUCH to build up struggle progress and escape from pins. Infected can counter-struggle by pressing SPRINT
+- **Incapped Crawling**: Move while incapacitated using movement keys with configurable speed
 - **Item Pickup While Down**: Grab nearby medical supplies while incapacitated
 - **Bot Support**: Bots can revive themselves with configurable settings
 
 Configure via `cfg/sourcemod/l4d2_predicaments.cfg` (auto-generated on first load). Key convars:
 - `l4d2_predicament_enable` - Master switch (default: 1)
 - `l4d2_predicament_use` - Items allowed: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
-- `l4d2_predicament_struggle_mode` - Struggle system: 0=disabled, 1=hold crouch, 2=mash crouch (default: 2)
+- `self_help_crawl_enable` - Enable incapped crawling (default: 1)
+- `self_help_crawl_speed` - Crawling speed multiplier 0.0-1.0 (default: 0.15)
+- `self_help_struggle_mode` - Struggle system: 0=disabled, 1=automatic, 2=manual (default: 0)
+- `self_help_struggle_gain` - Progress gained per struggle input (default: 10.0)
 - `l4d2_predicament_bot` - Bot revival enabled (default: 1)
 
 For developers: The plugin provides API hooks via `l4d2_predicaments.inc` for controlling healing and struggle mechanics.
