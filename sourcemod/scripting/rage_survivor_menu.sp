@@ -185,6 +185,7 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect(int client)
 {
+    SDKUnhook(client, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
     g_bMenuHeld[client] = false;
     g_ThirdPersonActive[client] = false;
     g_ThirdPersonMode[client] = TP_Off;
@@ -610,18 +611,17 @@ public bool TryShowGuideMenu(int client)
 public void AddGameModeOptions(int menu_id)
 {
     char options[512];
-    options[0] = '\0';
-
+    int pos = 0;
+    
     for (int i = 0; i < GAMEMODE_OPTION_COUNT; i++)
     {
-        if (options[0] != '\0')
+        if (i > 0)
         {
-            StrCat(options, sizeof(options), "|");
+            pos += Format(options[pos], sizeof(options) - pos, "|");
         }
-
-        StrCat(options, sizeof(options), g_sGameModeNames[i]);
+        pos += Format(options[pos], sizeof(options) - pos, "%s", g_sGameModeNames[i]);
     }
-
+    
     ExtraMenu_AddOptions(menu_id, options);
 }
 
