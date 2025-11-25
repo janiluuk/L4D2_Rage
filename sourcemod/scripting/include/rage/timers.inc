@@ -1,3 +1,8 @@
+#if defined _rage_timers_included
+ #endinput
+#endif
+#define _rage_timers_included
+
 #include <l4d2_airstrike>
 
 #if !defined _f18airstrike_included

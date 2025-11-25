@@ -1,4 +1,7 @@
-
+#if defined _rage_commands_included
+ #endinput
+#endif
+#define _rage_commands_included
 
 #include <sourcemod>
 #include <sdktools>
