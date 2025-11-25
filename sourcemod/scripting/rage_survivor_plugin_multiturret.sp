@@ -53,9 +53,7 @@
 #define SOUND_IMPACT_CONCRETE	"physics/concrete/concrete_impact_bullet1.wav" 	
 #define SOUND_SHOOT_50CAL		"weapons/50cal/50cal_shoot.wav" 				
 
-#define SOUND_EXPLODE3			"weapons/hegrenade/explode3.wav" 				
-#define SOUND_EXPLODE4			"weapons/hegrenade/explode4.wav"
-#define SOUND_EXPLODE5			"weapons/hegrenade/explode5.wav"
+// SOUND_EXPLODE3, SOUND_EXPLODE4, SOUND_EXPLODE5 are defined in <rage/common>
 
 #define SOUND_FREEZER			"physics/glass/glass_impact_bullet4.wav" 		
 
@@ -91,6 +89,20 @@
 #define PLUGIN_SKILL_NAME "Multiturret"
 
 #define PI_NUM 3.14159 // PI
+
+// Team constants
+#define TEAM_SPECTATOR  1
+#define TEAM_SURVIVOR   2
+#define TEAM_INFECTED   3
+
+// Infected class constants
+#define SMOKER   1
+#define BOOMER   2
+#define HUNTER   3
+#define SPITTER  4
+#define JOCKEY   5
+#define CHARGER  6
+#define TANK     8  // Tank is 8 in L4D2, 5 in L4D1
 
 public Plugin myinfo =
 {
