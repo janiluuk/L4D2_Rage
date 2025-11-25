@@ -11,7 +11,7 @@ new L4D2Version;
 new g_PointHurt;
 JumpKickAbility g_JumpKick;
 
-public Plugin:myinfo = {
+public Plugin myinfo = {
 	name = "[Rage] ninja kick",
 	author = "Pan XiaoHai",
 	description = "<- Description ->",
@@ -19,15 +19,15 @@ public Plugin:myinfo = {
 	url = "<- URL ->"
 }
 
-new Handle:l4d_jumper_force;
-new Handle:l4d_jumper_delay;
-new Handle:l4d_jumper_damage;
-new Handle:l4d_jumper_kicktank;
-new Handle:l4d_jumper_kickwitch;
-new Handle:SdkShove = INVALID_HANDLE;
-new Handle:SdkFling = INVALID_HANDLE;
-new Handle:SdkStartActivationTimer=INVALID_HANDLE;
-new Handle:SdkOnPummelEnded=INVALID_HANDLE;
+ConVar l4d_jumper_force;
+ConVar l4d_jumper_delay;
+ConVar l4d_jumper_damage;
+ConVar l4d_jumper_kicktank;
+ConVar l4d_jumper_kickwitch;
+Handle SdkShove = INVALID_HANDLE;
+Handle SdkFling = INVALID_HANDLE;
+Handle SdkStartActivationTimer=INVALID_HANDLE;
+Handle SdkOnPummelEnded=INVALID_HANDLE;
 
 public OnPluginStart() {
 	GameCheck();

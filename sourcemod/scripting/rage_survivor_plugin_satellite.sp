@@ -60,37 +60,39 @@
 #define PARTICLE_FIRE02	"molotov_explosion_child_burst"
 
 /* Cvars */
-new Handle:sm_satellite_enable			= INVALID_HANDLE;
-new Handle:sm_satellite_damage_01		= INVALID_HANDLE;
-new Handle:sm_satellite_freeze_02		= INVALID_HANDLE;
-new Handle:sm_satellite_damage_03		= INVALID_HANDLE;
-new Handle:sm_satellite_burst_delay		= INVALID_HANDLE;
-new Handle:sm_satellite_force			= INVALID_HANDLE;
-new Handle:sm_satellite_radius_01		= INVALID_HANDLE;
-new Handle:sm_satellite_radius_02		= INVALID_HANDLE;
-new Handle:sm_satellite_radius_03		= INVALID_HANDLE;
-new Handle:sm_satellite_limit_01		= INVALID_HANDLE;
-new Handle:sm_satellite_limit_02		= INVALID_HANDLE;
-new Handle:sm_satellite_limit_03		= INVALID_HANDLE;
-new Handle:sm_satellite_height			= INVALID_HANDLE;
-new Handle:sm_satellite_adminonly		= INVALID_HANDLE;
+ConVar sm_satellite_enable;
+ConVar sm_satellite_damage_01;
+ConVar sm_satellite_freeze_02;
+ConVar sm_satellite_damage_03;
+ConVar sm_satellite_burst_delay;
+ConVar sm_satellite_force;
+ConVar sm_satellite_radius_01;
+ConVar sm_satellite_radius_02;
+ConVar sm_satellite_radius_03;
+ConVar sm_satellite_limit_01;
+ConVar sm_satellite_limit_02;
+ConVar sm_satellite_limit_03;
+ConVar sm_satellite_height;
+ConVar sm_satellite_adminonly;
 
-/* Grobal */
-new m_iClip1;
-new hActiveWeapon;
-new g_BeamSprite;
-new g_HaloSprite;
-new g_GlowSprite;
-new tEntity;
+/* Global */
+int m_iClip1;
+int hActiveWeapon;
+int g_BeamSprite;
+int g_HaloSprite;
+int g_GlowSprite;
+int tEntity;
 
-new operation[MAXPLAYERS+1];
-new ticket[MAXPLAYERS+1];
-new raycount[MAXPLAYERS+1];
-new freeze[MAXPLAYERS+1];
-new energy[MAXPLAYERS+1][4];
-new Float:trsPos[MAXPLAYERS+1][3];
+int operation[MAXPLAYERS+1];
+int ticket[MAXPLAYERS+1];
+int raycount[MAXPLAYERS+1];
+int freeze[MAXPLAYERS+1];
+int energy[MAXPLAYERS+1][4];
+float trsPos[MAXPLAYERS+1][3];
 
-public Plugin:myinfo = 
+bool g_SimpleCombatAvailable = false;
+
+public Plugin myinfo = 
 {
 	name = "Satellite Cannon",
 	author = "ztar",
@@ -125,23 +127,67 @@ public OnPluginStart()
 	HookEvent("item_pickup", Event_Item_Pickup);
 	HookEvent("round_start", Event_Round_Start);
 	
-	hActiveWeapon = FindSendPropOffs ("CTerrorPlayer", "m_hActiveWeapon");
-	m_iClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
-	
-	AutoExecConfig(true,"l4d2_satellite");
+        hActiveWeapon = FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon");
+        m_iClip1 = FindSendPropInfo("CBaseCombatWeapon", "m_iClip1");
+
+        g_SimpleCombatAvailable = LibraryExists("l4d2_simple_combat");
+
+        AutoExecConfig(true,"l4d2_satellite");
+}
+
+public APLRes AskPluginLoad2(Handle hMyInfo, bool late, char[] error, int err_max)
+{
+        MarkNativeAsOptional("SC_CreateSpell");
+        MarkNativeAsOptional("SC_GetClientLevel");
+
+        return APLRes_Success;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+        if (StrEqual(name, "l4d2_simple_combat"))
+        {
+                g_SimpleCombatAvailable = true;
+        }
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+        if (StrEqual(name, "l4d2_simple_combat"))
+        {
+                g_SimpleCombatAvailable = false;
+        }
+}
+
+int GetSimpleCombatLevel(int client)
+{
+        if (!g_SimpleCombatAvailable)
+        {
+                return 0;
+        }
+
+        return SC_GetClientLevel(client);
 }
 
 public Action:Timer_SetupSpell(Handle:timer, any:unused)
 {
-	SC_CreateSpell("ztar_satellite_judgement", "Satellite Cannon - High Blast", 200, 4000, "Create an explosion that deals high damage to specials");
-	SC_CreateSpell("ztar_satellite_blizzard", "Satellite Cannon - Freeze", 200, 3000, "Freeze specials and commons in range");
-	SC_CreateSpell("ztar_satellite_inferno", "Satellite Cannon - Inferno", 200, 4500, "Create fire and ignite specials and commons in range");
+        if (!g_SimpleCombatAvailable)
+                return Plugin_Stop;
+
+        SC_CreateSpell("ztar_satellite_judgement", "Satellite Cannon - High Blast", 200, 4000, "Create an explosion that deals high damage to specials");
+        SC_CreateSpell("ztar_satellite_blizzard", "Satellite Cannon - Freeze", 200, 3000, "Freeze specials and commons in range");
+        SC_CreateSpell("ztar_satellite_inferno", "Satellite Cannon - Inferno", 200, 4500, "Create fire and ignite specials and commons in range");
+
+        return Plugin_Stop;
 }
 
 public void SC_OnUseSpellPost(int client, const char[] classname)
 {
-	if(StrContains(classname, "ztar_satellite_", false) != 0)
-		return;
+        if (!g_SimpleCombatAvailable)
+                return;
+
+        if(StrContains(classname, "ztar_satellite_", false) != 0)
+                return;
 	
 	if(StrEqual(classname, "ztar_satellite_judgement", false))
 		operation[client] = MODE_JUDGEMENT;
@@ -184,7 +230,7 @@ public Action:TraceTimerEx(Handle:timer, any:client)
 {
 	/* Ring laser effect */
 	CreateRingEffect(client, 150, 150, 230, 230, 2.0,
-		GetConVarFloat(sm_satellite_burst_delay));
+		sm_satellite_burst_delay.FloatValue);
 	
 	/* Launch satellite cannon */
 	raycount[client] = 0;
@@ -195,7 +241,7 @@ public Action:TraceTimerEx(Handle:timer, any:client)
 		(GetEntityFlags(client) & FL_ONGROUND))
 		ticket[client] = 1;
 	
-	CreateTimer(GetConVarFloat(sm_satellite_burst_delay), SatelliteTimerEx, client);
+	CreateTimer(sm_satellite_burst_delay.FloatValue, SatelliteTimerEx, client);
 }
 
 public Action:SatelliteTimerEx(Handle:timer, any:client)
@@ -267,9 +313,9 @@ public ResetParameter()
 {
 	for(new i = 0; i < MAXPLAYERS+1; i++)
 	{
-		energy[i][MODE_JUDGEMENT] = GetConVarInt(sm_satellite_limit_01);
-		energy[i][MODE_BLIZZARD] = GetConVarInt(sm_satellite_limit_02);
-		energy[i][MODE_INFERNO] = GetConVarInt(sm_satellite_limit_03);
+		energy[i][MODE_JUDGEMENT] = sm_satellite_limit_01.IntValue;
+		energy[i][MODE_BLIZZARD] = sm_satellite_limit_02.IntValue;
+		energy[i][MODE_INFERNO] = sm_satellite_limit_03.IntValue;
 	}
 	for(new j = 0; j < MAXPLAYERS+1; j++)
 		freeze[j] = OFF;
@@ -291,11 +337,11 @@ public Action:Event_Weapon_Fire(Handle:event, const String:name[], bool:dontBroa
 	
 	/* Admin only? */
 	if (GetUserAdmin(attacker) == INVALID_ADMIN_ID &&
-		GetConVarInt(sm_satellite_adminonly))
+		sm_satellite_adminonly.IntValue)
 		return;
 	
 	if (StrEqual(weapon, "pistol_magnum") &&
-		GetConVarInt(sm_satellite_enable) && operation[attacker] > 0)
+		sm_satellite_enable.IntValue && operation[attacker] > 0)
 	{
 		/* Bot can't use */
 		if(GetClientTeam(attacker) != SURVIVOR || IsFakeClient(attacker))
@@ -339,11 +385,11 @@ public Action:Event_Weapon_Fire(Handle:event, const String:name[], bool:dontBroa
 public Action:Event_Item_Pickup(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	new String:item[64];
+	char item[64];
 	GetEventString(event, "item", item, sizeof(item));
 	
 	if (StrEqual(item, "pistol_magnum") &&
-		GetConVarInt(sm_satellite_enable) &&
+		sm_satellite_enable.IntValue &&
 		IsClientInGame(client) && !IsFakeClient(client))
 	{
 		/* Display hint how to switch mode */
@@ -363,7 +409,7 @@ public Action:OnPlayerRunCmd(client, &buttons)
 		
 		// Admin only?
 		if (GetUserAdmin(client) == INVALID_ADMIN_ID &&
-			GetConVarInt(sm_satellite_adminonly))
+			sm_satellite_adminonly.IntValue)
 			return;
 		
 		// If freezing, block mouse operation
@@ -382,7 +428,7 @@ public Action:OnPlayerRunCmd(client, &buttons)
 			GetClientWeapon(client, weapon, 64);
 			
 			if (StrEqual(weapon, "weapon_pistol_magnum") &&
-				GetConVarInt(sm_satellite_enable))
+				sm_satellite_enable.IntValue)
 			{
 				// Mode change menu
 				ChangeMode(client);
@@ -394,7 +440,7 @@ public Action:OnPlayerRunCmd(client, &buttons)
 
 public ChangeMode(client)
 {
-	new String:mStrJud[64], String:mStrBli[64], String:mStrInf[64];
+	char mStrJud[64], mStrBli[64], mStrInf[64];
 	Format(mStrJud, sizeof(mStrJud), "MODE: JUDGEMENT (Energy: %d)", energy[client][MODE_JUDGEMENT]);
 	Format(mStrBli, sizeof(mStrBli), "MODE: BLIZZARD  (Energy: %d)", energy[client][MODE_BLIZZARD]);
 	Format(mStrInf, sizeof(mStrInf), "MODE: INFERNO   (Energy: %d)", energy[client][MODE_INFERNO]);
@@ -445,7 +491,7 @@ public Action:TraceTimer(Handle:timer, any:client)
 {
 	/* Ring laser effect */
 	CreateRingEffect(client, 150, 150, 230, 230, 2.0,
-				GetConVarFloat(sm_satellite_burst_delay));
+				sm_satellite_burst_delay.FloatValue);
 	
 	/* Launch satellite cannon */
 	raycount[client] = 0;
@@ -456,7 +502,7 @@ public Action:TraceTimer(Handle:timer, any:client)
 		(GetEntityFlags(client) & FL_ONGROUND))
 		ticket[client] = 1;
 	
-	CreateTimer(GetConVarFloat(sm_satellite_burst_delay), SatelliteTimer, client);
+	CreateTimer(sm_satellite_burst_delay.FloatValue, SatelliteTimer, client);
 }
 
 public Action:SatelliteTimer(Handle:timer, any:client)
@@ -473,7 +519,7 @@ public Action:SatelliteTimer(Handle:timer, any:client)
 	if(operation[client] == MODE_JUDGEMENT)
 	{
 		Judgement(client);
-		if(raycount[client] == 0 && GetConVarInt(sm_satellite_adminonly) != 2)
+		if(raycount[client] == 0 && sm_satellite_adminonly.IntValue != 2)
 			energy[client][MODE_JUDGEMENT]--;
 	}
 	
@@ -481,7 +527,7 @@ public Action:SatelliteTimer(Handle:timer, any:client)
 	else if(operation[client] == MODE_BLIZZARD)
 	{
 		Blizzard(client);
-		if(GetConVarInt(sm_satellite_adminonly) != 2)
+		if(sm_satellite_adminonly.IntValue != 2)
 			energy[client][MODE_BLIZZARD]--;
 		
 	}
@@ -490,7 +536,7 @@ public Action:SatelliteTimer(Handle:timer, any:client)
 	else if(operation[client] == MODE_INFERNO)
 	{
 		Inferno(client);
-		if(GetConVarInt(sm_satellite_adminonly) != 2)
+		if(sm_satellite_adminonly.IntValue != 2)
 			energy[client][MODE_INFERNO]--;
 	}
 	
@@ -512,8 +558,8 @@ public Judgement(client)
 	/* Laser effect */
 	CreateLaserEffect(client, 230, 230, 80, 230, 6.0, 1.0, VARTICAL);
 	
-	new Float:radius = ((SC_GetClientLevel(client) + 1) * 10) + GetConVarFloat(sm_satellite_radius_01);
-	new Float:damage = ((SC_GetClientLevel(client) + 1) * 5) + GetConVarFloat(sm_satellite_damage_01);
+        float radius = ((GetSimpleCombatLevel(client) + 1) * 10) + sm_satellite_radius_01.FloatValue;
+        float damage = ((GetSimpleCombatLevel(client) + 1) * 5) + sm_satellite_damage_01.FloatValue;
 	
 	/* Damage to special infected */
 	for(new i = 1; i <= MaxClients; i++)
@@ -532,7 +578,7 @@ public Judgement(client)
 	LittleFlower(client, EXPLODE);
 	
 	/* Push away */
-	PushAway(client, GetConVarFloat(sm_satellite_force), radius, 0.5);
+	PushAway(client, sm_satellite_force.FloatValue, radius, 0.5);
 	
 	if(ticket[client] == 1)
 	{
@@ -557,8 +603,8 @@ public Blizzard(client)
 	EmitAmbientSound(SOUND_IMPACT01, trsPos[client]);
 	EmitAmbientSound(SOUND_IMPACT02, trsPos[client]);
 	
-	new Float:radius = ((SC_GetClientLevel(client) + 1) * 15) + GetConVarFloat(sm_satellite_radius_02);
-	new Float:damage = GetConVarFloat(sm_satellite_freeze_02);
+        float radius = ((GetSimpleCombatLevel(client) + 1) * 15) + sm_satellite_radius_02.FloatValue;
+	float damage = sm_satellite_freeze_02.FloatValue;
 	
 	/* Laser effect */
 	CreateLaserEffect(client, 80, 80, 230, 230, 6.0, 1.0, VARTICAL);
@@ -568,7 +614,7 @@ public Blizzard(client)
 	TE_SendToAll();
 	
 	/* Freeze special infected and survivor in the radius */
-	for(new i = 1; i <= GetMaxClients(); i++)
+        for (int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsClientInGame(i))
 			continue;
@@ -612,7 +658,7 @@ public Blizzard(client)
 	}
 	
 	/* Push away */
-	PushAway(client, GetConVarFloat(sm_satellite_force), radius, 0.5);
+	PushAway(client, sm_satellite_force.FloatValue, radius, 0.5);
 }
 
 public Inferno(client)
@@ -628,11 +674,11 @@ public Inferno(client)
 	ShowParticle(trsPos[client], PARTICLE_FIRE01, 3.0);
 	ShowParticle(trsPos[client], PARTICLE_FIRE02, 3.0);
 	
-	new Float:radius = ((SC_GetClientLevel(client) + 1) * 5) + GetConVarFloat(sm_satellite_radius_03);
-	new Float:damage = ((SC_GetClientLevel(client) + 1) * 10) + GetConVarFloat(sm_satellite_damage_03);
+        float radius = ((GetSimpleCombatLevel(client) + 1) * 5) + sm_satellite_radius_03.FloatValue;
+        float damage = ((GetSimpleCombatLevel(client) + 1) * 10) + sm_satellite_damage_03.FloatValue;
 	
 	/* Ignite special infected and survivor in the radius */
-	for(new i = 1; i <= GetMaxClients(); i++)
+        for (int i = 1; i <= MaxClients; i++)
 	{
 		if(!IsClientInGame(i))
 			continue;
@@ -677,7 +723,7 @@ public Inferno(client)
 	}
 	
 	/* Push away */
-	PushAway(client, GetConVarFloat(sm_satellite_force), radius, 0.5);
+	PushAway(client, sm_satellite_force.FloatValue, radius, 0.5);
 	LittleFlower(client, MOLOTOV);
 }
 
@@ -727,7 +773,7 @@ public GetTracePosition(client)
 		GetEntPropVector(tEntity, Prop_Send, "m_vecOrigin", entPos);
 		TR_GetEndPosition(tmpPos, trace);
 	}
-	CloseHandle(trace);
+	delete trace;
 	for(new i = 0; i < 3; i++)
 		trsPos[client][i] = tmpPos[i];
 }
@@ -762,7 +808,7 @@ public MoveTracePosition(client, min, max)
 
 public bool:TraceEntityFilterPlayer(entity, contentsMask)
 {
-	return entity > GetMaxClients() || !entity;
+return entity > MaxClients || !entity;
 }
 
 public CreateLaserEffect(client, colRed, colGre, colBlu, alpha, Float:width, Float:duration, mode)
@@ -790,7 +836,7 @@ public CreateLaserEffect(client, colRed, colGre, colBlu, alpha, Float:width, Flo
 		
 		for(new i = 0; i < 3; i++)
 			lchPos[i] = trsPos[client][i];
-		lchPos[2] += GetConVarInt(sm_satellite_height);
+		lchPos[2] += sm_satellite_height.IntValue;
 		TE_SetupBeamPoints(lchPos, trsPos[client], g_BeamSprite, 0, 0, 0,
 							duration, width, width, 1, 2.0, color, 0);
 		TE_SendToAll();
@@ -928,7 +974,7 @@ public Action:DeleteParticles(Handle:timer, any:particle)
 	/* Delete particle */
     if (IsValidEntity(particle))
 	{
-		new String:classname[64];
+		char classname[64];
 		GetEdictClassname(particle, classname, sizeof(classname));
 		if (StrEqual(classname, "info_particle_system", false))
             RemoveEdict(particle);
@@ -984,7 +1030,7 @@ public Action:RemoveInstructorHint(Handle:timer, Handle:hPack)
 	ResetPack(hPack, false)
 	client = ReadPackCell(hPack)
 	entity = ReadPackCell(hPack)
-	CloseHandle(hPack)
+	delete hPack;
 	
 	if (!client || !IsClientInGame(client))
 		return;

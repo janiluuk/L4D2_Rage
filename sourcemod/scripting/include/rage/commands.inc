@@ -1,10 +1,13 @@
-
+#if defined _RAGE_COMMANDS_INC
+        #endinput
+#endif
+#define _RAGE_COMMANDS_INC
 
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
 
-public Action:Command_Debug(client, args) {
+public Action Command_Debug(int client, int args) {
 	
 	if (args < 1)
 	{
@@ -21,18 +24,7 @@ public Action:Command_Debug(client, args) {
 
 	return Plugin_Handled;
 }
-
-public Action:CmdClassInfo(client, args)
-{
-	PrintToChat(client,"\x05Soldier\x01 = Has faster attack rate, runs faster and takes less damage");
-	PrintToChat(client,"\x05Athlete\x01 = Jumps higher, has parachute.");
-	PrintToChat(client,"\x05Medic\x01 = Heals others, plants medical supplies. Faster revive & heal speed");
-	PrintToChat(client,"\x05Saboteur\x01 = Can go invisible, plants powerful mines and throws special grenades");
-	PrintToChat(client,"\x05Commando\x01 = Has fast reload, deals extra damage");
-	PrintToChat(client,"\x05Engineer\x01 = Drops auto turrets and ammo");
-	PrintToChat(client,"\x05Brawler\x01 = Has Lots of health");	
-}
-public Action:CmdModel(client, args) {
+public Action CmdModel(int client, int args) {
         if (args < 1)
         {
                 ReplyToCommand(client, "\x03[Rage]\x01 Usage: \x04sm_model\x01 <model path>");
@@ -47,48 +39,6 @@ public Action:CmdModel(client, args) {
 
         return Plugin_Handled;
 
-}
-public Action:CmdClassMenu(client, args)
-{
-	if (GetClientTeam(client) != 2)
-	{
-		PrintToChat(client, "%sOnly Survivors can choose a class.", PRINT_PREFIX);
-		return;
-	}
-	CreatePlayerClassMenu(client);
-}
-
-public Action:CreatePlayerClassMenuDelay(Handle:hTimer, any:client)
-{
-	CreatePlayerClassMenu(client);
-}
-
-stock Action:CmdClasses(client, args)
-{	
-	for (new i = 1; i <= MaxClients; i++)
-	{
-
-
-		if(IsClientInGame(i) && GetClientTeam(i) == 2 && ClientData[i].ChosenClass != NONE)
-		{
-			static char translation[256];
-
-			Format(translation, sizeof(translation), "\x04%N\x01 is a {green}%s{white}%s",i,MENU_OPTIONS[ClientData[i].ChosenClass], ClassTips[ClientData[i].ChosenClass]);
-			ReplaceColors(translation, sizeof(translation));
-			PrintToChatAll(translation);
-		}
-	}
-}
-
-public Action:CmdPlugins(client, args)
-{
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if(ClientData[i].ChosenClass != NONE)
-		{
-			PrintToChat(client, "\x04%N\x01 is a %s",i,MENU_OPTIONS[ClientData[i].ChosenClass]);
-		}
-	}
 }
 
 public Action Cmd_SetVictim(int client, int args) {
@@ -244,9 +194,9 @@ public Action Cmd_PrintToHUD(int client, int args) {
 	return Plugin_Handled;
 }
 
-public Action:GrenadeCommand(client, args)
+public Action GrenadeCommand(int client, int args)
 {
-	if (isAdmin(client)) {
+        if (IsAdmin(client)) {
 		// Index
 		int index;
 		char str[3];
@@ -264,9 +214,9 @@ public Action:GrenadeCommand(client, args)
 	return Plugin_Handled;
 }
 
-public Action:HideCommand(client, args)
+public Action HideCommand(int client, int args)
 {
-	if (client > 0 && IsClientInGame(client) && isAdmin(client)) {
+        if (client > 0 && IsClientInGame(client) && IsAdmin(client)) {
 
 		new String:str[32];
 		new type=GetCmdArg(1, str, 32);

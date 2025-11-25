@@ -51,7 +51,7 @@ bool g_bRageAvailable = false;
 #include <sourcemod>
 #include <sdktools>
 #include <rage/skills>
-#pragma semicolon 2 //Who doesn't like semicolons? :)
+#pragma semicolon 1
 
 //Definitions
 #define SOUND_START "ui/pickup_secret01.wav" //Sound heard by the client that begins berserker
@@ -387,7 +387,7 @@ new g_ActiveWeaponOffset;
 new Handle:g_hForward_BerserkUse = INVALID_HANDLE;
 
 //Plugin Info
-public Plugin:myinfo = 
+public Plugin myinfo =
 {
 	name = "[Rage] Berserker Mode Plugin version",
 	author = "honorcode23, yani",
@@ -2155,7 +2155,9 @@ public OnPlayerDeath (Handle:hEvent, String:event_name[], bool:dontBroadcast)
 //On common infected killed
 stock OnCommonKilled(attacker, infected, String:weapon[], type)
 {
-	//@damage type: 8 is equal to recent fire and 2056 refers to an idle fire. Any of them are fire weapons
+#pragma unused infected
+
+//@damage type: 8 is equal to recent fire and 2056 refers to an idle fire. Any of them are fire weapons
 	LogDebug("[COMMON DEBUG] Common Infected Killed Input Received");
 	
 	if(attacker <= 0
@@ -5391,19 +5393,23 @@ stock bool:IsValidFireWeaponName(String:sWeapon[])
 
 stock LogDebug(const String:format[], any:...)
 {
-	#if (CODEBUG || RSDEBUG || BYDEBUG || LBDEBUG || FSDEBUG || NRDEBUG || CTDEBUG || EVTDEBUG || ZKDEBUG || CKDEBUG || BOODEBUG)
-	decl String:buffer[512];
-	VFormat(buffer, sizeof(buffer), format, 2);
+#if (CODEBUG || RSDEBUG || BYDEBUG || LBDEBUG || FSDEBUG || NRDEBUG || CTDEBUG || EVTDEBUG || ZKDEBUG || CKDEBUG || BOODEBUG)
+decl String:buffer[512];
+VFormat(buffer, sizeof(buffer), format, 2);
 	new Handle:file;
 	decl String:FileName[256], String:sTime[256];
 	BuildPath(Path_SM, FileName, sizeof(FileName), "logs/berserker_debug.log", sTime);
 	file = OpenFile(FileName, "a+");
 	FormatTime(sTime, sizeof(sTime), "%b %d |%H:%M:%S| %Y");
 	WriteFileLine(file, "%s: %s", sTime, buffer);
-	PrintToServer("[BERSERKER DEBUG INFORMATION]: %s", buffer);
-	FlushFile(file);
-	CloseHandle(file);
-	#endif
+PrintToServer("[BERSERKER DEBUG INFORMATION]: %s", buffer);
+FlushFile(file);
+CloseHandle(file);
+#endif
+
+#if !(CODEBUG || RSDEBUG || BYDEBUG || LBDEBUG || FSDEBUG || NRDEBUG || CTDEBUG || EVTDEBUG || ZKDEBUG || CKDEBUG || BOODEBUG)
+#pragma unused format
+#endif
 }
 
 stock GetClientTempHealth(client)

@@ -10,9 +10,89 @@ bool g_bNB;
 // Class menu
 ///////////////////////////////////////////////////////////////////////////////////
 
-stock bool:CreatePlayerClassMenu(client)
+stock void ShowClassHud(int client, bool skillReady, const char[] readyText = "")
 {
-	new Handle:hPanel;
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return;
+        }
+
+        char className[32];
+        Format(className, sizeof(className), "%s", MENU_OPTIONS[ClientData[client].ChosenClass]);
+
+        if (skillReady)
+        {
+                if (readyText[0] != '\0')
+                {
+                        PrintHintText(client, "Class: %s — %s", className, readyText);
+                }
+                else
+                {
+                        PrintHintText(client, "Class: %s — skill ready", className);
+                }
+        }
+        else
+        {
+                PrintHintText(client, "Class: %s", className);
+        }
+}
+
+public bool ApplyClassSelection(int client, int classIndex)
+{
+        if (client <= 0 || classIndex <= 0 || classIndex >= view_as<int>(MAXCLASSES) || GetClientTeam(client) != 2)
+        {
+                return false;
+        }
+
+        ClassTypes oldClass = ClientData[client].ChosenClass;
+        bool hasActiveClass = oldClass != NONE;
+
+        if (GetMaxWithClass(classIndex) >= 0 && CountPlayersWithClass(classIndex) >= GetMaxWithClass(classIndex) && view_as<int>(oldClass) != classIndex)
+        {
+                PrintToChat(client, "%sThe \x04%s\x01 class is full, please choose another.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
+                return false;
+        }
+
+        LastClassConfirmed[client] = classIndex;
+        SaveClassCookie(client, view_as<ClassTypes>(classIndex));
+
+        if (RoundStarted == true && hasActiveClass && view_as<int>(oldClass) != classIndex)
+        {
+                PrintToChat(client, "%sQueued %s. It will apply next round; use the Rage menu to change again if needed.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
+                return false;
+        }
+
+        ClientData[client].ChosenClass = view_as<ClassTypes>(classIndex);
+
+        Call_StartForward(g_hfwdOnPlayerClassChange);
+        Call_PushCell(client);
+        Call_PushCell(ClientData[client].ChosenClass);
+        Call_PushCell(LastClassConfirmed[client]);
+        Call_Finish();
+
+        PrintToConsole(client, "Class is setting up");
+
+        SetupClasses(client, classIndex);
+        EmitSoundToClient(client, SOUND_CLASS_SELECTED);
+        RebuildCache();
+
+        if (view_as<int>(oldClass) == 0)
+        {
+                PrintToChatAll("\x04%N\x01 is a \x05%s\x01%s", client, MENU_OPTIONS[classIndex], ClassTips[classIndex]);
+        }
+        else
+        {
+                PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01", client, MENU_OPTIONS[oldClass], MENU_OPTIONS[classIndex]);
+        }
+
+        PrintToChat(client, "%sSelected %s. You can use the Rage menu to change again; mid-round changes take effect next round.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
+        ShowClassHud(client, false);
+        return true;
+}
+
+stock bool CreatePlayerClassMenu(int client)
+{
+        new Handle:hPanel;
 
 	decl String:buffer[256];
 	if((hPanel = CreatePanel()) == INVALID_HANDLE)
@@ -25,12 +105,10 @@ stock bool:CreatePlayerClassMenu(client)
 		return false;
 	}
 	
-	// if client has a class already and round has started, dont give them the menu
-	if (ClientData[client].ChosenClass != NONE && RoundStarted == true)
-	{
-		PrintToChat(client,"Round has started, your class is locked, You are a %s",MENU_OPTIONS[ClientData[client].ChosenClass]);
-		return false;
-	}
+        if (ClientData[client].ChosenClass != NONE && RoundStarted == true)
+        {
+                PrintToChat(client,"Round has started; pick a new class now and it will apply next round. You are a %s",MENU_OPTIONS[ClientData[client].ChosenClass]);
+        }
 	
 	if(IsClientInGame(client) && ClientData[client].ChosenClass == NONE && RoundStarted == false)
 	{
@@ -57,10 +135,10 @@ stock bool:CreatePlayerClassMenu(client)
 	return true;
 }
 
-public PanelHandler_SelectClass(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_SelectClass(Handle menu, MenuAction action, int client, int param)
 {
-	ClassTypes OldClass;
-	OldClass = ClientData[client].ChosenClass;
+        ClassTypes OldClass;
+        OldClass = ClientData[client].ChosenClass;
 
 	switch (action)
 	{
@@ -78,35 +156,47 @@ public PanelHandler_SelectClass(Handle:menu, MenuAction:action, client, param)
 			} 
 			else
 			{
-				//DrawConfirmPanel(client, param);
-				
-				LastClassConfirmed[client] = param;
-				ClientData[client].ChosenClass = view_as<ClassTypes>(param);	
+                                bool classLocked = (RoundStarted == true && OldClass != NONE);
+                                ClassTypes newClass = view_as<ClassTypes>(param);
 
-				// Inform other plugins.
-				Call_StartForward(g_hfwdOnPlayerClassChange);
-				Call_PushCell(client);
-				Call_PushCell(ClientData[client].ChosenClass);
-				Call_PushCell(LastClassConfirmed[client]);
-				Call_Finish();				
+                                if (classLocked)
+                                {
+                                        g_iQueuedClass[client] = param;
+                                        SaveClassCookie(client, newClass);
+                                        PrintToChat(client, "%sYou will switch to %s next round. Use the menu again if you want a different class.", PRINT_PREFIX, MENU_OPTIONS[param]);
+                                        return;
+                                }
 
-				PrintToConsole(client, "Class is setting up");
-				
-				SetupClasses(client, param);
-				EmitSoundToClient(client, SOUND_CLASS_SELECTED);
-				RebuildCache();
-				if(view_as<int>(OldClass) == 0)
-				{
-					PrintToChatAll("\x04%N\x01 is a \x05%s\x01%s",client,MENU_OPTIONS[param],ClassTips[param]);
-				}	
-				else
-				{
-					PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01",client,MENU_OPTIONS[OldClass],MENU_OPTIONS[param]);
-				}
-			}
-		}
-		case MenuAction_Cancel:
-		{
+                                g_iQueuedClass[client] = 0;
+                                LastClassConfirmed[client] = param;
+                                ClientData[client].ChosenClass = newClass;
+                                SaveClassCookie(client, newClass);
+
+                                // Inform other plugins.
+                                Call_StartForward(g_hfwdOnPlayerClassChange);
+                                Call_PushCell(client);
+                                Call_PushCell(ClientData[client].ChosenClass);
+                                Call_PushCell(LastClassConfirmed[client]);
+                                Call_Finish();
+
+                                PrintToConsole(client, "Class is setting up");
+
+                                SetupClasses(client, param);
+                                EmitSoundToClient(client, SOUND_CLASS_SELECTED);
+                                RebuildCache();
+                                if(view_as<int>(OldClass) == 0)
+                                {
+                                        PrintToChatAll("\x04%N\x01 is a \x05%s\x01%s",client,MENU_OPTIONS[param],ClassTips[param]);
+                                }
+                                else
+                                {
+                                        PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01",client,MENU_OPTIONS[OldClass],MENU_OPTIONS[param]);
+                                }
+                                PrintToChat(client, "%sClass selected. Use the Rage menu to change it again.", PRINT_PREFIX);
+                        }
+                }
+                case MenuAction_Cancel:
+                {
 			CloseHandle(menu);
 
 		}
@@ -148,7 +238,7 @@ public CreatePlayerEngineerMenu(client)
 	return true;
 }
 
-public PanelHandler_SelectEngineerItem(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_SelectEngineerItem(Handle menu, MenuAction action, int client, int param)
 {
 	switch (action)
 	{
@@ -160,7 +250,7 @@ public PanelHandler_SelectEngineerItem(Handle:menu, MenuAction:action, client, p
 	}
 }
 
-public void CalculateEngineerPlacePos(client, type)
+public void CalculateEngineerPlacePos(int client, int type)
 {
 	decl Float:vAng[3], Float:vPos[3], Float:endPos[3];
 	
@@ -231,7 +321,7 @@ public void CalculateEngineerPlacePos(client, type)
 // Medic
 ///////////////////////////////////////////////////////////////////////////////////
 
-public bool:CreatePlayerMedicMenu(client)
+public bool CreatePlayerMedicMenu(int client)
 {
 	if (!client)
 	return false;
@@ -256,7 +346,7 @@ public bool:CreatePlayerMedicMenu(client)
 	return true;
 }
 
-public PanelHandler_SelectMedicItem(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_SelectMedicItem(Handle menu, MenuAction action, int client, int param)
 {
 	switch (action)
 	{
@@ -269,7 +359,7 @@ public PanelHandler_SelectMedicItem(Handle:menu, MenuAction:action, client, para
 	}
 }
 
-public void CalculateMedicPlacePos(client, type)
+public void CalculateMedicPlacePos(int client, int type)
 {
 	decl Float:vAng[3], Float:vPos[3], Float:endPos[3];
 	
@@ -342,7 +432,7 @@ public void CalculateMedicPlacePos(client, type)
 //////////////////////////
 // Saboteur 
 //////////////////////////
-public bool:CreatePlayerSaboteurMenu(client)
+public bool CreatePlayerSaboteurMenu(int client)
 {
 	if (!client)
 	return false;
@@ -368,7 +458,7 @@ public bool:CreatePlayerSaboteurMenu(client)
 	return true;
 }
 
-public SelectSaboteurItem(Handle:menu, MenuAction:action, param1, param2)
+public void SelectSaboteurItem(Handle menu, MenuAction action, int param1, int param2)
 {
 	switch(action)
 	{
@@ -396,13 +486,13 @@ public SelectSaboteurItem(Handle:menu, MenuAction:action, param1, param2)
 // Rage menu
 ///////////////////////////////////////////////////////////////////////////////////
 
-public bool:isAdmin(client)
+public bool IsAdmin(int client)
 {
 	if (client == 0 && GetUserAdmin(client) == INVALID_ADMIN_ID) { return false; }
 	else { return true; }
 }
 
-public PanelHandler_RageMenu(Handle:menu, MenuAction:action, client, param)
+public void PanelHandler_RageMenu(Handle menu, MenuAction action, int client, int param)
 {
 	switch (action)
 	{
@@ -448,7 +538,7 @@ public PanelHandler_RageMenu(Handle:menu, MenuAction:action, client, param)
 	}
 }
 
-public RageSkillMenuHandler(Handle:hMenu, MenuAction:action, client, iSkillSelection)
+public void RageSkillMenuHandler(Menu hMenu, MenuAction action, int client, int iSkillSelection)
 {
     if(action == MenuAction_Select)
     {
@@ -461,7 +551,7 @@ public RageSkillMenuHandler(Handle:hMenu, MenuAction:action, client, iSkillSelec
 }
 
 // Format very top level admin menu entry
-public Admin_TopMainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:object_id, param, String:buffer[], maxlength) {
+public void Admin_TopMainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength) {
 
 	switch (action)
 	{
@@ -472,7 +562,7 @@ public Admin_TopMainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:obj
 	}
 }
 
-public OnAdminMenuReady(Handle:topmenu) {
+public void OnAdminMenuReady(Handle topmenu) {
 	
 	// Check ..
 	if (topmenu == hTopMenu) return;
@@ -501,7 +591,7 @@ new String:CommandText[][] = {
 };
 
 // Handle the switch menu items (switch player/swap players)
-public Admin_MainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:object_id, param, String:buffer[], maxlength) {
+public void Admin_MainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength) {
 	
 	new String:mnuinfo[MAX_NAME_LENGTH];
 	GetTopMenuInfoString(topmenu, object_id, mnuinfo, sizeof(mnuinfo));
@@ -528,13 +618,13 @@ public Admin_MainMenu(Handle:topmenu, TopMenuAction:action, TopMenuObject:object
 	}
 }
 
-public Action:CmdRageMenu(client, args)
+public Action CmdRageMenu(int client, int args)
 {
-	if (isAdmin(client)) 
+    if (IsAdmin(client))
                 CreateRageMenu(client);
 }
 
-public CreateRageMenu(client) {
+public bool CreateRageMenu(int client) {
 
 	if (!client)
 	return false;
@@ -560,7 +650,7 @@ public CreateRageMenu(client) {
 	return true;
 }
 
-public Admin_MnuHdlr_RageOpts(Handle:menu, MenuAction:action, param1, param2) {
+public void Admin_MnuHdlr_RageOpts(Menu menu, MenuAction action, int param1, int param2) {
 
 	switch (action)
 	{
@@ -644,7 +734,7 @@ public Admin_MnuHdlr_RageOpts(Handle:menu, MenuAction:action, param1, param2) {
 	}
 }
 
-stock ShowDebugMenu(client) {
+stock void ShowDebugMenu(int client) {
 
 	new Handle:menu = CreateMenu(Admin_MnuHdlr_DebugOpts);	
 	
@@ -669,7 +759,7 @@ stock ShowDebugMenu(client) {
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-stock ShowRageMenu(client) {
+stock void ShowRageMenu(int client) {
 
     new Handle:menu = CreateMenu(Admin_MnuHdlr_RageOpts);
 	
@@ -700,7 +790,7 @@ stock ShowRageMenu(client) {
 
 	DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
-public Admin_MnuHdlr_DebugOpts(Handle:menu, MenuAction:action, param1, param2) {
+public void Admin_MnuHdlr_DebugOpts(Menu menu, MenuAction action, int param1, int param2) {
 
 	switch (action)
 	{
