@@ -1,3 +1,8 @@
+#if defined _rage_menus_included
+ #endinput
+#endif
+#define _rage_menus_included
+
 ConVar sb_stop;
 bool g_bNB;
 
