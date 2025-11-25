@@ -1,3 +1,8 @@
+#if defined _rage_const_included
+ #endinput
+#endif
+#define _rage_const_included
+
 /** CLASS SYSTEM **/
 
 StringMap g_AllPerks, g_SlotPerks;

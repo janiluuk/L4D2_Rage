@@ -1,3 +1,8 @@
+#if defined _rage_classes_included
+ #endinput
+#endif
+#define _rage_classes_included
+
 #define MAX_SKILL_NAME_LENGTH 32
 #define MAX_SKILL_FLAG_LENGTH 32
 //Allow MAX_PERKS to be defined elsewhere

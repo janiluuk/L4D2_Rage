@@ -1,3 +1,7 @@
+#if defined _rage_effects_included
+ #endinput
+#endif
+#define _rage_effects_included
 
 ///////////////////////////////////////////////////////////////////////////////////	
 // Graphics & effects
