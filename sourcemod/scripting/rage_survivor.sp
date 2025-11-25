@@ -3,19 +3,11 @@
 * Talents Plugin by Rage / Neil / Spirit / panxiaohai / Yani
 * Incorporates Survivor classes.
 *
-* (C)2023 DeadLandRape / Neil / Yani.  All rights reserved.
+* (C)2025 Neil / Yani.  All rights reserved.
 * =============================================================================
-*
-*	Developed for DeadLandRape Gaming. This plugin is Rage proprietary software.
-*	Rage claims complete rights to this plugin, including, but not limited to:
-*
-*		- The right to use this plugin in their servers
-*		- The right to modify this plugin
-*		- The right to claim ownership of this plugin
-*		- The right to re-distribute this plugin as they see fit
 */
 
-#define PLUGIN_NAME "Talents Plugin 2023 anniversary edition"
+#define PLUGIN_NAME "Talents Plugin 2025D anniversary edition"
 #define PLUGIN_VERSION "1.82b"
 #define PLUGIN_IDENTIFIER "rage_survivor"
 #pragma semicolon 1
