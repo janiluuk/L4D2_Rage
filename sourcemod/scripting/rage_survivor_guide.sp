@@ -949,7 +949,7 @@ void DisplayPredicamentsMenu(int client)
     AddMenuItem(menu, "overview", "Predicaments system overview");
     AddMenuItem(menu, "selfrevive", "Self-revival from incapacitation");
     AddMenuItem(menu, "ledge", "Ledge rescue mechanics");
-    AddMenuItem(menu, "pinescape", "Pin escape & struggle system");
+    AddMenuItem(menu, "pin_escape", "Pin escape & struggle system");
     AddMenuItem(menu, "crawl", "Incapped crawling");
     AddMenuItem(menu, "teammate", "Teammate revival while down");
     AddMenuItem(menu, "pickup", "Item pickup while incapacitated");
@@ -986,7 +986,7 @@ public int MenuHandler_Predicaments(Menu menu, MenuAction action, int param1, in
                 PrintGuideLine(param1, "Prioritize saving items for ledge situations when pushing aggressive positions.");
                 DisplayPredicamentsMenu(param1);
             }
-            else if (StrEqual(info, "pinescape"))
+            else if (StrEqual(info, "pin_escape"))
             {
                 PrintGuideLine(param1, "Break free from Special Infected (Smoker, Hunter, Jockey, Charger) by struggling or using items.");
                 PrintGuideLine(param1, "Mash CROUCH to build struggle progress and escape. Infected can counter by pressing SPRINT.");
