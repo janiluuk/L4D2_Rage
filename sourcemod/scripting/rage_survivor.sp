@@ -796,11 +796,11 @@ public void SetupClasses(client, class)
 		{
 			if (g_bAirstrike)
 			{
-				PrintHintText(client,"You have armor, fast attack rate and movement Press MIDDLE BUTTON or type !skill for Airstrike!");
+				PrintHintText(client,"You have armor, fast attack rate and movement. Press MIDDLE BUTTON or type !skill for Airstrike!");
 			}
 			else
 			{
-				PrintHintText(client,"You have armor, fast attack rate and movement");
+				PrintHintText(client,"You have armor, fast attack rate and movement.");
 			}
 			ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_AIRSTRIKE_INTERVAL);
 			ClientData[client].SpecialLimit = GetConVarInt(SOLDIER_MAX_AIRSTRIKES);
@@ -835,7 +835,7 @@ public void SetupClasses(client, class)
 
 			if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK))
 			{
-				PrintHintText(client,"You have faster reload & increased damage, You're immune to Tank knockdowns!\nPress MIDDLE button or type !skill to activate Berzerk mode!");
+				PrintHintText(client,"You have faster reload & increased damage. You're immune to Tank knockdowns!\nPress MIDDLE button or type !skill to activate Berzerk mode!");
 			}
 			else
 			{
