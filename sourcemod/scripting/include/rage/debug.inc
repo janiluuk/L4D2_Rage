@@ -1,3 +1,7 @@
+#if defined _rage_debug_included
+ #endinput
+#endif
+#define _rage_debug_included
 
 stock void PrintDebug(int client, const char[] format, any ...)
 {

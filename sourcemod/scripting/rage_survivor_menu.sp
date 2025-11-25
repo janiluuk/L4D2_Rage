@@ -532,8 +532,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
                 else
                 {
                     FakeClientCommand(client, "sm_music_play");
-                    // Open music menu for full control
-                    FakeClientCommand(client, "sm_music");
+                    FakeClientCommand(client, "sm_music"); // open menu for quick control
+                    PrintHintText(client, "Music playing. Use menu to change track.");
                 }
             }
             case Menu_MusicVolume:
@@ -629,6 +629,104 @@ public void TrackSelectableEntry(EXTRA_MENU_TYPE type)
 }
 
 public void RefreshGuideLibraryStatus()
+{
+    g_bGuideNativeAvailable = (GetFeatureStatus(FeatureType_Native, "RageGuide_ShowMainMenu") == FeatureStatus_Available);
+}
+
+public bool TryShowGuideMenu(int client)
+{
+    if (!g_bGuideNativeAvailable || client <= 0 || !IsClientInGame(client))
+    {
+        return false;
+    }
+
+    RageGuide_ShowMainMenu(client);
+    return true;
+}
+
+public void AddGameModeOptions(int menu_id)
+{
+    char options[512];
+    options[0] = '\0';
+
+    for (int i = 0; i < GAMEMODE_OPTION_COUNT; i++)
+    {
+        if (options[0] != '\0')
+        {
+            StrCat(options, sizeof(options), "|");
+        }
+
+        StrCat(options, sizeof(options), g_sGameModeNames[i]);
+    }
+
+    ExtraMenu_AddOptions(menu_id, options);
+}
+
+public void AddClassOptions(int menu_id)
+{
+    char options[256];
+    options[0] = '\0';
+
+    for (int i = 0; i < CLASS_OPTION_COUNT; i++)
+    {
+        if (options[0] != '\0')
+        {
+            StrCat(options, sizeof(options), "|");
+        }
+
+        StrCat(options, sizeof(options), g_sClassOptions[i]);
+    }
+
+    ExtraMenu_AddOptions(menu_id, options);
+}
+
+void ChangeGameModeByIndex(int client, int modeIndex)
+{
+    if (modeIndex < 0 || modeIndex >= GAMEMODE_OPTION_COUNT)
+    {
+        PrintToChat(client, "[Rage] Unknown game mode option.");
+        return;
+    }
+
+    if (g_hCvarMPGameMode == null)
+    {
+        PrintToChat(client, "[Rage] Unable to change game mode right now.");
+        return;
+    }
+
+    ConVar cvar = g_hGameModeCvars[modeIndex];
+    if (cvar == null)
+    {
+        PrintToChat(client, "[Rage] Game mode option is not configured.");
+        return;
+    }
+
+    char targetMode[64];
+    cvar.GetString(targetMode, sizeof(targetMode));
+    TrimString(targetMode);
+
+    if (targetMode[0] == '\0')
+    {
+        PrintToChat(client, "[Rage] Game mode value is empty.");
+        return;
+    }
+
+    char currentMode[64];
+    g_hCvarMPGameMode.GetString(currentMode, sizeof(currentMode));
+
+    if (StrEqual(currentMode, targetMode, false))
+    {
+        PrintToChat(client, "[Rage] %s is already active.", g_sGameModeNames[modeIndex]);
+        return;
+    }
+
+    g_hCvarMPGameMode.SetString(targetMode);
+    LogAction(client, -1, "\"%L\" changed game mode to \"%s\"", client, targetMode);
+    ShowActivity2(client, "[Rage] ", "changed game mode to %s.", g_sGameModeNames[modeIndex]);
+    PrintToChatAll("[Rage] %N switched the game mode to %s (\"%s\").", client, g_sGameModeNames[modeIndex], targetMode);
+}
+
+public bool HasRageMenuAccess(int client)
 {
     return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", 0);
 }

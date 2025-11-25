@@ -845,43 +845,48 @@ public void GetPlayerSkillReadyHint(client) {
 
 public void SetupClasses(client, class)
 {
-	if (!client
-		|| !IsValidEntity(client)
-		|| !IsClientInGame(client)
-		|| !IsPlayerAlive(client)
-		|| GetClientTeam(client) != 2)
-		return;
-	
-	ClientData[client].ChosenClass = view_as<ClassTypes>(class);
-	ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_DROP_INTERVAL);
-	ClientData[client].SpecialLimit = GetConVarInt(SPECIAL_SKILL_LIMIT);
-	int MaxPossibleHP = GetConVarInt(NONE_HEALTH);
-	DisableAllUpgrades(client);
+        if (!client
+                || !IsValidEntity(client)
+                || !IsClientInGame(client)
+                || !IsPlayerAlive(client)
+                || GetClientTeam(client) != 2)
+        return;
 
-	switch (view_as<ClassTypes>(class))
-	{
-		case soldier:	
-		{
-			if (g_bAirstrike)
-			{
-				PrintHintText(client,"You have armor, fast attack rate and movement. Press MIDDLE BUTTON or type !skill for Airstrike!");
-			}
-			else
-			{
-				PrintHintText(client,"You have armor, fast attack rate and movement.");
-			}
+        char primaryBind[64];
+        char deployBind[64];
+        GetActionBindingLabel(ClassSkill_Special, primaryBind, sizeof(primaryBind));
+        GetActionBindingLabel(ClassSkill_Deploy, deployBind, sizeof(deployBind));
+
+        ClientData[client].ChosenClass = view_as<ClassTypes>(class);
+ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_DROP_INTERVAL);
+ClientData[client].SpecialLimit = GetConVarInt(SPECIAL_SKILL_LIMIT);
+new MaxPossibleHP = GetConVarInt(NONE_HEALTH);
+DisableAllUpgrades(client);
+
+switch (view_as<ClassTypes>(class))
+{
+
+                case soldier:
+                {
+                        char text[64];
+                        text[0] = '\0';
+                        if (g_bAirstrike == true) {
+                                Format(text, sizeof(text), "Press %s for Airstrike!", primaryBind);
+                        }
+
+                        PrintHintText(client,"You have armor, fast attack rate and movement %s", text );
 			ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_AIRSTRIKE_INTERVAL);
 			ClientData[client].SpecialLimit = GetConVarInt(SOLDIER_MAX_AIRSTRIKES);
 			MaxPossibleHP = GetConVarInt(SOLDIER_HEALTH);
 		}
 		
-		case medic:
-		{
-			PrintHintText(client,"Hold CROUCH to heal others. Look down and press SHIFT to drop medkits & supplies.\nPress MIDDLE button or type !skill to throw healing grenade!");
-			CreateTimer(GetConVarFloat(MEDIC_HEALTH_INTERVAL), TimerDetectHealthChanges, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-			ClientData[client].SpecialLimit = GetConVarInt(MEDIC_MAX_ITEMS);
-			MaxPossibleHP = GetConVarInt(MEDIC_HEALTH);
-		}
+                case medic:
+                {
+                        PrintHintText(client,"Hold CROUCH to heal others. Look down and press %s to drop medkits & supplies.\nPress %s to throw a healing grenade!", deployBind, primaryBind);
+                        CreateTimer(GetConVarFloat(MEDIC_HEALTH_INTERVAL), TimerDetectHealthChanges, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+                        ClientData[client].SpecialLimit = GetConVarInt(MEDIC_MAX_ITEMS);
+                        MaxPossibleHP = GetConVarInt(MEDIC_HEALTH);
+                }
 		
 		case athlete:
 		{
@@ -901,27 +906,24 @@ public void SetupClasses(client, class)
 			ClientData[client].SpecialDropInterval = 120;
 			ClientData[client].SpecialLimit = 3;
 
-			if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK))
-			{
-				PrintHintText(client,"You have faster reload & increased damage. You're immune to Tank knockdowns!\nPress MIDDLE button or type !skill to activate Berzerk mode!");
-			}
-			else
-			{
-				PrintHintText(client,"You have faster reload & increased damage!\nPress MIDDLE button or type !skill to activate Berzerk mode!");
-			}
-			MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
-		}
+                        if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK)) {
+                                text = ", You're immune to Tank knockdowns!";
+                        }
+
+                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
+                        MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
+                }
 		
-		case engineer:
-		{
-			PrintHintText(client,"Press MIDDLE button or type !skill to deploy turrets. Look down and press SHIFT to drop ammo supplies!");
-			MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
-			ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
-		}
+                case engineer:
+                {
+                        PrintHintText(client,"Press %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, deployBind);
+                        MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
+                        ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
+                }
 
                 case saboteur:
 		{
-			PrintHintText(client,"Look down and press SHIFT to drop mines! Hold CROUCH 3 sec to go invisible.\nPress MIDDLE or !skill to summon Decoy. Use !extendedsight for wallhack");
+                        PrintHintText(client,"Use %s to drop mines! Hold CROUCH 3 sec to go invisible.\nPress %s to summon a Decoy. Toggle extended sight from your menu for wallhack support", deployBind, primaryBind);
 			MaxPossibleHP = GetConVarInt(SABOTEUR_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(SABOTEUR_MAX_BOMBS);
 		}
