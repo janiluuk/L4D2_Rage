@@ -739,6 +739,7 @@ public void ApplyThirdPersonMode(int client)
             {
                 return;
             }
+            // shouldThird is already false, will disable third person
         }
         case TP_MeleeOnly:
         {

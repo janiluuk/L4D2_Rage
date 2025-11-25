@@ -396,7 +396,7 @@ void ReadCookie(int client)
 public void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    if (client > 0)
+    if (client > 0 && client <= MaxClients)
     {
         if (g_rageTimerMusic[client] != INVALID_HANDLE)
         {
