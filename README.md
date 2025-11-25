@@ -57,7 +57,7 @@ The frontline tank who takes hits and keeps moving. Fast on his feet, tough as n
 - **Night Vision** – See in the dark like it's daytime
 - **Bonus:** Extra health and armor to survive the chaos
 
-### �� Ninja (Athlete)
+### 🥷 Ninja (Athlete)
 Speed demon built for parkour and aerial combat. Double jump, wall run, and float over danger.
 - **Ninja Kick** – Sprint + Jump to flying-kick enemies into oblivion
 - **Parachute** – Hold Use mid-air to glide down safely
@@ -137,7 +137,7 @@ All settings live in `cfg/sourcemod/l4d2_predicaments.cfg`. The key ones:
 
 **💬 Tutorial System** – Type `!guide` or `!ragetutorial` for an in-game tutorial covering classes, controls, skills, and tips. Never get lost again!
 
-**�� Console Commands** – Every feature has an `sm_` command so you can create custom binds or macros.
+**🎮 Console Commands** – Every feature has an `sm_` command so you can create custom binds or macros.
 
 ## Built-in Tutorials
 
