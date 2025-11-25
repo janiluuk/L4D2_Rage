@@ -164,7 +164,7 @@ stock const String:ClassCustomModels[][64] =
 	"models/survivors/survivor_biker.mdl",          // Commando - Francis (tough biker)
 	"models/survivors/survivor_coach.mdl",          // Engineer - Coach (builder/support)
 	"models/survivors/survivor_manager.mdl"         // Brawler - Louis (resilient manager)
-}
+};
 
 stock String:ClassTips[][] =
 {
