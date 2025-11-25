@@ -496,8 +496,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
                 else
                 {
                     FakeClientCommand(client, "sm_music_play");
-                    FakeClientCommand(client, "sm_music"); // open menu for quick control
-                    PrintHintText(client, "Music playing. Use menu to change track.");
+                    PrintHintText(client, "Music playing.");
                 }
             }
             case Menu_MusicVolume:
@@ -733,6 +732,14 @@ public void ApplyThirdPersonMode(int client)
     bool shouldThird = false;
     switch (g_ThirdPersonMode[client])
     {
+        case TP_Off:
+        {
+            // Early exit for most common case
+            if (!g_ThirdPersonActive[client])
+            {
+                return;
+            }
+        }
         case TP_MeleeOnly:
         {
             int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
