@@ -78,6 +78,7 @@ void DisplayGuideMainMenu(int client)
     AddMenuItem(menu, "classes", "Survivor class guides");
     AddMenuItem(menu, "controls", "Controls & core features");
     AddMenuItem(menu, "skills", "Skills & deployables");
+    AddMenuItem(menu, "predicaments", "Predicaments: Survival mechanics");
     AddMenuItem(menu, "gamemodes", "Game modes overview");
     AddMenuItem(menu, "tips", "Gameplay tips");
     SetMenuExitButton(menu, true);
@@ -95,7 +96,8 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Rage Edition is a modular class overhaul with perk-driven abilities.");
-                PrintGuideLine(param1, "Open this tutorial anytime with !guide or the Rage admin menu.");
+                PrintGuideLine(param1, "Open this tutorial anytime with !guide, !ragetutorial or the Rage menu.");
+                PrintGuideLine(param1, "Hold ALT to show the quick menu, move with WASD to select, release ALT to exit.");
                 PrintGuideLine(param1, "Pick a class, bind the four actions, and coordinate before leaving the saferoom.");
                 PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
                 DisplayGuideMainMenu(param1);
@@ -111,6 +113,10 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             else if (StrEqual(info, "skills"))
             {
                 DisplaySkillMenu(param1);
+            }
+            else if (StrEqual(info, "predicaments"))
+            {
+                DisplayPredicamentsMenu(param1);
             }
             else if (StrEqual(info, "gamemodes"))
             {
@@ -147,9 +153,12 @@ void DisplayControlsMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Controls);
     SetMenuTitle(menu, "Controls & Core Features");
+    AddMenuItem(menu, "menu", "Quick menu (ALT + WASD)");
     AddMenuItem(menu, "skillkeys", "Skill & deploy buttons");
     AddMenuItem(menu, "thirdperson", "Third-person camera");
     AddMenuItem(menu, "hudmusic", "HUD & music toggles");
+    AddMenuItem(menu, "afkmode", "AFK/away toggle");
+    AddMenuItem(menu, "equipment", "Multiple equipment mode");
     AddMenuItem(menu, "binds", "Quick binds & chat commands");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
@@ -163,7 +172,13 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
-            if (StrEqual(info, "skillkeys"))
+            if (StrEqual(info, "menu"))
+            {
+                PrintGuideLine(param1, "Hold ALT to show the quick menu, move with WASD keys to navigate options.");
+                PrintGuideLine(param1, "Release ALT to exit the menu. You can trigger class actions from the menu too.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "skillkeys"))
             {
                 PrintGuideLine(param1, "Bind skill_action_1/2/3 + deployment_action so you can react without typing.");
                 PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
@@ -177,6 +192,18 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             else if (StrEqual(info, "hudmusic"))
             {
                 PrintGuideLine(param1, "Use the admin menu to toggle the HUD overlay and enable/disable custom music.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "afkmode"))
+            {
+                PrintGuideLine(param1, "Mark yourself AFK directly from the Rage menu when you need a break.");
+                PrintGuideLine(param1, "Your status will be visible to teammates and you can toggle back when ready.");
+                DisplayControlsMenu(param1);
+            }
+            else if (StrEqual(info, "equipment"))
+            {
+                PrintGuideLine(param1, "Multiple equipment mode lets you pick how forgiving pickups are.");
+                PrintGuideLine(param1, "Choose between classic single-use kits or double-tap weapon swaps from the settings.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "binds"))
@@ -315,7 +342,8 @@ void DisplaySoldierMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Soldier);
     SetMenuTitle(menu, "Soldier Guide");
     AddMenuItem(menu, "overview", "Role overview");
-    AddMenuItem(menu, "airstrike", "Active skill: Airstrike");
+    AddMenuItem(menu, "airstrike", "Skill 1: F-18 Airstrike");
+    AddMenuItem(menu, "missiles", "Skills 2 & 3: Missiles");
     AddMenuItem(menu, "weapons", "Passives: Weapons & toughness");
     AddMenuItem(menu, "nightvision", "Utility: Night vision");
     SetMenuExitBackButton(menu, true);
@@ -335,24 +363,39 @@ public int MenuHandler_Soldier(Menu menu, MenuAction action, int param1, int par
             if (StrEqual(info, "overview"))
             {
                 PrintGuideLine(param1, "Soldiers run faster, shrug off damage and anchor the front so others can push objectives.");
+                PrintGuideLine(param1, "Increased health pool makes you the team tank. Lead the charge and draw fire.");
                 DisplaySoldierMenu(param1);
             }
-            else if (StrEqual(info, "skill"))
+            else if (StrEqual(info, "airstrike"))
             {
-                PrintGuideLine(param1, "Aim at a target and press skill_action_1 (default: middle mouse) to call the F-18 barrage. Warn teammates before painting and keep sight on the mark.");
+                char line[256];
+                Format(line, sizeof(line), "Aim at a target and press %s to call the F-18 barrage. Warn teammates before painting.", action1);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Keep sight on the mark until jets finish their run. Works best in outdoor areas.");
                 DisplaySoldierMenu(param1);
             }
-            else if (StrEqual(info, "utility"))
+            else if (StrEqual(info, "missiles"))
             {
-                PrintGuideLine(param1, "Faster weapon handling and melee stagger let you bully commons while absorbing chip damage for the team.");
+                char line1[256], line2[256];
+                Format(line1, sizeof(line1), "Use %s to fire a homing missile that tracks infected targets.", action2);
+                Format(line2, sizeof(line2), "Use %s to launch a dummy distraction missile that draws attention.", action3);
+                PrintGuideLine(param1, line1);
+                PrintGuideLine(param1, line2);
+                PrintGuideLine(param1, "You'll be highlighted for infected when shooting missiles - they can be shot down mid-flight!");
                 DisplaySoldierMenu(param1);
             }
-            else if (StrEqual(info, "tips"))
+            else if (StrEqual(info, "weapons"))
             {
-                PrintGuideLine(param1, "Toggle night vision with N (or sm_nightvision) to scout storms, spot spawns and watch flanks.");
+                PrintGuideLine(param1, "Faster weapon handling and melee stagger let you bully commons while absorbing chip damage.");
+                PrintGuideLine(param1, "Your movement speed boost helps you reposition and protect vulnerable teammates.");
                 DisplaySoldierMenu(param1);
             }
-            DisplaySoldierMenu(param1);
+            else if (StrEqual(info, "nightvision"))
+            {
+                PrintGuideLine(param1, "Toggle night vision with N (or !nightvision) to scout in darkness, spot spawns and watch flanks.");
+                PrintGuideLine(param1, "Essential for dark maps and indoor sections where visibility is low.");
+                DisplaySoldierMenu(param1);
+            }
         }
         case MenuAction_Cancel:
         {
@@ -374,8 +417,9 @@ void DisplayAthleteMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Athlete);
     SetMenuTitle(menu, "Athlete Guide");
     AddMenuItem(menu, "mobility", "Role & mobility perks");
-    AddMenuItem(menu, "parachute", "Air control & parachute");
     AddMenuItem(menu, "ninja", "Active skill: Ninja kick");
+    AddMenuItem(menu, "parachute", "Air control & parachute");
+    AddMenuItem(menu, "grenades", "Antigravity grenades");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -388,22 +432,30 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
-            if (StrEqual(info, "overview"))
+            if (StrEqual(info, "mobility"))
             {
                 PrintGuideLine(param1, "Athletes sprint faster with bunnyhop, double jump, long jump and high jump tools for objective play.");
+                PrintGuideLine(param1, "Built for motion - use your speed to scout ahead, grab supplies and reach objectives first.");
                 DisplayAthleteMenu(param1);
             }
-            else if (StrEqual(info, "mobility"))
-            {
-                PrintGuideLine(param1, "Hold USE in mid-air to pop the parachute, glide safely and chain long jumps without fall damage.");
-                DisplayAthleteMenu(param1);
-            }
-            else if (StrEqual(info, "skill"))
+            else if (StrEqual(info, "ninja"))
             {
                 PrintGuideLine(param1, "Sprint + JUMP together to launch a ninja kick that knocks infected down and opens a gap.");
+                PrintGuideLine(param1, "Perfect for crowd control and creating space for your team to push through hordes.");
                 DisplayAthleteMenu(param1);
             }
-            DisplayAthleteMenu(param1);
+            else if (StrEqual(info, "parachute"))
+            {
+                PrintGuideLine(param1, "Hold USE in mid-air to pop the parachute, glide safely and chain long jumps without fall damage.");
+                PrintGuideLine(param1, "Essential for escaping bad situations or reaching elevated positions the team needs.");
+                DisplayAthleteMenu(param1);
+            }
+            else if (StrEqual(info, "grenades"))
+            {
+                PrintGuideLine(param1, "Throw antigravity grenades that lift and suspend infected, giving your team time to reposition.");
+                PrintGuideLine(param1, "Excellent for controlling choke points and disrupting infected swarms.");
+                DisplayAthleteMenu(param1);
+            }
         }
         case MenuAction_Cancel:
         {
@@ -425,9 +477,10 @@ void DisplayCommandoMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Commando);
     SetMenuTitle(menu, "Commando Guide");
     AddMenuItem(menu, "damage", "Role & damage tuning");
-    AddMenuItem(menu, "satellite", "Active skill: Satellite cannon");
-    AddMenuItem(menu, "berserk", "Berserk meter");
+    AddMenuItem(menu, "berserk", "Berserk meter & rage mode");
+    AddMenuItem(menu, "satellite", "Satellite cannon skill");
     AddMenuItem(menu, "reload", "Passives: Reload & finishers");
+    AddMenuItem(menu, "tank", "Tank knockdowns");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -442,26 +495,40 @@ public int MenuHandler_Commando(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             char action1[64], action2[64], action3[64], deploy[64];
             GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
-            if (StrEqual(info, "overview"))
+            if (StrEqual(info, "damage"))
             {
                 PrintGuideLine(param1, "Commandos flex between rifles, shotguns and SMGs with baked-in damage bonuses for each slot.");
+                PrintGuideLine(param1, "Increased damage per weapon makes you the team's primary damage dealer. Lots of health too!");
+                DisplayCommandoMenu(param1);
             }
             else if (StrEqual(info, "berserk"))
             {
-                PrintGuideLine(param1, "Use skill_action_1 (default: middle mouse) for the satellite strike instead of the F-18. Berserk stays on secondary, so warn teammates before painting the zone.");
+                char line[256];
+                Format(line, sizeof(line), "Build rage by dealing damage, then press %s or !berserker to enter Berserk mode.", action1);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Berserk grants huge speed boost and tank immunity - use it to melt specials and tanks.");
                 DisplayCommandoMenu(param1);
             }
             else if (StrEqual(info, "satellite"))
             {
-                PrintGuideLine(param1, "Build rage by dealing damage, then press skill_action_1 or !berserker to enter Berserk for huge speed and tank immunity.");
+                char line[256];
+                Format(line, sizeof(line), "Use %s for the satellite cannon strike instead of the F-18 airstrike.", action1);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Warn teammates before painting the target zone - the satellite does massive area damage.");
                 DisplayCommandoMenu(param1);
             }
-            else if (StrEqual(info, "finishers"))
+            else if (StrEqual(info, "reload"))
             {
                 PrintGuideLine(param1, "Faster reloads and ground finishers reward aggression. Sprint forward to execute specials before they recover.");
+                PrintGuideLine(param1, "Your reload speed lets you maintain pressure without exposing the team to counterattacks.");
                 DisplayCommandoMenu(param1);
             }
-            DisplayCommandoMenu(param1);
+            else if (StrEqual(info, "tank"))
+            {
+                PrintGuideLine(param1, "Commandos can perform tank knockdowns with melee attacks when the tank is vulnerable.");
+                PrintGuideLine(param1, "Time your melees during tank recovery frames to knock it down and give your team breathing room.");
+                DisplayCommandoMenu(param1);
+            }
         }
         case MenuAction_Cancel:
         {
@@ -483,8 +550,10 @@ void DisplayMedicMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Medic);
     SetMenuTitle(menu, "Medic Guide");
     AddMenuItem(menu, "aura", "Role & healing aura");
-    AddMenuItem(menu, "orbs", "Active skill: Healing orbs");
-    AddMenuItem(menu, "support", "Utility: Revive & cleanse");
+    AddMenuItem(menu, "grenades", "Skill 1: Healing grenades");
+    AddMenuItem(menu, "orbs", "Skill 2: Healing orbs");
+    AddMenuItem(menu, "cleanse", "Skill 3: Bile cleanse");
+    AddMenuItem(menu, "support", "Utility: Revive & deployment");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -499,21 +568,44 @@ public int MenuHandler_Medic(Menu menu, MenuAction action, int param1, int param
             GetMenuItem(menu, param2, info, sizeof(info));
             char action1[64], action2[64], action3[64], deploy[64];
             GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
-            if (StrEqual(info, "overview"))
+            if (StrEqual(info, "aura"))
             {
                 PrintGuideLine(param1, "Medics pulse heals to nearby survivors and move faster while healing - stay near the front line.");
+                PrintGuideLine(param1, "Players you heal are notified and gain a special glow effect. Great for team sustain.");
+                DisplayMedicMenu(param1);
+            }
+            else if (StrEqual(info, "grenades"))
+            {
+                char line[256];
+                Format(line, sizeof(line), "Use %s to throw healing grenades that create a healing cloud for your team.", action1);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Perfect for healing multiple teammates at once during intense firefights.");
                 DisplayMedicMenu(param1);
             }
             else if (StrEqual(info, "orbs"))
             {
-                PrintGuideLine(param1, "Use your secondary skill_action_2 (default: Use+Fire) to toss glowing healing orbs and drop med items between fights.");
+                char line[256];
+                Format(line, sizeof(line), "Use %s to toss glowing healing orbs that announce to others and provide healing.", action2);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Ideal for topping off teammates between fights or during defensive holds.");
+                DisplayMedicMenu(param1);
+            }
+            else if (StrEqual(info, "cleanse"))
+            {
+                char line[256];
+                Format(line, sizeof(line), "Use %s or !unvomit to cleanse bile from yourself and nearby teammates.", action3);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Essential for removing the Boomer's bile effect and maintaining team mobility.");
                 DisplayMedicMenu(param1);
             }
             else if (StrEqual(info, "support"))
             {
-                PrintGuideLine(param1, "Faster revive and heal speeds plus the !unvomit cleanse make you the antidote to bile or chip damage.");
+                char line[256];
+                Format(line, sizeof(line), "Faster revive and heal speeds make you the lifeline. Use %s to drop medkits/defibs.", deploy);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Can deploy medkits and defibrillators for the team. Movement boost while healing keeps you safe.");
+                DisplayMedicMenu(param1);
             }
-            DisplayMedicMenu(param1);
         }
         case MenuAction_Cancel:
         {
@@ -535,8 +627,10 @@ void DisplayEngineerMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Engineer);
     SetMenuTitle(menu, "Engineer Guide");
     AddMenuItem(menu, "kits", "Role & upgrade kits");
-    AddMenuItem(menu, "turrets", "Active skill: Turret workshop");
-    AddMenuItem(menu, "defense", "Utility: Defenses & pickups");
+    AddMenuItem(menu, "grenades", "Skill 1: Experimental grenades");
+    AddMenuItem(menu, "turrets", "Turret workshop & deployment");
+    AddMenuItem(menu, "defense", "Shields & barricades");
+    AddMenuItem(menu, "pickups", "Carrying turrets & supplies");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -551,20 +645,42 @@ public int MenuHandler_Engineer(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             char action1[64], action2[64], action3[64], deploy[64];
             GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
-            if (StrEqual(info, "overview"))
+            if (StrEqual(info, "kits"))
             {
-                PrintGuideLine(param1, "Engineers fortify pushes with build kits, deployables and turrets that hold choke points.");
+                PrintGuideLine(param1, "Engineers fortify pushes with upgrade kits and deployables that hold choke points.");
+                PrintGuideLine(param1, "Spawn ready-to-use upgrade packs that enhance team capabilities during holds.");
+                DisplayEngineerMenu(param1);
             }
-            else if (StrEqual(info, "deploy"))
+            else if (StrEqual(info, "grenades"))
             {
-                PrintGuideLine(param1, "Use skill_action_1 (default: middle mouse) to open the turret menu, pick a gun and ammo, left-click to deploy and press USE to pick it up.");
+                char line[256];
+                Format(line, sizeof(line), "Use %s to throw experimental grenades: Black Hole vortex, Tesla lightning, healing clouds, or airstrike markers.", action1);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "20 different grenade types - each with unique tactical applications for area denial and support.");
+                DisplayEngineerMenu(param1);
+            }
+            else if (StrEqual(info, "turrets"))
+            {
+                char line[256];
+                Format(line, sizeof(line), "Use %s to open turret menu, pick a gun and ammo type from 20 shooting modes, then left-click to deploy.", action1);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Press USE on placed turrets to pick them up and relocate. Turrets are non-blocking and notify nearby players.");
                 DisplayEngineerMenu(param1);
             }
             else if (StrEqual(info, "defense"))
             {
-                PrintGuideLine(param1, "Deploy shields, laser grids and barricades. Turrets are non-blocking but can be detonated if infected overrun them.");
+                PrintGuideLine(param1, "Deploy protective shields, laser grids and barricade doors/windows to control infected flow.");
+                PrintGuideLine(param1, "Turrets can be blown up by infected if overrun - maintain defensive lines and reposition as needed.");
+                DisplayEngineerMenu(param1);
             }
-            DisplayEngineerMenu(param1);
+            else if (StrEqual(info, "pickups"))
+            {
+                char line[256];
+                Format(line, sizeof(line), "Press USE on your turrets to pick them up and carry them to new positions. Use %s to drop ammo supplies.", deploy);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "You can relocate turrets as the team moves forward, maintaining defensive coverage throughout the map.");
+                DisplayEngineerMenu(param1);
+            }
         }
         case MenuAction_Cancel:
         {
@@ -810,6 +926,94 @@ public int MenuHandler_Tips(Menu menu, MenuAction action, int param1, int param2
                 PrintGuideLine(param1, "Bind skill_action_1/2/3 plus deployment_action, and add shortcuts for !music, !unvomit, !extendedsight and !ragetutorial for instant access mid-fight.");
             }
             DisplayTipsMenu(param1);
+        }
+        case MenuAction_Cancel:
+        {
+            if (param2 == MenuCancel_ExitBack)
+            {
+                DisplayGuideMainMenu(param1);
+            }
+        }
+        case MenuAction_End:
+        {
+            CloseHandle(menu);
+        }
+    }
+    return 0;
+}
+
+void DisplayPredicamentsMenu(int client)
+{
+    Menu menu = CreateMenu(MenuHandler_Predicaments);
+    SetMenuTitle(menu, "Predicaments: Survival Mechanics");
+    AddMenuItem(menu, "overview", "Predicaments system overview");
+    AddMenuItem(menu, "selfrevive", "Self-revival from incapacitation");
+    AddMenuItem(menu, "ledge", "Ledge rescue mechanics");
+    AddMenuItem(menu, "pinescape", "Pin escape & struggle system");
+    AddMenuItem(menu, "crawl", "Incapped crawling");
+    AddMenuItem(menu, "teammate", "Teammate revival while down");
+    AddMenuItem(menu, "pickup", "Item pickup while incapacitated");
+    SetMenuExitBackButton(menu, true);
+    DisplayMenu(menu, client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_Predicaments(Menu menu, MenuAction action, int param1, int param2)
+{
+    switch (action)
+    {
+        case MenuAction_Select:
+        {
+            char info[32];
+            GetMenuItem(menu, param2, info, sizeof(info));
+            if (StrEqual(info, "overview"))
+            {
+                PrintGuideLine(param1, "Predicaments enhances survivor gameplay with self-help mechanics and struggle systems.");
+                PrintGuideLine(param1, "You can now revive yourself, escape pins, crawl while down, and help teammates in new ways.");
+                PrintGuideLine(param1, "These mechanics give you more control during critical moments and reduce helplessness.");
+                DisplayPredicamentsMenu(param1);
+            }
+            else if (StrEqual(info, "selfrevive"))
+            {
+                PrintGuideLine(param1, "Hold CROUCH while incapacitated and consume pills, adrenaline, or first-aid kits to revive yourself.");
+                PrintGuideLine(param1, "Great for recovering when teammates are busy fighting or you're separated from the group.");
+                PrintGuideLine(param1, "Bots can also self-revive with configurable settings - check server convars.");
+                DisplayPredicamentsMenu(param1);
+            }
+            else if (StrEqual(info, "ledge"))
+            {
+                PrintGuideLine(param1, "Pull yourself up from ledges by consuming available medical items (pills, adrenaline, or medkits).");
+                PrintGuideLine(param1, "No more waiting helplessly on ledges - if you have supplies, you can save yourself!");
+                PrintGuideLine(param1, "Prioritize saving items for ledge situations when pushing aggressive positions.");
+                DisplayPredicamentsMenu(param1);
+            }
+            else if (StrEqual(info, "pinescape"))
+            {
+                PrintGuideLine(param1, "Break free from Special Infected (Smoker, Hunter, Jockey, Charger) by struggling or using items.");
+                PrintGuideLine(param1, "Mash CROUCH to build struggle progress and escape. Infected can counter by pressing SPRINT.");
+                PrintGuideLine(param1, "Alternatively, consume medical items to instantly break free from pins when teammates can't help.");
+                DisplayPredicamentsMenu(param1);
+            }
+            else if (StrEqual(info, "crawl"))
+            {
+                PrintGuideLine(param1, "Move while incapacitated using your movement keys - crawl towards cover or teammates.");
+                PrintGuideLine(param1, "Crawling speed is configurable but slower than normal movement. Use it to reach safer positions.");
+                PrintGuideLine(param1, "You can crawl to supplies, better defensive positions, or closer to teammates for revival.");
+                DisplayPredicamentsMenu(param1);
+            }
+            else if (StrEqual(info, "teammate"))
+            {
+                PrintGuideLine(param1, "Incapacitated survivors can revive other incapacitated teammates by pressing RELOAD.");
+                PrintGuideLine(param1, "When both of you are down, crawl to each other and use this mechanic to get back in the fight.");
+                PrintGuideLine(param1, "This creates clutch comeback moments when the whole team goes down but can still recover.");
+                DisplayPredicamentsMenu(param1);
+            }
+            else if (StrEqual(info, "pickup"))
+            {
+                PrintGuideLine(param1, "Grab nearby medical supplies (pills, adrenaline, medkits) while incapacitated.");
+                PrintGuideLine(param1, "Look for items close to where you fell - you might find what you need to self-revive.");
+                PrintGuideLine(param1, "This adds a survival element: falling near supplies gives you a second chance.");
+                DisplayPredicamentsMenu(param1);
+            }
         }
         case MenuAction_Cancel:
         {
