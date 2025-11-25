@@ -1,8 +1,10 @@
 #pragma semicolon 1
+#pragma newdecls required
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
 #include <rage/skills>
+#include <rage/validation>
 
 #define PLUGIN_VERSION	"0.2"
 #define CVAR_FLAGS		FCVAR_NONE
@@ -24,13 +26,13 @@ public Plugin myinfo =
 #define SPRITE_HALO		"materials/sprites/halo01.vmt"
 #define SPRITE_GLOW		"materials/sprites/glow01.vmt"
 
-new BlueColor[4] = {80, 80, 255, 255};
-new Handle:HealingBallTimer[MAXPLAYERS+1] = { INVALID_HANDLE, ... };
-new g_BeamSprite, g_HaloSprite, g_GlowSprite;
+int BlueColor[4] = {80, 80, 255, 255};
+Handle HealingBallTimer[MAXPLAYERS+1] = { INVALID_HANDLE, ... };
+int g_BeamSprite, g_HaloSprite, g_GlowSprite;
 
-new Float:HealingBallInterval[MAXPLAYERS+1], Float:HealingBallEffect[MAXPLAYERS+1],
-        Float:HealingBallRadius[MAXPLAYERS+1], Float:HealingBallDuration[MAXPLAYERS+1];
-Handle g_hHealingOrbCooldown = INVALID_HANDLE;
+float HealingBallInterval[MAXPLAYERS+1], HealingBallEffect[MAXPLAYERS+1],
+        HealingBallRadius[MAXPLAYERS+1], HealingBallDuration[MAXPLAYERS+1];
+ConVar g_hHealingOrbCooldown = null;
 float g_fHealingOrbCooldown = 30.0;
 float g_fNextHealingOrbUse[MAXPLAYERS+1];
 
@@ -91,7 +93,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-        for(new i = 1; i <= MaxClients; ++i)
+        for(int i = 1; i <= MaxClients; ++i)
         {
                 if(HealingBallTimer[i] != INVALID_HANDLE)
                         KillTimer(HealingBallTimer[i]);
@@ -112,17 +114,17 @@ public void OnClientDisconnect(int client)
         g_fNextHealingOrbUse[client] = 0.0;
 }
 
-public Action:HealingBallFunction(Client)
+public Action HealingBallFunction(int Client)
 {
-	new Float:Radius=HealingBallRadius[Client];
-	new Float:pos[3];
+	float Radius = HealingBallRadius[Client];
+	float pos[3];
 	GetTracePosition(Client, pos);
 	pos[2] += 50.0;
 	EmitAmbientSound(HealingBall_Sound_Lanuch, pos);
-	TE_SetupBeamRingPoint(pos, Radius-0.1, Radius, g_BeamSprite, g_HaloSprite, 0, 10, 1.0, 5.0, 5.0, BlueColor, 5, 0);//Fixed outer ring BlueColor
+	TE_SetupBeamRingPoint(pos, Radius-0.1, Radius, g_BeamSprite, g_HaloSprite, 0, 10, 1.0, 5.0, 5.0, BlueColor, 5, 0);
 	TE_SendToAll();
 	
-	for(new i = 1; i<5; i++)
+	for(int i = 1; i<5; i++)
 	{
 		TE_SetupGlowSprite(pos, g_GlowSprite, 1.0, 2.5, 1000);
 		TE_SendToAll();
@@ -133,7 +135,7 @@ public Action:HealingBallFunction(Client)
 	
 	HealingBallTimer[Client] = INVALID_HANDLE;
 	
-	new Handle:pack;
+	Handle pack;
 	HealingBallTimer[Client] = CreateDataTimer(HealingBallInterval[Client], HealingBallTimerFunction, pack, TIMER_REPEAT);
 	WritePackCell(pack, Client);
 	WritePackFloat(pack, pos[0]);
@@ -144,34 +146,33 @@ public Action:HealingBallFunction(Client)
 	return Plugin_Handled;
 }
 
-public Action:HealingBallTimerFunction(Handle:timer, Handle:pack)
+public Action HealingBallTimerFunction(Handle timer, Handle pack)
 {
-	decl Float:pos[3], Float:entpos[3], Float:distance[3];
+	float pos[3], entpos[3], distance[3];
 	
 	ResetPack(pack);
-	new Client = ReadPackCell(pack);
+	int Client = ReadPackCell(pack);
 	pos[0] = ReadPackFloat(pack);
 	pos[1] = ReadPackFloat(pack);
 	pos[2] = ReadPackFloat(pack);
-	new Float:time=ReadPackFloat(pack);
+	float time = ReadPackFloat(pack);
 	
 	EmitAmbientSound(HealingBall_Sound_Heal, pos);
-	for(new i = 1; i<5; i++)
+	for(int i = 1; i<5; i++)
 	{
 		TE_SetupGlowSprite(pos, g_GlowSprite, 1.0, 2.5, 1000);
 		TE_SendToAll();
 	}
 	
-	//new iMaxEntities = GetMaxEntities();
-	new Float:Radius=HealingBallRadius[Client];
+	float Radius = HealingBallRadius[Client];
 	
-	TE_SetupBeamRingPoint(pos, Radius-0.1, Radius, g_BeamSprite, g_HaloSprite, 0, 10, 1.0, 10.0, 5.0, BlueColor, 5, 0);//Fixed outer ring BlueColor
+	TE_SetupBeamRingPoint(pos, Radius-0.1, Radius, g_BeamSprite, g_HaloSprite, 0, 10, 1.0, 10.0, 5.0, BlueColor, 5, 0);
 	TE_SendToAll();
 
-	new team = GetClientTeam(Client);
+	int team = GetClientTeam(Client);
 	if(GetEngineTime() - time < HealingBallDuration[Client])
 	{
-		for(new i = 1; i <= MaxClients; i++)
+		for(int i = 1; i <= MaxClients; i++)
 		{
 			if(IsClientInGame(i))
 			{
@@ -181,7 +182,7 @@ public Action:HealingBallTimerFunction(Handle:timer, Handle:pack)
 					SubtractVectors(entpos, pos, distance);
 					if(GetVectorLength(distance) <= Radius)
 					{
-						new HP = GetClientHealth(i);
+						int HP = GetClientHealth(i);
 						
 						if(IsPlayerIncapped(i))
 						{
@@ -189,22 +190,12 @@ public Action:HealingBallTimerFunction(Handle:timer, Handle:pack)
 						}
 						else
 						{
-							new MaxHP = GetEntProp(i, Prop_Data, "m_iMaxHealth");
+							int MaxHP = GetEntProp(i, Prop_Data, "m_iMaxHealth");
 							HP += RoundToCeil(HealingBallEffect[Client]);
 							if(HP > MaxHP)
 								HP = MaxHP;
 							
 							SetEntProp(i, Prop_Data, "m_iHealth", HP);
-							/*
-							if(MaxHP > HP+HealingBallEffect[i])
-							{
-								SetEntProp(i, Prop_Data, "m_iHealth", HP+HealingBallEffect[Client]);
-							}
-							else if(MaxHP < HP+HealingBallEffect[Client])
-							{
-								SetEntProp(i, Prop_Data, "m_iHealth", MaxHP);
-							}
-							*/
 						}
 						
 						ShowParticle(entpos, HealingBall_Particle_Effect, 0.5);
@@ -222,37 +213,30 @@ public Action:HealingBallTimerFunction(Handle:timer, Handle:pack)
 	}
 }
 
-stock bool:IsPlayerIncapped(Client)
-{
-	if(GetEntProp(Client, Prop_Send, "m_isIncapacitated")==1)
-		return true;
-	return false;
-}
-
 /* Read crosshair position */
-public GetTracePosition(client, Float:TracePos[3])
+public void GetTracePosition(int client, float TracePos[3])
 {
-	decl Float:clientPos[3], Float:clientAng[3];
+	float clientPos[3], clientAng[3];
 
 	GetClientEyePosition(client, clientPos);
 	GetClientEyeAngles(client, clientAng);
-	new Handle:trace = TR_TraceRayFilterEx(clientPos, clientAng, MASK_PLAYERSOLID, RayType_Infinite, TraceEntityFilterPlayer, client);
+	Handle trace = TR_TraceRayFilterEx(clientPos, clientAng, MASK_PLAYERSOLID, RayType_Infinite, TraceEntityFilterPlayer, client);
 	if(TR_DidHit(trace))
 	{
 		TR_GetEndPosition(TracePos, trace);
 	}
-	CloseHandle(trace);
+	delete trace;
 }
 
-public bool:TraceEntityFilterPlayer(entity, contentsMask)
+public bool TraceEntityFilterPlayer(int entity, int contentsMask)
 {
 	return entity > MaxClients || !entity;
 }
 
-public ShowParticle(Float:pos[3], String:particlename[], Float:time)
+public void ShowParticle(float pos[3], char[] particlename, float time)
 {
 	/* Show particle effect you like */
-	new particle = CreateEntityByName("info_particle_system");
+	int particle = CreateEntityByName("info_particle_system");
 	if(IsValidEdict(particle))
 	{
 		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
@@ -265,13 +249,13 @@ public ShowParticle(Float:pos[3], String:particlename[], Float:time)
 	}
 }
 
-public AttachParticle(ent, String:particleType[], Float:time)
+public void AttachParticle(int ent, char[] particleType, float time)
 {
-	decl String:tName[64];
-	new particle = CreateEntityByName("info_particle_system");
+	char tName[64];
+	int particle = CreateEntityByName("info_particle_system");
 	if(IsValidEdict(particle) && IsValidEdict(ent))
 	{
-		new Float:pos[3];
+		float pos[3];
 		GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
 		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
 		GetEntPropString(ent, Prop_Data, "m_iName", tName, sizeof(tName));
@@ -287,7 +271,7 @@ public AttachParticle(ent, String:particleType[], Float:time)
 	}
 }
 
-public Action:DeleteParticles(Handle:timer, any:particle)
+public Action DeleteParticles(Handle timer, any particle)
 {
 	/* Delete particle */
     if(IsValidEdict(particle) && IsValidEntity(particle))
@@ -303,10 +287,10 @@ public Action:DeleteParticles(Handle:timer, any:particle)
 	}
 }
 
-public PrecacheParticle(String:particlename[])
+public void PrecacheParticle(char[] particlename)
 {
 	/* Precache particle */
-	new particle = CreateEntityByName("info_particle_system");
+	int particle = CreateEntityByName("info_particle_system");
 	if(IsValidEdict(particle))
 	{
 		DispatchKeyValue(particle, "effect_name", particlename);
