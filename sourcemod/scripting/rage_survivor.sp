@@ -903,7 +903,7 @@ switch (view_as<ClassTypes>(class))
                                 text = ", You're immune to Tank knockdowns!";
                         }
 
-                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!"c, text, primaryBind);
+                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
                         MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
                 }
 		
