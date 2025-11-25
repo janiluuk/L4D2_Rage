@@ -273,8 +273,8 @@ public void AttachParticle(int ent, char[] particleType, float time)
 
 public Action DeleteParticles(Handle timer, any particle)
 {
-	/* Delete particle */
-    if(IsValidEntityIndex(particle))
+	/* Delete particle - verify entity actually exists before accessing properties */
+    if(IsValidEntityEx(particle))
 	{
 		char classname[64];
 		GetEdictClassname(particle, classname, sizeof(classname));
