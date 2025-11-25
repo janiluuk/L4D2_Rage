@@ -918,13 +918,6 @@ public void SetupClasses(client, class)
 			MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
 		}
-		
-                case engineer:
-                {
-                        PrintHintText(client,"Press %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, deployBind);
-                        MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
-                        ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
-                }
 
                 case saboteur:
 		{
