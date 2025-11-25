@@ -163,6 +163,7 @@ stock int b_attackerTarget[MAXPLAYERS+1];
 new LastClassConfirmed[MAXPLAYERS+1];
 int g_iQueuedClass[MAXPLAYERS+1];
 new bool:g_bInSaferoom[MAXPLAYERS+1];
+new bool:g_bClassSelectionThirdPerson[MAXPLAYERS+1];
 new Float:g_SpawnPos[MAXPLAYERS+1][3];
 new bool:RoundStarted =false;
 new bool:disableInfected = false;
