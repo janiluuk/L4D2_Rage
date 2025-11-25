@@ -7,7 +7,7 @@
 
 forward bool ApplyClassSelection(int client, int classIndex);
 
-public Action CmdClassInfo(int client, int args)
+stock Action CmdClassInfo(int client, int args)
 {
         for (int classIndex = 1; classIndex < view_as<int>(MAXCLASSES); classIndex++)
         {
@@ -17,7 +17,7 @@ public Action CmdClassInfo(int client, int args)
         return Plugin_Handled;
 }
 
-public Action CmdClassMenu(int client, int args)
+stock Action CmdClassMenu(int client, int args)
 {
         if (GetClientTeam(client) != 2)
         {
@@ -29,7 +29,7 @@ public Action CmdClassMenu(int client, int args)
         return Plugin_Handled;
 }
 
-public Action CmdClassSet(int client, int args)
+stock Action CmdClassSet(int client, int args)
 {
         if (GetClientTeam(client) != 2)
         {
@@ -83,7 +83,7 @@ stock Action CmdClasses(int client, int args)
         return Plugin_Handled;
 }
 
-public Action CmdPlugins(int client, int args)
+stock Action CmdPlugins(int client, int args)
 {
         for (new i = 1; i <= MaxClients; i++)
         {
