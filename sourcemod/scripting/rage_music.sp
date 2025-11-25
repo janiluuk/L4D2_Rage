@@ -321,7 +321,8 @@ public Action Cmd_MusicCurrent(int client, int args)
     if (sPath[0])
     {
         int last = -1;
-        for (int i = 0; i < strlen(sPath); i++)
+        int len = strlen(sPath);
+        for (int i = 0; i < len; i++)
             if (sPath[i] == '/')
                 last = i;
         char sName[PLATFORM_MAX_PATH];
@@ -395,10 +396,17 @@ void ReadCookie(int client)
 public void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    g_rageCookie[client] = 0;
-    g_rageTimerMusic[client] = INVALID_HANDLE;
-    g_rageFirstConnect[client] = true;
-    g_rageMusicPlaying[client] = false;
+    if (client > 0)
+    {
+        if (g_rageTimerMusic[client] != INVALID_HANDLE)
+        {
+            KillTimer(g_rageTimerMusic[client]);
+            g_rageTimerMusic[client] = INVALID_HANDLE;
+        }
+        g_rageCookie[client] = 0;
+        g_rageFirstConnect[client] = true;
+        g_rageMusicPlaying[client] = false;
+    }
 }
 
 public Action Cmd_MusicUpdate(int client, int args)
@@ -522,7 +530,11 @@ void ResetTimer()
 {
     for (int i = 1; i <= MaxClients; i++)
     {
-        g_rageTimerMusic[i] = INVALID_HANDLE;
+        if (g_rageTimerMusic[i] != INVALID_HANDLE)
+        {
+            KillTimer(g_rageTimerMusic[i]);
+            g_rageTimerMusic[i] = INVALID_HANDLE;
+        }
     }
 }
 
