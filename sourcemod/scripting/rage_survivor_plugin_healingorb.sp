@@ -274,7 +274,7 @@ public void AttachParticle(int ent, char[] particleType, float time)
 public Action DeleteParticles(Handle timer, any particle)
 {
 	/* Delete particle */
-    if(IsValidEdict(particle))
+    if(IsValidEntityIndex(particle))
 	{
 		char classname[64];
 		GetEdictClassname(particle, classname, sizeof(classname));
