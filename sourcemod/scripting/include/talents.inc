@@ -1,3 +1,8 @@
+#if defined _TALENTS_INC
+        #endinput
+#endif
+#define _TALENTS_INC
+
 // What formatting string to use when printing to the chatbox
 #define PRINT_PREFIX    "\x04[RAGE]\x01"
 
