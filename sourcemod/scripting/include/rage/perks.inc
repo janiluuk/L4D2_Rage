@@ -1,3 +1,8 @@
+#if defined _rage_perks_included
+ #endinput
+#endif
+#define _rage_perks_included
+
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>

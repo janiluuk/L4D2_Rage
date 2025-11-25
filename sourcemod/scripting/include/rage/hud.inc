@@ -1,3 +1,8 @@
+#if defined _rage_hud_included
+ #endinput
+#endif
+#define _rage_hud_included
+
 stock PrintToHud(char[] text) 
 {
 	static char buffer[64];
