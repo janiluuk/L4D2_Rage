@@ -896,11 +896,13 @@ switch (view_as<ClassTypes>(class))
 		
 		case commando:
 		{
+                        char text[64];
+
 			ClientData[client].SpecialDropInterval = 120;
 			ClientData[client].SpecialLimit = 3;
 
                         if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK)) {
-                                text = ", You're immune to Tank knockdowns!";
+                                text = ", You can knock down tanks!";
                         }
 
                         PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
