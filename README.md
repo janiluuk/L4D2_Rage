@@ -1,154 +1,212 @@
-# L4D2: Rage Edition
+# L4D2: Rage Edition 🔥
 
-A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a playable action movie. Rage Edition keeps the co-op chaos you love and layers on bold classes, dramatic abilities, and a stack of quality-of-life touches that make the whole server feel alive.
+Transform Left 4 Dead 2 into an action-packed co-op experience! Pick your class, unleash devastating abilities, and survive the chaos with friends. Think of it as your favorite zombie shooter... but turned up to 11.
 
-## Core Features
-- Sourcemod 1.12 compatible
-- Plugin-based architecture: drop in new perks or classes via `RageCore` and optional skill plugins
-- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, tertiary, deploy)
-- Class descriptions live in the same config so server owners can tune both abilities and flavor text together
-- Modular perk system with negative effects and combo chaining; class-based skins and custom class definitions
-- New menu system. Hold ALT to show menu, move and select with WASD keys. Release ALT to exit
-- Additional admin menu aligned with the new menu system
-- Toggle between 3rd person view modes. Either always, on melee weapon or off. Setting persists for clients
-- Optional HUD with alerts, class specific info, and stats
-- Expanded help system with class descriptions and tutorials
-- Adjustable adrenaline, pills, revive and heal timings
-- Integrated functionalities: Versus match countdown, multiple equipment, self healing with configurable bot support
-- Portable turrets with 20 different shooting modes
-- Mines with 20 different types
-- Ninja kick to the face, parachute glide and other enhancements for classes. See class description for more info
-- Missile functionality rewritten with more fun in mind. Shooter will be highlighted for other infected to kill. Missiles can be shot down.
-- Debug modes, logging, streamlined release and development flow
+## What Makes It Special? ✨
 
-## Quick setup
+**Choose Your Hero** – Six unique classes (Soldier, Ninja, Trooper, Medic, Engineer, Saboteur) each with their own superpowers and playstyle
 
-1. Copy `sourcemod/` into your server install (or mount it with Docker Compose).
-2. Edit `configs/rage_class_skills.cfg` to assign skills, deployables, and per-class descriptions.
-3. (Optional) Adjust cvars in `cfg/sourcemod/talents.cfg` for cooldowns, health tweaks, and limits per class.
-4. Restart the server or reload the plugins to pick up changes.
+**Epic Abilities** – Deploy turrets, throw experimental grenades, go invisible, heal teammates, call in airstrikes, and way more
 
-## Play your way
+**Survival Tools** – Self-revive when downed, crawl while incapacitated, struggle free from infected pins, and help your teammates even when you're down
 
-- Players have 3 extra skill actions + deploy action. These are configurable.
-- Default inputs for the four actions are below; rebind them to your liking in `configs/rage_class_skills.cfg` or via your own keybinds.
+**Slick Controls** – Hold ALT for a radial menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
 
-| Action               | Default input              | Notes |
-| -------------------- | -------------------------- | ----- |
-| `skill_action_1`     | Middle button              | Primary class action |
-| `skill_action_2`     | Use + Fire                 | Alternate class action |
-| `skill_action_3`     | Crouch + Use + Fire        | Extra class action |
-| `deployment_action`  | Look down and hold **Shift** | Deploy/place items |
+**Custom Everything** – Play your own music, customize every ability, adjust difficulty, and tinker with 100+ settings
 
-- You can trigger actions from the quick menu as well.
-- Update `configs/rage_skill_actions.cfg` if you remap these buttons so the in-game prompts match your binds.
-- Multiple equipment mode
-- You can configure the skills and add new ones
+**Built for Fun** – Less grind, more action. Every round feels like a blockbuster movie scene
 
-### Soldierboy
-- Moves faster, shrugs off more hits, and slashes like a blender.
-- Can order satellite strike on outside areas.
-- Fires a homing missile with `SKILL ACTION 2` and a dummy distraction missile with `SKILL ACTION 3`.
-- Flips night vision on or off whenever the fight slips into darkness.
-- Has increased health
+## Getting Started (Super Easy!)
 
-### Ninja
-- Built for motion: sprint boosts, double jumps, and mid-air karate kicks.
-- Moves fast
-- Sprint + **Jump** together to launch a ninja kick into whatever you collide with.
-- Hold **Use** mid-air to deploy a parachute and float over chaos or escape a wipe.
-- Throws antigravity grenades
+**For Players:**
+1. Join a server running Rage Edition
+2. Press ALT to open the quick menu
+3. Pick your class and learn your abilities from the menu
+4. Type `!guide` in chat to open the full tutorial anytime
 
-### Trooper
-- Increased damage per weapon, reloads fast. Can perform tank knockdowns.
-- Builds rage meter to unleash a Berserk rush that melts specials. Activate rage with `SKILL ACTION 1`
-- Lots of health
+**For Server Owners:**
+1. Drop the `sourcemod/` folder into your L4D2 server directory
+2. Edit `configs/rage_class_skills.cfg` to customize classes and abilities
+3. (Optional) Tweak settings in `cfg/sourcemod/talents.cfg` for cooldowns and limits
+4. Restart your server and you're good to go!
 
-### Medic
-- Can deploy defibs and medpacks
-- Faster healing and revival; movement boost while healing
-- Summon healing orbs with `SKILL ACTION 2` that glow and announce to others; cleanses bile with `SKILL ACTION 3` button
-- Players notified when healed; healed players gain a special glow; look down + **Shift** to drop medkits/supplies
-- Can throw healing grenades by using `SKILL ACTION 1`
+**Pro tip:** Use Docker Compose if you want a one-click setup—just run `docker-compose up` and everything works out of the box.
 
-### Engineer
-- Spawns ready-to-use upgrade packs
-- Deploy action opens a turret menu with two turret types and eight ammo options; look down + **Shift** to drop ammo supplies
-- Deploys protective shields and barricades doors/windows
-- Turrets notify nearby players, can be blown up by infected and are non-blocking
-- Can carry turrets around
-- Has 20 experimental type grenades like Black Hole vortices, Tesla lightning, Medic healing clouds, or an Airstrike marker. Throw with `SKILL ACTION 1`
+## How to Use Your Abilities
 
-### Saboteur
-- Faster crouch movement with invisibility
-- Dead Ringer decoy: Use `SKILL ACTION 1` to vanish and drop a fake corpse.
-- When invisible, reveals special infected for 20 s every 2 min
-- Deploy action covers 20 mine types; look down + **Shift** to plant mines that glow and warn nearby players
-- Reduced survivor damage, increased infected damage
+Every class has special powers! Here's how to trigger them:
 
-## Additional Features & Commands
-- **Class Skill Actions** – Bind `skill_action_1` through `skill_action_3` and `deployment_action` to trigger your class's abilities. Inputs are fully configurable per class in `configs/rage_class_skills.cfg`.
-- Keeps chosen class throughout the campaign unless user changes it.
+| What it does | Default controls | Quick tip |
+| ------------ | ---------------- | --------- |
+| **Main ability** | Middle mouse button | Your class's signature move |
+| **Second ability** | Use + Fire together | Combo power |
+| **Third ability** | Crouch + Use + Fire | Extra trick up your sleeve |
+| **Deploy stuff** | Look down + Hold Shift | Drop turrets, supplies, or mines |
 
-## Predicaments Plugin
-Enhances survivor gameplay with self-help mechanics, struggle system, and crawling:
-- **Self-Revival**: Revive yourself from incapacitation by holding CROUCH and consuming pills, adrenaline, or first-aid kits
-- **Ledge Rescue**: Pull yourself up from ledges using available medical items
-- **Pin Escape**: Break free from Special Infected (Smoker, Hunter, Jockey, Charger) by struggling or using items
-- **Teammate Revival**: Incapacitated survivors can revive other incapacitated teammates by pressing RELOAD
-- **Struggle System**: Mash CROUCH to build up struggle progress and escape from pins. Infected can counter-struggle by pressing SPRINT
-- **Incapped Crawling**: Move while incapacitated using movement keys with configurable speed
-- **Item Pickup While Down**: Grab nearby medical supplies while incapacitated
-- **Bot Support**: Bots can revive themselves with configurable settings
+**Too complicated?** Just press ALT and select abilities from the quick menu instead!
 
-Configure via `cfg/sourcemod/l4d2_predicaments.cfg` (auto-generated on first load). Key convars:
-- `l4d2_predicament_enable` - Master switch (default: 1)
-- `l4d2_predicament_use` - Items allowed: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
-- `self_help_crawl_enable` - Enable incapped crawling (default: 1)
-- `self_help_crawl_speed` - Crawling speed multiplier 0.0-1.0 (default: 0.15)
-- `self_help_struggle_mode` - Struggle system: 0=disabled, 1=automatic, 2=manual (default: 0)
-- `self_help_struggle_gain` - Progress gained per struggle input (default: 10.0)
-- `l4d2_predicament_bot` - Bot revival enabled (default: 1)
+You can also rebind these in `configs/rage_skill_actions.cfg` or use console commands like `skill_action_1`, `skill_action_2`, etc.
 
-For developers: The plugin provides API hooks via `l4d2_predicaments.inc` for controlling healing and struggle mechanics.
+## Meet Your Squad 💪
 
-## Toys, tricks, and server spice
-- **Music player** – Type `!music` to choose the soundtrack, skip songs, or go silent. Preferences stick with you between maps.
-- **Away toggle** – Need a breather? Mark yourself AFK directly from the menu and hop back in when ready.
-- **Multiple equipment mode** – Pick how forgiving pickups are, from classic single-use kits to double-tap weapon swaps.
-- **Voting hub** – Launch game mode and map votes without fumbling chat commands.
-- **Custom gamemodes** - Escort mission, Jockey chase, deathmatch 1v1 modes. By choosing gamemode, available maps are updated.
-- **Command parity** – Every feature also has an `sm_` console command so you can bind keys or build macros exactly how you like.
+### 🎖️ Soldier (Soldierboy)
+The frontline tank who takes hits and keeps moving. Fast on his feet, tough as nails, and lethal with melee weapons.
+- **Satellite Strike** – Call down devastation from orbit on outdoor areas
+- **Homing Missile** – Fire a heat-seeking rocket at your target
+- **Decoy Missile** – Launch a dummy to distract infected
+- **Night Vision** – See in the dark like it's daytime
+- **Bonus:** Extra health and armor to survive the chaos
 
-## Soundtrack corner
-Drop a list of 44.1 kHz audio files (WAV/MP4 are safest) into the supplied music text files, point your fast-download host at them, and the plugin does the rest. First-time players can even hear a special welcome track if you enable the option.
+### �� Ninja (Athlete)
+Speed demon built for parkour and aerial combat. Double jump, wall run, and float over danger.
+- **Ninja Kick** – Sprint + Jump to flying-kick enemies into oblivion
+- **Parachute** – Hold Use mid-air to glide down safely
+- **Anti-gravity Grenades** – Throw grenades that mess with physics
+- **Bonus:** Lightning-fast movement and supreme agility
 
-### Music directory
-Custom tracks belong in the repo-level `music/` folder. Docker Compose mounts that directory into the server at `left4dead2/sound/custom/rage` so the entries in `sourcemod/data/music_mapstart*.txt` resolve correctly (e.g., `custom/rage/my_track.wav`).
+### ⚔️ Trooper (Commando)
+Pure damage output. Reloads faster, hits harder, and can take down a Tank hand-to-hand.
+- **Berserk Mode** – Build rage and unleash a devastating rampage
+- **Satellite Cannon** – Another orbital option for crowd control
+- **Tank Knockdown** – Melee a Tank to stagger it
+- **Bonus:** Massive health pool for sustained combat
 
-Want music out of the box? Run `python music/download_soundtrack.py --out music` to fetch MP4s for the DOOM/DOOM II gamerip directly from downloads.khinsider.com. The pull includes Zorasoft's licenseless **Project Doom** album (https://zorasoft.net/prjdoom.html) so you still get Intro Stomp, Midnight Assault, and Final Push without storing the WAVs in the repository.
+### ⚕️ Medic
+Your team's lifeline. Heals faster, drops supplies, and keeps everyone alive.
+- **Healing Grenades** – Throw a grenade that heals instead of hurts
+- **Healing Orb** – Summon glowing orbs that restore health to nearby players
+- **Cleanse Bile** – Remove boomer bile from teammates
+- **Deploy Supplies** – Drop medkits and defibs for your team
+- **Bonus:** Speed boost while healing, better revival times
 
-## Admin corner
-Need to tidy the battlefield? `!rageadm` opens a dedicated panel with spawn helpers, restart controls, god mode, and slow-motion toggles. Everything is grouped for quick decisions mid-round.
+### 🔧 Engineer
+The builder who fortifies positions and rains experimental hell on zombies.
+- **Deploy Turrets** – Place auto-firing turrets with 20+ ammo types (regular bullets, explosive rounds, lasers, you name it)
+- **Experimental Grenades** – 20 wild options: Black Hole vortexes, Tesla lightning, Airstrike markers, healing clouds, and more
+- **Ammo Supplies** – Drop infinite ammo packs for your squad
+- **Barricades** – Block doors and windows
+- **Bonus:** Turrets can be carried around and redeployed
 
-## Ready to tinker?
-Rage Edition is built from modular SourceMod plugins, so you can add new talents, swap out effects, or write your own class packs without touching the core. Check the `sourcemod/scripting` folder for clean, well-documented examples.
+### 🕵️ Saboteur
+The stealth specialist who sneaks, scouts, and plants deadly traps.
+- **Dead Ringer Cloak** – Go invisible and drop a fake corpse to fool infected
+- **Extended Sight** – Reveal special infected positions for 20 seconds (every 2 minutes)
+- **Deploy Mines** – Plant 20 different mine types with unique effects
+- **Bonus:** Faster crouch movement with invisibility, reduced survivor damage but increased infected damage
 
-Grab the files, drop them on your server, tweak `configs/rage_class_skills.cfg` to taste, and let the rage weekend begin.
+### 🥊 Brawler *(Experimental)*
+Heavy-duty tank class with massive health for soaking damage. Still being tested!
+- **Bonus:** Huge health pool to take punishment for your team
+
+## Survival Mechanics (Predicaments System)
+
+Never feel helpless again! The Predicaments system gives you ways to save yourself and help teammates even when things go wrong:
+
+**🩹 Self-Revival** – Incapacitated? Use pills, adrenaline, or medkits to revive yourself (hold CROUCH)
+
+**🪢 Ledge Rescue** – Hanging off a ledge? Pull yourself up with medical items
+
+**💪 Pin Escape** – Grabbed by a Smoker, Hunter, or Jockey? Struggle free by mashing CROUCH or consuming items
+
+**🤝 Team Revival** – Down but not out? Revive other incapacitated teammates by pressing RELOAD
+
+**🐛 Crawl When Down** – Move while incapacitated to reach cover or supplies
+
+**📦 Grab Items** – Pick up nearby medical supplies even when incapacitated
+
+**🤖 Smart Bots** – Bots can revive themselves too (configurable)
+
+All settings live in `cfg/sourcemod/l4d2_predicaments.cfg`. The key ones:
+- `l4d2_predicament_enable` – Turn it on/off (default: 1)
+- `l4d2_predicament_use` – Which items work: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
+- `self_help_crawl_speed` – How fast you crawl (0.0-1.0, default: 0.15)
+
+## Fun Extras & Quality of Life
+
+**🎵 Music Player** – Type `!music` to pick your soundtrack, skip tracks, or mute it. Your preferences save between maps.
+
+**🎮 Third-Person Camera** – Toggle between always-on, melee-only, or off. Your choice sticks with you.
+
+**🚶 AFK Mode** – Need a break? Mark yourself away from the menu and your team knows you'll be back.
+
+**🎯 Extended HUD** – Optional overlay with class info, cooldown timers, and stats.
+
+**🗳️ Game Mode Voting** – Vote for custom game modes (Escort missions, Jockey chase, 1v1 deathmatch) and maps without typing commands.
+
+**⚙️ Multiple Equipment Mode** – Configure how forgiving item pickups are, from classic single-use to double-tap weapon swaps.
+
+**💬 Tutorial System** – Type `!guide` or `!ragetutorial` for an in-game tutorial covering classes, controls, skills, and tips. Never get lost again!
+
+**�� Console Commands** – Every feature has an `sm_` command so you can create custom binds or macros.
+
+## Built-in Tutorials
+
+The in-game guide (`!guide` or `!ragetutorial`) covers everything you need:
+
+1. **Quick Start** – How to open the guide and get playing fast
+2. **Survivor Classes** – Deep dives on all six classes (Soldier, Athlete/Ninja, Commando/Trooper, Medic, Engineer, Saboteur)
+3. **Controls & Features** – Quick menu, skill buttons, third-person camera, HUD toggles, AFK mode, equipment settings
+4. **Skills & Deployables** – How to use class abilities and deploy items
+5. **Predicaments** – Survival mechanics explained
+6. **Game Modes** – Overview of custom modes
+7. **Gameplay Tips** – Pro strategies and tricks
+
+Access any topic from the menu—it's like having a handbook built into the game!
+
+## Music Setup 🎵
+
+Want a custom soundtrack? Easy!
+
+1. Put 44.1 kHz audio files (WAV or MP4) in the `music/` folder
+2. List them in `sourcemod/data/music_mapstart*.txt` (use paths like `custom/rage/my_track.wav`)
+3. Point your fast-download host at the files
+4. Restart the server and players can choose tracks with `!music`
+
+**Instant Soundtrack:** Run `python music/download_soundtrack.py --out music` to grab the DOOM/DOOM II gamerip and Zorasoft's royalty-free Project Doom album. No manual downloads needed!
+
+The Docker Compose setup automatically mounts `music/` to `left4dead2/sound/custom/rage` so everything just works.
+
+## Admin Tools 🛠️
+
+Type `!rageadm` to open the admin panel with quick access to:
+- Spawn helpers (items, infected, events)
+- Restart controls
+- God mode toggles
+- Slow-motion effects
+- HUD and music controls
+
+Everything grouped for fast decisions mid-round.
+
+## For Developers & Modders
+
+Rage Edition is fully modular! Each class ability lives in its own plugin file, so you can:
+- Add new talents without touching the core
+- Swap out effects or create custom class packs
+- Use the Rage API to hook into class systems
+
+Check `sourcemod/scripting/` for clean, documented examples. The architecture:
+- **RageCore** – Class and perk system
+- **Skill plugins** – Individual abilities (airstrike, berserk, grenades, turrets, etc.)
+- **rage_class_skills.cfg** – Define which skills each class gets
+- **Include files** – Shared utilities and APIs in `sourcemod/scripting/include/rage/`
+
+Want to build something? The code is ready for you.
 
 ## Credits
 
-Rage Edition grew out of DLR keeps a mix of community talent and community open-source modules alive.
+Rage Edition is powered by community talent and open-source awesomeness:
 
-- Core talents and class system by DLR team, Ken, Neil, Spirit, panxiaohai, and Yani.
-- Scripted HUD work by Mart and Yani.
-- Extra menu system, airstrike, grenades, and Left 4 DHooks utilities by SilverShot (Silvers).
-- Satellite cannon plugin by ztar.
-- Music player by Dragokas.
-- Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.
-- In-progress jump and utility plugins from zonde306 and Yani, alongside shanapu’s shared parachute logic.
-- Enhanced graphics and custom Adawong model by LuxLuma
-- Ripping custom soundtrack by Zorasoft
-- Additional sound effects and event themes by Yaniho
-- Predicaments plugin based on Pan Xiaohai's original work, enhanced by cravenge and Yani
-- Alliedmodders community
+- **Core talents and class system** by DLR team, Ken, Neil, Spirit, panxiaohai, and Yani
+- **Scripted HUD** by Mart and Yani
+- **Menu system, airstrike, grenades, and Left 4 DHooks utilities** by SilverShot (Silvers)
+- **Satellite cannon** by ztar
+- **Music player** by Dragokas
+- **Tutorial guide and Dead Ringer cloak** by Yani and Shadowysn
+- **Jump and utility plugins** from zonde306 and Yani, plus shanapu's parachute logic
+- **Enhanced graphics and custom Adawong model** by LuxLuma
+- **Custom soundtrack ripping** by Zorasoft
+- **Sound effects and event themes** by Yaniho
+- **Predicaments plugin** based on Pan Xiaohai's work, enhanced by cravenge and Yani
+- **Alliedmodders community** for tools and support
+
+Thank you to everyone who made this possible! 🙌
