@@ -246,8 +246,3 @@ void DeleteAdminMenu()
         g_iAdminMenuID = 0;
     }
 }
-
-bool IsValidClient(int client)
-{
-    return (client > 0 && client <= MaxClients && IsClientInGame(client));
-}
