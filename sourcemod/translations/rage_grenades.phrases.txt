@@ -3,7 +3,7 @@
 	// Valid colors: {orange} {green} {cyan} {white}
 	"GrenadeMenu_Title"
 	{
-		"en"			"Prototype Grenades"
+		"en"			"Grenades"
 	}
 	"GrenadeMenu_Invalid"
 	{

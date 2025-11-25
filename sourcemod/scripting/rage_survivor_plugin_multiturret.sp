@@ -6,6 +6,7 @@
 #include <sdktools_functions>
 #include <sdkhooks>
 #include <rage/skills>
+#include <rage/skill_actions>
 #define PLUGIN_NAME "[Rage Plugin] Portable turret & gatling guns."
 #define PLUGIN_VERSION "4.5"
 
@@ -357,7 +358,9 @@ public void OnSkillSelected(int iClient, int iClass)
     GetPlayerSkillName(iClient, szSkillName, sizeof(szSkillName));
     if (StrEqual(szSkillName, PLUGIN_SKILL_NAME))
     {
-        CustomPrintToChat(iClient, "%s %t", sPluginTag, "Skill Hint");
+        char primaryBind[64];
+        GetSkillActionBindingLabel(SkillAction_Primary, primaryBind, sizeof(primaryBind));
+        CustomPrintToChat(iClient, "%s %t", sPluginTag, "Skill Hint", primaryBind);
     }
 }
 
@@ -462,6 +465,8 @@ public void OnPluginStart()
 		SetFailState("Could not prep the 'CTerrorPlayer::OnStaggered' function.");
 	
 	LoadPluginTranslations();
+	
+	LoadSkillActionBindings();
 	
 	hCvar_MPGameMode 				= FindConVar("mp_gamemode");
 	hCvar_Machine_Enabled 			= CreateConVar("l4d_machine_enable", 				"1", 		"Enables/Disables the plugin. 0 = Plugin OFF, 1 = Plugin ON.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -4225,7 +4230,8 @@ stock bool GetRandomBool()
 
 stock int CreateExplosion(const float vPos[3], const float vAng[3], int iDamage = 0, int iRadius = 500, int iFlags = 0)
 {
-	int iExplosion = CreateEntityByName("env_explosion");
+#pragma unused vAng
+int iExplosion = CreateEntityByName("env_explosion");
 	int iPhysExplosion = CreateEntityByName("env_physexplosion");
 	int iExplosion_Effect = CreateEntityByName("info_particle_system");
 
@@ -4737,4 +4743,9 @@ stock void RemoveColorCodes(char[] sText, int iMaxLength)
 	ReplaceString(sText, iMaxLength, "'Blue'", "");
 	ReplaceString(sText, iMaxLength, "'Red'", "");
 	ReplaceString(sText, iMaxLength, "'White'", "");
+}
+
+public void OnConfigsExecuted()
+{
+	LoadSkillActionBindings();
 }

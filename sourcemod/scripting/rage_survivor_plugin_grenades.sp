@@ -1,5 +1,5 @@
 /*
-*	Prototype Grenades
+*	Grenades
 *	Copyright (C) 2022 Silvers
 *
 *	This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 /*======================================================================================
 	Plugin Info:
 
-*	Name	:	[L4D & L4D2] Prototype Grenades Plugin version
+*	Name	:	[L4D & L4D2] Grenades Plugin version
 *	Author	:	SilverShot
 *	Descrp	:	Creates a selection of different grenade types.
 
@@ -66,7 +66,7 @@
 	- Requested by "Darkwob"
 
 1.37 (04-Jun-2021)
-	- Now tests if clients have access to the "sm_grenade" command to restrict Prototype Grenades to specific users. Requested by "Darkwob".
+	- Now tests if clients have access to the "sm_grenade" command to restrict Grenades to specific users. Requested by "Darkwob".
 	- Use the "sourcemod/configs/admin_overrides.cfg" to modify the command flags required.
 	- Data config change: "Tesla" and "Black Hole" types no longer create a shake on explosion.
 
@@ -230,7 +230,7 @@
 	- Some optimizations.
 
 1.1 (08-Oct-2019)
-	- Added "bots" in the config to control if bots can use Prototype Grenades. Requires external plugin.
+	- Added "bots" in the config to control if bots can use Grenades. Requires external plugin.
 	- Added "damage_special", "damage_survivors", "damage_tank", "damage_witch" and "damage_physics" in the config to scale damage.
 	- Added "preferences" in the config to save a players selected mode, or give a random grenade type. Persistent with dropping.
 	- Added "targets" in the config to control who can be affected by the grenade effects.
@@ -535,7 +535,7 @@ float	g_fConfigAcidSurv;											// Chemical Mode - Acid damage - Survivors
 float	g_fConfigGlowBonus;											// Glow mode - damage bonus
 float	g_fConfigFreezeTime;										// Freeze mode - freeze time
 int		g_iConfigDmgType;											// Damage type. Only used for Flak type.
-int		g_iConfigBots;												// Can bots use Prototype Grenades
+int		g_iConfigBots;												// Can bots use Grenades
 int		g_iConfigStock;												// Which grenades have their default feature.
 int		g_iConfigTypes;												// Which grenade modes are allowed.
 int		g_iConfigBinds;												// Menu or Pressing keys to change mode.
@@ -638,7 +638,7 @@ enum
 // ====================================================================================================
 public Plugin myinfo =
 {
-	name = "[Rage] Prototype Grenades plugin",
+	name = "[Rage] Grenades plugin",
 	author = "SilverShot",
 	description = "Creates a selection of different grenade types.",
 	version = PLUGIN_VERSION,
@@ -807,7 +807,7 @@ public void OnPluginStart()
 	g_hCvarModes = CreateConVar(	"l4d_grenades_modes",			"",						"Turn on the plugin in these game modes, separate by commas (no spaces). (Empty = all).", CVAR_FLAGS );
 	g_hCvarModesOff = CreateConVar(	"l4d_grenades_modes_off",		"",						"Turn off the plugin in these game modes, separate by commas (no spaces). (Empty = none).", CVAR_FLAGS );
 	g_hCvarModesTog = CreateConVar(	"l4d_grenades_modes_tog",		"1",					"Turn on the plugin in these game modes. 0=All, 1=Coop, 2=Survival, 4=Versus, 8=Scavenge. Add numbers together.", CVAR_FLAGS );
-	CreateConVar(					"l4d_grenades_version",			PLUGIN_VERSION,			"Prototype Grenades plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	CreateConVar(					"l4d_grenades_version",			PLUGIN_VERSION,			"Grenades plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	AutoExecConfig(true,			"l4d_grenades");
 
 	g_hDecayDecay = FindConVar("pain_pills_decay_rate");
@@ -868,7 +868,7 @@ public void OnPluginStart()
 	LoadTranslations("rage_grenades.phrases");
 
 	// Saved client options
-	g_hCookie = RegClientCookie("l4d_grenades_modes", "Prototype Grenades - Modes", CookieAccess_Protected);
+	g_hCookie = RegClientCookie("l4d_grenades_modes", "Grenades - Modes", CookieAccess_Protected);
 
 	// Max char health
 	m_maxHealth = FindSendPropInfo("CTerrorPlayerResource", "m_maxHealth");
@@ -1040,34 +1040,34 @@ Action Cmd_SpawnThrow(int client, int args)
 }
 Action Cmd_DoFX(int client, int args)
 {
-	// Validate
-	if( !client )
-	{
-		ReplyToCommand(client, "Command can only be used %s", IsDedicatedServer() ? "in game on a dedicated server." : "in chat on a Listen server.");
-		return;
-	}
+// Validate
+if( !client )
+{
+ReplyToCommand(client, "Command can only be used %s", IsDedicatedServer() ? "in game on a dedicated server." : "in chat on a Listen server.");
+return Plugin_Handled;
+}
 
-	if( args != 2 )
-	{
-		ReplyToCommand(client, "Usage: sm_grenade_env <entityid> <type>  <1=Bomb, 2=Cluster, 3=Firework, 4=Smoke, 5=Black Hole, 6=Flashbang, 7=Shield, 8=Tesla, 9=Chemical, 10=Freeze, 11=Medic, 12=Vaporizer, 13=Extinguisher, 14=Glow, 15=Anti-Gravity, 16=Fire Cluster, 17=Bullets, 18=Flak, 19=Airstrike, 20=Weapon>");
-		return;
-	}
+if( args != 2 )
+{
+ReplyToCommand(client, "Usage: sm_grenade_env <entityid> <type>  <1=Bomb, 2=Cluster, 3=Firework, 4=Smoke, 5=Black Hole, 6=Flashbang, 7=Shield, 8=Tesla, 9=Chemical, 10=Freeze, 11=Medic, 12=Vaporizer, 13=Extinguisher, 14=Glow, 15=Anti-Gravity, 16=Fire Cluster, 17=Bullets, 18=Flak, 19=Airstrike, 20=Weapon>");
+return Plugin_Handled;
+}
 
 	// Index
 	char sTemp[4];
 	GetCmdArg(1, sTemp, sizeof(sTemp));
 	int ent = StringToInt(sTemp);
-	// Index
-	if (!IsValidEntity(ent)) {
-		ReplyToCommand(client, "invalid entity %i", ent);
-		return ;
-	}
+// Index
+if (!IsValidEntity(ent)) {
+ReplyToCommand(client, "invalid entity %i", ent);
+return Plugin_Handled;
+}
 	GetCmdArg(2, sTemp, sizeof(sTemp));
 	int index = StringToInt(sTemp);
 	
-	DoPrjEffects(ent, index);
+DoPrjEffects(ent, index);
 
-	return ;
+return Plugin_Handled;
 }
 Action Cmd_SpawnSpawn(int client, int args)
 {
@@ -1263,9 +1263,8 @@ Action Cmd_Grenade(int client, int args)
 
 void ShowGrenadeMenu(int client)
 {
-	return;
-	// Validate weapon
-	int iWeapon = GetPlayerWeaponSlot(client, 2);
+// Validate weapon
+int iWeapon = GetPlayerWeaponSlot(client, 2);
 	if( iWeapon > MaxClients && IsValidEntity(iWeapon) )
 	{
 		int type = IsGrenade(iWeapon);
@@ -2129,7 +2128,7 @@ Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH
 		}
 	}
 
-	// Replace Prototype Grenades bounce sound.
+	// Replace Grenades bounce sound.
 	// weapons/hegrenade/he_bounce-1.wav
 	if( sample[0] == 'w' && sample[8] == 'h' && sample[18] == 'h' )
 	{
@@ -2145,7 +2144,7 @@ Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH
 	}
 
 	// L4D2 survivors only.
-	// Change players saying "throwing molotov" or "throwing pipebomb" to "throwing grenade" when a Prototype Grenade mode is selected.
+        // Change players saying "throwing molotov" or "throwing pipebomb" to "throwing grenade" when a Grenade mode is selected.
 
 	// Info for anyone who reads:
 	// Players can vocalize from other objects, eg an "info_target" entity (see Mic plugin) and not a client index.
@@ -5763,7 +5762,7 @@ bool _TraceFilter(int entity, int contentsMask)
 	return true;
 }
 
-bool SetTeleportEndPoint(int client, float vPos[3])
+stock bool SetTeleportEndPoint(int client, float vPos[3])
 {
 	GetClientEyePosition(client, vPos);
 	static float vAng[3];
@@ -5792,7 +5791,7 @@ bool SetTeleportEndPoint(int client, float vPos[3])
 	return true;
 }
 
-bool ExcludeSelf_Filter(int entity, int contentsMask, any client)
+stock bool ExcludeSelf_Filter(int entity, int contentsMask, any client)
 {
 	if( entity == client )
 		return false;

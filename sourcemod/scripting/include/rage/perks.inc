@@ -63,7 +63,7 @@ PerkPerm GetPerkAccess(int client, int slot, const char[] perk, PerkPerm perm = 
 	return perm;
 }
 
-bool GetSlotName(int client, int slot, char[] result, int maxlen)
+stock bool GetSlotName(int client, int slot, char[] result, int maxlen)
 {
 	Action state = Plugin_Changed;
 	
@@ -141,26 +141,28 @@ public any Native_RegPerk(Handle plugin, int argc)
 	return true;
 }
 
-char SlotIdToSlotClassname(int slotId, char[] result, int maxlen)
+stock bool SlotIdToSlotClassname(int slotId, char[] result, int maxlen)
 {
-	char buffer[64] = "";
-	if(slotId < 0 || slotId >= g_SlotIndexes.Length) {
-		GetNativeString(2, buffer, sizeof(buffer));
+        char buffer[64] = "";
+        if(slotId < 0 || slotId >= g_SlotIndexes.Length) {
+                GetNativeString(2, buffer, sizeof(buffer));
 
-		return;
-	}
-	
-	StringMap slot = g_SlotIndexes.Get(slotId);
-	if(!slot.GetString("#slotName", buffer, sizeof(buffer))) {
-		return;
-	}
+                return false;
+        }
 
-	GetNativeString(2, buffer, sizeof(buffer));
+        StringMap slot = g_SlotIndexes.Get(slotId);
+        if(!slot.GetString("#slotName", buffer, sizeof(buffer))) {
+                return false;
+        }
 
-	strcopy(result, maxlen, buffer);
+        GetNativeString(2, buffer, sizeof(buffer));
+
+        strcopy(result, maxlen, buffer);
+
+        return true;
 }
 
-int SlotClassnameToSlotId(const char[] classname)
+stock int SlotClassnameToSlotId(const char[] classname)
 {
 	StringMap slot = null;
 	if(!g_SlotPerks.GetValue(classname, slot))
@@ -178,7 +180,7 @@ bool FindPerk(const char[] perk, PerkData data)
 	return g_AllPerks.GetArray(perk, data, sizeof(data));
 }
 
-void NotifyPerkPost(int client, int level, const char[] perk)
+stock void NotifyPerkPost(int client, int level, const char[] perk)
 {
 	Call_StartForward(g_fwPerkPost);
 	Call_PushCell(client);
@@ -187,7 +189,7 @@ void NotifyPerkPost(int client, int level, const char[] perk)
 	Call_Finish();
 }
 
-bool NotifyPerkPre(int client, int& level, char[] perk, int maxlen)
+stock bool NotifyPerkPre(int client, int& level, char[] perk, int maxlen)
 {
 	int cloneLevel = level;
 	char clonePerk[64];
@@ -217,7 +219,7 @@ bool NotifyPerkPre(int client, int& level, char[] perk, int maxlen)
 	return true;
 }
 
-bool GivePerk(int client, const char[] perk, int level)
+stock bool GivePerk(int client, const char[] perk, int level)
 {
 	char buffer[64];
 	strcopy(buffer, sizeof(buffer), perk);

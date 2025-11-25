@@ -320,8 +320,9 @@ stock int GiveClientWeapon(int client, const char[] wpnName) {
 }
 stock int GetNearestEntity(int client, char[] classname)
 {
-	int nearestEntity = -1;
-	float clientVecOrigin[3], entityVecOrigin[3];
+int nearestEntity = -1;
+float clientVecOrigin[3], entityVecOrigin[3];
+GetClientAbsOrigin(client, clientVecOrigin);
 	
 	//Get the distance between the first entity and client
 	float distance, nearestDistance = -1.0;
