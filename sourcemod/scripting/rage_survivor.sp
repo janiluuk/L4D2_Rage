@@ -1427,9 +1427,6 @@ public Action CmdUseSkill(int client, int args)
         return Plugin_Handled;
 }
 
-// Global state for tracking third-person during class selection
-bool g_bClassSelectionThirdPerson[MAXPLAYERS + 1];
-
 public Action CmdClassSet(int client, int args)
 {
         if (client <= 0 || !IsClientInGame(client))
