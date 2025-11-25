@@ -1,6 +1,6 @@
 # L4D2: Rage Edition 🔥
 
-Transform Left 4 Dead 2 into an action-packed co-op experience! Pick your class, unleash devastating abilities, and survive the chaos with friends. Think of it as your favorite zombie shooter... but turned up to 11.
+Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick your class, unleash devastating abilities, and survive the chaos with friends. Think of it as your favorite zombie shooter... but turned up to 11.
 
 ## What Makes It Special? ✨
 
