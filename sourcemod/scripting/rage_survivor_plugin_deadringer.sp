@@ -713,6 +713,7 @@ void ApplyEffectsToEntity(int entity, bool boolean = true)
 
 stock Action Timer_Vocals(Handle timer, int client)
 {
+	#pragma unused timer
 	if (!IsValidClient(client)) return Plugin_Stop;
 	if (!IsSurvivor(client)) return Plugin_Stop;
 	
