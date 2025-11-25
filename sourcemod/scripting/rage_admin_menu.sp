@@ -158,7 +158,7 @@ void HandleReloadOption(int client, int value)
 
 void HandleDebugMode(int client, int value)
 {
-    // Let compiler determine array size based on elements
+    // Array size determined by compiler - 4 modes available
     char modes[][] = {"Off", "Log to file", "Log to chat", "Tracelog"};
     if(value >= 0 && value < sizeof(modes))
     {
