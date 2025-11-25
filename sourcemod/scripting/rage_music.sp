@@ -487,12 +487,14 @@ bool UpdateListNewly(int client = 0)
 
 public void OnClientPutInServer(int client)
 {
-    if (client && !IsFakeClient(client))
+    if (client > 0 && client <= MaxClients && !IsFakeClient(client))
     {
-        if (g_rageTimerMusic[client] == INVALID_HANDLE)
+        // Kill existing timer before creating new one
+        if (g_rageTimerMusic[client] != INVALID_HANDLE)
         {
-            g_rageTimerMusic[client] = CreateTimer(g_rageCvarDelay.FloatValue, Timer_PlayMusic, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+            KillTimer(g_rageTimerMusic[client]);
         }
+        g_rageTimerMusic[client] = CreateTimer(g_rageCvarDelay.FloatValue, Timer_PlayMusic, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
     }
 }
 

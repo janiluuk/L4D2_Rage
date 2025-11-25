@@ -1,21 +1,14 @@
 /**
 * =============================================================================
-* Talents Plugin by Rage / Neil / Spirit / panxiaohai / Yani
+* Talents Plugin by Rage / Neil / Spirit / panxiaohai / Yaniho
 * Incorporates Survivor classes.
 *
-* (C)2023 DeadLandRape / Neil / Yani.  All rights reserved.
+* (C)2025 Neil / Yani.  All rights reserved.
 * =============================================================================
 *
-*	Developed for DeadLandRape Gaming. This plugin is Rage proprietary software.
-*	Rage claims complete rights to this plugin, including, but not limited to:
-*
-*		- The right to use this plugin in their servers
-*		- The right to modify this plugin
-*		- The right to claim ownership of this plugin
-*		- The right to re-distribute this plugin as they see fit
 */
 
-#define PLUGIN_NAME "Talents Plugin 2023 anniversary edition"
+#define PLUGIN_NAME "Talents Plugin 2025D anniversary edition"
 #define PLUGIN_VERSION "1.82b"
 #define PLUGIN_IDENTIFIER "rage_survivor"
 #pragma semicolon 1
@@ -782,7 +775,6 @@ public OnPluginStart( )
 
 public ResetClientVariables(client)
 {
-
 	ClientData[client].SpecialsUsed = 0;	
 	ClientData[client].HideStartTime= GetGameTime();
 	ClientData[client].HealStartTime= GetGameTime();
@@ -794,17 +786,18 @@ public ResetClientVariables(client)
 	g_bInSaferoom[client] = false;
 	g_bHide[client] = false;
 	
+	// Properly clean up timer
 	if (g_ReadyTimer[client] != null) 
 	{ 
-		delete g_ReadyTimer[client];
+		KillTimer(g_ReadyTimer[client]);
+		g_ReadyTimer[client] = null;
 	}
-	
 }
 
 public ClearCache()
 {
 	g_iSoldierCount = 0;
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_iSoldierIndex[i]= -1;
 		g_iEntityIndex[i] = -1;
@@ -817,11 +810,14 @@ public RebuildCache()
 	ClearCache();
 
 	if (!IsServerProcessing())
-	return;
+		return;
 	
-	for (new i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidEntity(i) && IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && ClientData[i].ChosenClass == soldier)
+		if (!IsValidEntity(i) || !IsClientInGame(i) || !IsPlayerAlive(i))
+			continue;
+		
+		if (GetClientTeam(i) == 2 && ClientData[i].ChosenClass == soldier)
 		{
 			g_iSoldierCount++;
 			g_iSoldierIndex[g_iSoldierCount] = i;
@@ -885,31 +881,28 @@ switch (view_as<ClassTypes>(class))
                         MaxPossibleHP = GetConVarInt(MEDIC_HEALTH);
                 }
 		
-                case athlete:
-                {
-                        decl String:mobilityHint[128];
-                        if (GetConVarBool(ATHLETE_PARACHUTE_ENABLED))
-                        {
-                                Format(mobilityHint, sizeof(mobilityHint), "Hold USE mid-air for a parachute glide. Sprint + JUMP to throw a ninja kick.");
-                        }
-                        else
-                        {
-                                Format(mobilityHint, sizeof(mobilityHint), "Sprint + JUMP to throw a ninja kick.");
-                        }
-
-                        PrintHintText(client, "You move faster, Hold JUMP to bunny hop! %s", mobilityHint);
-                        MaxPossibleHP = GetConVarInt(ATHLETE_HEALTH);
-                }
+		case athlete:
+		{
+			if (GetConVarBool(ATHLETE_PARACHUTE_ENABLED))
+			{
+				PrintHintText(client, "You move faster, Hold JUMP to bunny hop! Hold USE mid-air for a parachute glide. Sprint + JUMP to throw a ninja kick.");
+			}
+			else
+			{
+				PrintHintText(client, "You move faster, Hold JUMP to bunny hop! Sprint + JUMP to throw a ninja kick.");
+			}
+			MaxPossibleHP = GetConVarInt(ATHLETE_HEALTH);
+		}
 		
 		case commando:
 		{
-			decl String:text[64];
-			text = "";
+                        char text[64];
+
 			ClientData[client].SpecialDropInterval = 120;
 			ClientData[client].SpecialLimit = 3;
 
                         if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK)) {
-                                text = ", You're immune to Tank knockdowns!";
+                                text = ", You can knock down tanks!";
                         }
 
                         PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
@@ -928,7 +921,6 @@ switch (view_as<ClassTypes>(class))
                         PrintHintText(client,"Use %s to drop mines! Hold CROUCH 3 sec to go invisible.\nPress %s to summon a Decoy. Toggle extended sight from your menu for wallhack support", deployBind, primaryBind);
 			MaxPossibleHP = GetConVarInt(SABOTEUR_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(SABOTEUR_MAX_BOMBS);
-//			ToggleNightVision(client);
 		}
 		
 		case brawler:
