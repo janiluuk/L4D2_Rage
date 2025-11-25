@@ -597,7 +597,7 @@ public OnPluginStart( )
         // Concommands
         RegConsoleCmd("sm_class", CmdClassMenu, "Shows the class selection menu");
         RegConsoleCmd("sm_class_set", CmdClassSet, "Select a class directly");
-        RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows clClearMessagesass descriptions");
+        RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows class descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
         RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
         RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
@@ -683,6 +683,8 @@ public OnPluginStart( )
 		SetConVarString(hVersion, PLUGIN_VERSION);
 	// Convars
 	g_hPluginEnabled = CreateConVar("talents_enabled","1","Enables/Disables Plugin 0 = OFF, 1 = ON.", FCVAR_NOTIFY);
+
+	CLASS_PREVIEW_DURATION = CreateConVar("talents_class_preview_time", "8.0", "How long (in seconds) to show third-person view when selecting a class", FCVAR_NOTIFY, true, 1.0, true, 30.0);
 
 	MAX_SOLDIER = CreateConVar("talents_soldier_max", "1", "Max number of soldiers");
 	MAX_ATHLETE = CreateConVar("talents_athelete_max", "1", "Max number of athletes");
@@ -785,6 +787,7 @@ public ResetClientVariables(client)
 	ClientData[client].LastDropTime = 0.0;
 	g_bInSaferoom[client] = false;
 	g_bHide[client] = false;
+	g_bClassSelectionThirdPerson[client] = false;
 	
 	// Properly clean up timer
 	if (g_ReadyTimer[client] != null) 
@@ -855,6 +858,9 @@ ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_DROP_INTERVAL);
 ClientData[client].SpecialLimit = GetConVarInt(SPECIAL_SKILL_LIMIT);
 new MaxPossibleHP = GetConVarInt(NONE_HEALTH);
 DisableAllUpgrades(client);
+
+// Apply class-specific model
+ApplyClassModel(client, view_as<ClassTypes>(class));
 
 switch (view_as<ClassTypes>(class))
 {
@@ -1193,6 +1199,10 @@ public OnMapStart()
 	PrecacheModel(AMMO_PILE);
 	PrecacheModel(FAN_BLADE);
 	PrecacheModel(PARACHUTE);
+
+	// Precache all class models to avoid runtime frame drops
+	PrecacheClassModels();
+
 	// Particles
 	PrecacheParticle(EXPLOSION_PARTICLE);
 	PrecacheParticle(EXPLOSION_PARTICLE2);
@@ -1415,6 +1425,152 @@ public Action CmdUseSkill(int client, int args)
 {
         useSpecialSkill(client, 0);
         return Plugin_Handled;
+}
+
+// Global state for tracking third-person during class selection
+bool g_bClassSelectionThirdPerson[MAXPLAYERS + 1];
+
+public Action CmdClassSet(int client, int args)
+{
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+
+        if (args < 1)
+        {
+                PrintToChat(client, "[Rage] Usage: sm_class_set <class_index>");
+                PrintToChat(client, "[Rage] 1=Soldier, 2=Athlete, 3=Medic, 4=Saboteur, 5=Commando, 6=Engineer, 7=Brawler");
+                return Plugin_Handled;
+        }
+
+        char arg[8];
+        GetCmdArg(1, arg, sizeof(arg));
+        int classIndex = StringToInt(arg);
+
+        if (classIndex < 1 || classIndex >= view_as<int>(MAXCLASSES))
+        {
+                PrintToChat(client, "[Rage] Invalid class index. Use 1-7.");
+                return Plugin_Handled;
+        }
+
+        // Get configured preview duration
+        float previewDuration = GetConVarFloat(CLASS_PREVIEW_DURATION);
+
+        // Enable third person view for class preview
+        ForceThirdPersonView(client, previewDuration);
+        g_bClassSelectionThirdPerson[client] = true;
+
+        // Change to the selected class
+        SetupClasses(client, classIndex);
+        SaveClassCookie(client, view_as<ClassTypes>(classIndex));
+
+        // Schedule return to normal view
+        CreateTimer(previewDuration, Timer_ReturnFromThirdPerson, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+
+        return Plugin_Handled;
+}
+
+public Action CmdClassMenu(int client, int args)
+{
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+
+        PrintToChat(client, "[Rage] Use the main Rage menu (sm_rage or hold ALT) to select your class.");
+        return Plugin_Handled;
+}
+
+public Action CmdClassInfo(int client, int args)
+{
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+
+        PrintToChat(client, "[Rage] === Class Descriptions ===");
+        for (int i = 1; i < view_as<int>(MAXCLASSES); i++)
+        {
+                PrintToChat(client, "[Rage] %s: %s", MENU_OPTIONS[i], g_ClassDescriptions[i]);
+        }
+        return Plugin_Handled;
+}
+
+public Action CmdClasses(int client, int args)
+{
+        return CmdClassInfo(client, args);
+}
+
+// Timer to return player from third person after class selection
+public Action Timer_ReturnFromThirdPerson(Handle timer, int userid)
+{
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client))
+        {
+                return Plugin_Stop;
+        }
+
+        if (g_bClassSelectionThirdPerson[client])
+        {
+                // Reset third person view by setting the time to 0
+                SetEntPropFloat(client, Prop_Send, "m_TimeForceExternalView", 0.0);
+                g_bClassSelectionThirdPerson[client] = false;
+        }
+
+        return Plugin_Stop;
+}
+
+// Force third person view for specified duration
+void ForceThirdPersonView(int client, float duration)
+{
+        if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+                return;
+        }
+
+        float gameTime = GetGameTime();
+        SetEntPropFloat(client, Prop_Send, "m_TimeForceExternalView", gameTime + duration);
+}
+
+// Precache all class models during map start to avoid runtime frame drops
+void PrecacheClassModels()
+{
+        for (int i = 0; i < sizeof(ClassCustomModels); i++)
+        {
+                char model[PLATFORM_MAX_PATH];
+                strcopy(model, sizeof(model), ClassCustomModels[i]);
+                
+                if (!IsModelPrecached(model))
+                {
+                        PrecacheModel(model, true);
+                        PrintDebugAll("Precached class model: %s", model);
+                }
+        }
+}
+
+// Apply class-specific character model
+void ApplyClassModel(int client, ClassTypes classType)
+{
+        if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+                return;
+        }
+
+        // Get model from ClassCustomModels array
+        int classIndex = view_as<int>(classType);
+        if (classIndex < 0 || classIndex >= sizeof(ClassCustomModels))
+        {
+                PrintDebugAll("Invalid class index %d for model assignment", classIndex);
+                return;
+        }
+
+        char model[PLATFORM_MAX_PATH];
+        strcopy(model, sizeof(model), ClassCustomModels[classIndex]);
+        
+        // Models should already be precached in OnMapStart
+        SetEntityModel(client, model);
+        PrintDebugAll("Applied model %s to client %d (class: %d)", model, client, classType);
 }
 
 bool TryExecuteSkillInput(int client, ClassSkillInput input)

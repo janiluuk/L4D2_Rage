@@ -161,15 +161,15 @@ stock const String:MENU_OPTIONS[][] =
 };
 stock const String:ClassCustomModels[][64] = 
 {
-	"models/infected/common_male_suit.mdl",
-	"models/infected/common_male_fallen_survivor.mdl", 
-	"models/infected/common_female_tshirt_skirt_swamp.mdl",
-	"models/infected/common_male_roadcrew_rain.mdl", 
-	"models/infected/common_male_suit.mdl",
-	"models/infected/common_male_riot.mdl",
-	"models/npcs/rescue_pilot_01.mdl",
-	"models/infected/common_military_male01.mdl" 
-}
+	"models/survivors/survivor_gambler.mdl",        // None - Nick
+	"models/survivors/survivor_namvet.mdl",         // Soldier - Bill (military veteran)
+	"models/survivors/survivor_mechanic.mdl",       // Athlete - Ellis (athletic mechanic)
+	"models/survivors/survivor_producer.mdl",       // Medic - Rochelle (supportive producer)
+	"models/survivors/survivor_teenangst.mdl",      // Saboteur - Zoey (stealthy teen)
+	"models/survivors/survivor_biker.mdl",          // Commando - Francis (tough biker)
+	"models/survivors/survivor_coach.mdl",          // Engineer - Coach (builder/support)
+	"models/survivors/survivor_manager.mdl"         // Brawler - Louis (resilient manager)
+};
 
 stock String:ClassTips[][] =
 {
