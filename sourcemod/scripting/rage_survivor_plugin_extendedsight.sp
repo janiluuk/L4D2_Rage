@@ -1,8 +1,9 @@
-#define PLUGIN_VERSION "1.2.3"
+#define PLUGIN_VERSION "1.2.4"
 #define PLUGIN_NAME "Extended sight"
 #define PLUGIN_SKILL_NAME "extended_sight"
 
 #include <sourcemod>
+#include <rage/validation>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -16,11 +17,13 @@ Handle g_rageCvarNotify;
 Handle g_rageTimer[MAXPLAYERS+1] = { INVALID_HANDLE, ...};
 Handle g_rageRemoveTimer[MAXPLAYERS+1] = {INVALID_HANDLE, ...};
 
-int g_rageGlowColor, g_rageGlowColorFade1, g_rageGlowColorFade2, g_rageGlowColorFade3, g_rageGlowColorFade4, g_rageGlowColorFade5, g_ragePropGhost;
+int g_rageGlowColor, g_ragePropGhost;
+int g_rageGlowFadeSteps = 6; // Number of fade steps
 bool g_rageActive[MAXPLAYERS+1] = {false, ...};
 bool g_rageExtended[MAXPLAYERS+1] = {false, ...};
 bool g_rageForever[MAXPLAYERS+1] = {false, ...};
 float g_rageNextUse[MAXPLAYERS+1] = {0.0, ...};
+int g_rageFadeStep[MAXPLAYERS+1] = {0, ...}; // Current fade step for each client
 char g_rageGameName[64] = "";
 int g_rageHasAbility[MAXPLAYERS+1] = {-1, ...};
 const int CLASS_SABOTEUR = 4;
@@ -165,17 +168,17 @@ public Action TimerChangeGlow(Handle timer, Handle hPack)
 {
 	ResetPack(hPack);
 	int userId = ReadPackCell(hPack);
-	int color = ReadPackCell(hPack);
+	int fadeStep = ReadPackCell(hPack);
 	int client = GetClientOfUserId(userId);
-	if (!client
-	|| !IsValidEntity(client)
-	|| !IsClientInGame(client)
-	|| !IsPlayerAlive(client)
-	)
-	return Plugin_Stop;
+	
+	if (!IsValidClient(client) || !IsPlayerAlive(client))
+		return Plugin_Stop;
 
 	if(g_rageActive[client])
+	{
+		int color = CalculateFadeColor(fadeStep);
 		SetGlow(color, client);
+	}
 	else if (g_rageTimer[client] != INVALID_HANDLE)
 	{
 		KillTimer(g_rageTimer[client]);
@@ -183,51 +186,59 @@ public Action TimerChangeGlow(Handle timer, Handle hPack)
 	}
 
 	CloseHandle(hPack);
-
 	return Plugin_Stop;
+}
+
+/**
+ * Calculate faded glow color based on step
+ * @param step    Fade step (0 = full color, g_rageGlowFadeSteps = invisible)
+ * @return        Calculated color value
+ */
+int CalculateFadeColor(int step)
+{
+	if (step >= g_rageGlowFadeSteps)
+		return 0;
+	
+	if (step == 0)
+		return g_rageGlowColor;
+	
+	// Extract RGB components
+	int r = g_rageGlowColor & 0xFF;
+	int g = (g_rageGlowColor >> 8) & 0xFF;
+	int b = (g_rageGlowColor >> 16) & 0xFF;
+	
+	// Calculate fade multiplier (linear fade)
+	float multiplier = 1.0 - (float(step) / float(g_rageGlowFadeSteps));
+	
+	// Apply fade to each component
+	r = RoundFloat(r * multiplier);
+	g = RoundFloat(g * multiplier);
+	b = RoundFloat(b * multiplier);
+	
+	// Recombine into color value
+	return r + (g << 8) + (b << 16);
 }
 
 public Action TimerGlowFading(Handle timer, int userId)
 {	
 	int client = GetClientOfUserId(userId);
-	if (!client
-		|| !IsValidEntity(client)
-		|| !IsClientInGame(client)
-		|| !IsPlayerAlive(client)
-		)
-	return Plugin_Stop;
+	if (!IsValidClient(client) || !IsPlayerAlive(client))
+		return Plugin_Stop;
 
 	if(g_rageActive[client])
 	{
-		Handle hPack = CreateDataPack();
-		WritePackCell(hPack, userId);
-		WritePackCell(hPack, g_rageGlowColor);
+		// Increment fade step
+		g_rageFadeStep[client]++;
 		
-		CreateTimer(0.1, TimerChangeGlow, hPack, TIMER_FLAG_NO_MAPCHANGE);
-		Handle hPack1 = CreateDataPack();
-		WritePackCell(hPack1, userId);
-		WritePackCell(hPack1, g_rageGlowColorFade1);
-		CreateTimer(0.5, TimerChangeGlow, hPack1, TIMER_FLAG_NO_MAPCHANGE);
-		Handle hPack2 = CreateDataPack();
-		WritePackCell(hPack2, userId);
-		WritePackCell(hPack2, g_rageGlowColorFade2);
-		CreateTimer(0.7, TimerChangeGlow, hPack2, TIMER_FLAG_NO_MAPCHANGE);
-		Handle hPack3 = CreateDataPack();
-		WritePackCell(hPack3, userId);
-		WritePackCell(hPack3, g_rageGlowColorFade3);		
-		CreateTimer(0.9, TimerChangeGlow, hPack3, TIMER_FLAG_NO_MAPCHANGE);
-		Handle hPack4 = CreateDataPack();		
-		WritePackCell(hPack4, userId);
-		WritePackCell(hPack4, g_rageGlowColorFade4);
-		CreateTimer(1.1, TimerChangeGlow, hPack4, TIMER_FLAG_NO_MAPCHANGE);
-		Handle hPack5 = CreateDataPack();
-		WritePackCell(hPack5, userId);
-		WritePackCell(hPack5, g_rageGlowColorFade5);
-		CreateTimer(1.3, TimerChangeGlow, hPack5, TIMER_FLAG_NO_MAPCHANGE);
-		Handle hPack6 = CreateDataPack();
-		WritePackCell(hPack6, userId);
-		WritePackCell(hPack6, 0);
-		CreateTimer(1.4, TimerChangeGlow, hPack6, TIMER_FLAG_NO_MAPCHANGE);
+		// If we've completed all fade steps, reset and restart cycle
+		if (g_rageFadeStep[client] > g_rageGlowFadeSteps)
+		{
+			g_rageFadeStep[client] = 0;
+		}
+		
+		// Apply the current fade step
+		int color = CalculateFadeColor(g_rageFadeStep[client]);
+		SetGlow(color, client);
 	}
 	else if (g_rageTimer[client] != INVALID_HANDLE)
 	{
@@ -242,11 +253,8 @@ public Action TimerGlowFading(Handle timer, int userId)
 
 void AddExtendedSight(float time, int client)
 {
-	if (!client
-		|| !IsValidEntity(client)
-		|| !IsClientInGame(client)
-		|| !IsPlayerAlive(client)
-	) {
+	if (!IsValidClient(client) || !IsPlayerAlive(client)) 
+	{
 		return;
 	}
 
@@ -261,18 +269,17 @@ void AddExtendedSight(float time, int client)
 	}
 	
 	g_rageActive[client] = true;
+	g_rageFadeStep[client] = 0;
 	
 	if(time == 0.0)
 		g_rageForever[client] = true;
 	
 	if(GetConVarInt(g_rageCvarGlowMode) == 1 && !g_rageExtended[client])
 		g_rageTimer[client] = CreateTimer(GetConVarFloat(g_rageCvarGlowFade), TimerGlowFading, GetClientUserId(client), TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-	else if(!g_rageExtended[client]) {
-		int userId = GetClientUserId(client);
-		Handle hPack = CreateDataPack();
-		WritePackCell(hPack, userId);
-		WritePackCell(hPack, g_rageGlowColor);
-		g_rageTimer[client] = CreateTimer(0.1, TimerChangeGlow, hPack, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	else if(!g_rageExtended[client]) 
+	{
+		// Persistent glow mode - just set it once
+		SetGlow(g_rageGlowColor, client);
 	}
 	
 	if(time > 0.0 && GetConVarInt(g_rageCvarGlowMode) == 1)
@@ -377,12 +384,7 @@ void SetGlowColor()
 	rgb[1] = StringToInt(split[1]);
 	rgb[2] = StringToInt(split[2]);
 	
-	g_rageGlowColor = rgb[0]+256*rgb[1]+256*256*rgb[2];
-	
-	g_rageGlowColorFade1 = (RoundFloat(rgb[0]/1.5))+256*(RoundFloat(rgb[1]/1.5))+256*256*(RoundFloat(rgb[2]/1.5));
-	g_rageGlowColorFade2 = (RoundFloat(rgb[0]/2.0))+256*(RoundFloat(rgb[1]/2.0))+256*256*(RoundFloat(rgb[2]/2.0));
-	g_rageGlowColorFade3 = (RoundFloat(rgb[0]/2.5))+256*(RoundFloat(rgb[1]/2.5))+256*256*(RoundFloat(rgb[2]/2.5));
-	g_rageGlowColorFade4 = (RoundFloat(rgb[0]/3.0))+256*(RoundFloat(rgb[1]/3.0))+256*256*(RoundFloat(rgb[2]/3.0));
-	g_rageGlowColorFade5 = (RoundFloat(rgb[0]/3.5))+256*(RoundFloat(rgb[1]/3.5))+256*256*(RoundFloat(rgb[2]/3.5));
+	// Store color as single integer: R + (G << 8) + (B << 16)
+	g_rageGlowColor = rgb[0] + (rgb[1] << 8) + (rgb[2] << 16);
 }
 
