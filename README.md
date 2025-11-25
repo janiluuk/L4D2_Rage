@@ -3,142 +3,65 @@
 A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a playable action movie. Rage Edition keeps the co-op chaos you love and layers on bold classes, dramatic abilities, and a stack of quality-of-life touches that make the whole server feel alive.
 
 ## Core Features
-- Sourcemod 1.12 compatible
-- Plugin-based architecture: drop in new perks or classes via `RageCore` and optional skill plugins
-- Configurable skill bindings per class via `configs/rage_class_skills.cfg` (special, secondary, tertiary, deploy)
-- Class descriptions live in the same config so server owners can tune both abilities and flavor text together
-- Modular perk system with negative effects and combo chaining; class-based skins and custom class definitions
-- New menu system. Hold ALT to show menu, move and select with WASD keys. Release ALT to exit
-- Additional admin menu aligned with the new menu system
-- Toggle between 3rd person view modes. Either always, on melee weapon or off. Setting persists for clients
-- Optional HUD with alerts, class specific info, and stats
-- Expanded help system with class descriptions and tutorials
-- Adjustable adrenaline, pills, revive and heal timings
-- Integrated functionalities: Versus match countdown, multiple equipment, self healing with configurable bot support
-- Portable turrets with 20 different shooting modes
-- Mines with 20 different types
-- Ninja kick to the face, parachute glide and other enhancements for classes. See class description for more info
-- Missile functionality rewritten with more fun in mind. Shooter will be highlighted for other infected to kill. Missiles can be shot down.
-- Debug modes, logging, streamlined release and development flow
+- **Plugin-based architecture** - Sourcemod 1.12 compatible with modular class system
+- **Configurable classes** - Six unique classes with customizable skills via `configs/rage_class_skills.cfg`
+- **New menu system** - Hold ALT to show menu, navigate with WASD
+- **Advanced abilities** - Portable turrets, mines, missiles, satellite strikes, healing orbs, and more
+- **Quality of life** - Third-person view toggle, scripted HUD, self-help mechanics, music player
 
-## Quick setup
+## Quick Setup
 
 1. Copy `sourcemod/` into your server install (or mount it with Docker Compose).
 2. Edit `configs/rage_class_skills.cfg` to assign skills, deployables, and per-class descriptions.
 3. (Optional) Adjust cvars in `cfg/sourcemod/talents.cfg` for cooldowns, health tweaks, and limits per class.
 4. Restart the server or reload the plugins to pick up changes.
 
-## Play your way
+## Classes & Skills
 
-- Players have 3 extra skill actions + deploy action. These are configurable.
-- Default inputs for the four actions are below; rebind them to your liking in `configs/rage_class_skills.cfg` or via your own keybinds.
+Each class has 3 skill actions + 1 deployment action. Default keybinds:
+- **Skill 1**: Middle button
+- **Skill 2**: Use + Fire
+- **Skill 3**: Crouch + Use + Fire  
+- **Deploy**: Look down + Shift
 
-| Action               | Default input              | Notes |
-| -------------------- | -------------------------- | ----- |
-| `skill_action_1`     | Middle button              | Primary class action |
-| `skill_action_2`     | Use + Fire                 | Alternate class action |
-| `skill_action_3`     | Crouch + Use + Fire        | Extra class action |
-| `deployment_action`  | Look down and hold **Shift** | Deploy/place items |
-
-- You can trigger actions from the quick menu as well.
-- Update `configs/rage_skill_actions.cfg` if you remap these buttons so the in-game prompts match your binds.
-- Multiple equipment mode
-- You can configure the skills and add new ones
+Configure in `configs/rage_class_skills.cfg` and `configs/rage_skill_actions.cfg`.
 
 ### Soldierboy
-- Moves faster, shrugs off more hits, and slashes like a blender.
-- Can order satellite strike on outside areas.
-- Fires a homing missile with `SKILL ACTION 2` and a dummy distraction missile with `SKILL ACTION 3`.
-- Flips night vision on or off whenever the fight slips into darkness.
-- Has increased health
+High mobility and firepower with satellite strikes, homing missiles, and night vision.
 
 ### Ninja
-- Built for motion: sprint boosts, double jumps, and mid-air karate kicks.
-- Moves fast
-- Sprint + **Jump** together to launch a ninja kick into whatever you collide with.
-- Hold **Use** mid-air to deploy a parachute and float over chaos or escape a wipe.
-- Throws antigravity grenades
+Speed-focused with double jumps, ninja kicks, parachute gliding, and antigravity grenades.
 
 ### Trooper
-- Increased damage per weapon, reloads fast. Can perform tank knockdowns.
-- Builds rage meter to unleash a Berserk rush that melts specials. Activate rage with `SKILL ACTION 1`
-- Lots of health
+Tank killer with high damage, fast reload, rage meter, and berserk mode.
 
 ### Medic
-- Can deploy defibs and medpacks
-- Faster healing and revival; movement boost while healing
-- Summon healing orbs with `SKILL ACTION 2` that glow and announce to others; cleanses bile with `SKILL ACTION 3` button
-- Players notified when healed; healed players gain a special glow; look down + **Shift** to drop medkits/supplies
-- Can throw healing grenades by using `SKILL ACTION 1`
+Support class with faster healing/revival, healing orbs, bile cleanse, and healing grenades.
 
 ### Engineer
-- Spawns ready-to-use upgrade packs
-- Deploy action opens a turret menu with two turret types and eight ammo options; look down + **Shift** to drop ammo supplies
-- Deploys protective shields and barricades doors/windows
-- Turrets notify nearby players, can be blown up by infected and are non-blocking
-- Can carry turrets around
-- Has 20 experimental type grenades like Black Hole vortices, Tesla lightning, Medic healing clouds, or an Airstrike marker. Throw with `SKILL ACTION 1`
+Builder class with turrets (20 ammo types), shields, barricades, and experimental grenades.
 
 ### Saboteur
-- Faster crouch movement with invisibility
-- Dead Ringer decoy: Use `SKILL ACTION 1` to vanish and drop a fake corpse.
-- When invisible, reveals special infected for 20 s every 2 min
-- Deploy action covers 20 mine types; look down + **Shift** to plant mines that glow and warn nearby players
-- Reduced survivor damage, increased infected damage
+Stealth specialist with invisibility, Dead Ringer decoy, mines (20 types), and increased infected damage.
 
-## Additional Features & Commands
-- **Class Skill Actions** – Bind `skill_action_1` through `skill_action_3` and `deployment_action` to trigger your class's abilities. Inputs are fully configurable per class in `configs/rage_class_skills.cfg`.
-- Keeps chosen class throughout the campaign unless user changes it.
+## Self-Help Mechanics (Predicaments Plugin)
+Core survival features include self-revival, ledge rescue, pin escape, teammate revival, struggle system, and incapped crawling. Configure via `cfg/sourcemod/l4d2_predicaments.cfg`.
 
-## Predicaments Plugin
-Enhances survivor gameplay with self-help mechanics, struggle system, and crawling:
-- **Self-Revival**: Revive yourself from incapacitation by holding CROUCH and consuming pills, adrenaline, or first-aid kits
-- **Ledge Rescue**: Pull yourself up from ledges using available medical items
-- **Pin Escape**: Break free from Special Infected (Smoker, Hunter, Jockey, Charger) by struggling or using items
-- **Teammate Revival**: Incapacitated survivors can revive other incapacitated teammates by pressing RELOAD
-- **Struggle System**: Mash CROUCH to build up struggle progress and escape from pins. Infected can counter-struggle by pressing SPRINT
-- **Incapped Crawling**: Move while incapacitated using movement keys with configurable speed
-- **Item Pickup While Down**: Grab nearby medical supplies while incapacitated
-- **Bot Support**: Bots can revive themselves with configurable settings
+## Additional Features
+- **Music Player** - `!music` command for soundtrack selection
+- **Admin Menu** - `!rageadm` for spawn helpers, god mode, slow-motion
+- **Custom Gamemodes** - Escort mission, Jockey chase, deathmatch
+- **Voting System** - Launch game mode and map votes
 
-Configure via `cfg/sourcemod/l4d2_predicaments.cfg` (auto-generated on first load). Key convars:
-- `l4d2_predicament_enable` - Master switch (default: 1)
-- `l4d2_predicament_use` - Items allowed: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
-- `self_help_crawl_enable` - Enable incapped crawling (default: 1)
-- `self_help_crawl_speed` - Crawling speed multiplier 0.0-1.0 (default: 0.15)
-- `self_help_struggle_mode` - Struggle system: 0=disabled, 1=automatic, 2=manual (default: 0)
-- `self_help_struggle_gain` - Progress gained per struggle input (default: 10.0)
-- `l4d2_predicament_bot` - Bot revival enabled (default: 1)
+## Music Setup
+Drop 44.1 kHz audio files (WAV/MP4) into `music/` folder. Docker Compose mounts this at `left4dead2/sound/custom/rage`. Run `python music/download_soundtrack.py --out music` to fetch DOOM/DOOM II tracks from downloads.khinsider.com.
 
-For developers: The plugin provides API hooks via `l4d2_predicaments.inc` for controlling healing and struggle mechanics.
-
-## Toys, tricks, and server spice
-- **Music player** – Type `!music` to choose the soundtrack, skip songs, or go silent. Preferences stick with you between maps.
-- **Away toggle** – Need a breather? Mark yourself AFK directly from the menu and hop back in when ready.
-- **Multiple equipment mode** – Pick how forgiving pickups are, from classic single-use kits to double-tap weapon swaps.
-- **Voting hub** – Launch game mode and map votes without fumbling chat commands.
-- **Custom gamemodes** - Escort mission, Jockey chase, deathmatch 1v1 modes. By choosing gamemode, available maps are updated.
-- **Command parity** – Every feature also has an `sm_` console command so you can bind keys or build macros exactly how you like.
-
-## Soundtrack corner
-Drop a list of 44.1 kHz audio files (WAV/MP4 are safest) into the supplied music text files, point your fast-download host at them, and the plugin does the rest. First-time players can even hear a special welcome track if you enable the option.
-
-### Music directory
-Custom tracks belong in the repo-level `music/` folder. Docker Compose mounts that directory into the server at `left4dead2/sound/custom/rage` so the entries in `sourcemod/data/music_mapstart*.txt` resolve correctly (e.g., `custom/rage/my_track.wav`).
-
-Want music out of the box? Run `python music/download_soundtrack.py --out music` to fetch MP4s for the DOOM/DOOM II gamerip directly from downloads.khinsider.com. The pull includes Zorasoft's licenseless **Project Doom** album (https://zorasoft.net/prjdoom.html) so you still get Intro Stomp, Midnight Assault, and Final Push without storing the WAVs in the repository.
-
-## Admin corner
-Need to tidy the battlefield? `!rageadm` opens a dedicated panel with spawn helpers, restart controls, god mode, and slow-motion toggles. Everything is grouped for quick decisions mid-round.
-
-## Ready to tinker?
-Rage Edition is built from modular SourceMod plugins, so you can add new talents, swap out effects, or write your own class packs without touching the core. Check the `sourcemod/scripting` folder for clean, well-documented examples.
-
-Grab the files, drop them on your server, tweak `configs/rage_class_skills.cfg` to taste, and let the rage weekend begin.
+## Development
+Rage Edition is built from modular SourceMod plugins. Check `sourcemod/scripting` for clean, well-documented examples. The plugin-based architecture makes it easy to add new talents, swap effects, or write custom class packs without touching the core.
 
 ## Credits
 
-Rage Edition grew out of DLR keeps a mix of community talent and community open-source modules alive.
+Rage Edition grew out of DLR and keeps a mix of community talent and open-source modules alive.
 
 - Core talents and class system by DLR team, Ken, Neil, Spirit, panxiaohai, and Yani.
 - Scripted HUD work by Mart and Yani.
@@ -146,7 +69,7 @@ Rage Edition grew out of DLR keeps a mix of community talent and community open-
 - Satellite cannon plugin by ztar.
 - Music player by Dragokas.
 - Tutorial guide and Dead Ringer cloak by Yani and Shadowysn.
-- In-progress jump and utility plugins from zonde306 and Yani, alongside shanapu’s shared parachute logic.
+- In-progress jump and utility plugins from zonde306 and Yani, alongside shanapu's shared parachute logic.
 - Enhanced graphics and custom Adawong model by LuxLuma
 - Ripping custom soundtrack by Zorasoft
 - Additional sound effects and event themes by Yaniho

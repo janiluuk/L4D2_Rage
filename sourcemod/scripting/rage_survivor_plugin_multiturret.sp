@@ -7,20 +7,9 @@
 #include <sdkhooks>
 #include <rage/skills>
 #include <rage/skill_actions>
+#include <rage/common>
 #define PLUGIN_NAME "[Rage Plugin] Portable turret & gatling guns."
 #define PLUGIN_VERSION "4.5"
-
-#define TEAM_SPECTATOR               1 		
-#define TEAM_SURVIVOR                2 		
-#define TEAM_INFECTED                3 		
-
-#define SMOKER 	1
-#define BOOMER 	2
-#define HUNTER 	3
-#define SPITTER 4
-#define JOCKEY 	5
-#define CHARGER 6
-#define TANK 	7
 
 #define MAX_MESSAGE_LENGTH           250 	
 
