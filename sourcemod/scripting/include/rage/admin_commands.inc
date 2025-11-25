@@ -16,7 +16,6 @@ forward Action Cmd_SetupHud(int client, int args);
 forward Action Cmd_SetVictim(int client, int args);
 forward Action Command_Debug(int client, int args);
 forward Action CmdModel(int client, int args);
-forward Action CmdPlugins(int client, int args);
 forward Action GrenadeCommand(int client, int args);
 forward Action HideCommand(int client, int args);
 

@@ -1,10 +1,11 @@
 /**
 * =============================================================================
-* Talents Plugin by Rage / Neil / Spirit / panxiaohai / Yani
+* Talents Plugin by Rage / Neil / Spirit / panxiaohai / Yaniho
 * Incorporates Survivor classes.
 *
 * (C)2025 Neil / Yani.  All rights reserved.
 * =============================================================================
+*
 */
 
 #define PLUGIN_NAME "Talents Plugin 2025D anniversary edition"
@@ -902,13 +903,13 @@ switch (view_as<ClassTypes>(class))
                                 text = ", You're immune to Tank knockdowns!";
                         }
 
-                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
+                        PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!"c, text, primaryBind);
                         MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
                 }
 		
                 case engineer:
                 {
-                        PrintHintText(client,"Press %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, deployBind);
+                        PrintHintText(client,"Press %s to deploy "turrets. Use %s to drop ammo supplies!", primaryBind, deployBind);
                         MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
                         ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
                 }
