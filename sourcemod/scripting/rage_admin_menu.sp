@@ -158,8 +158,8 @@ void HandleReloadOption(int client, int value)
 
 void HandleDebugMode(int client, int value)
 {
-    // Array size determined by compiler - 4 modes available
-    char modes[][] = {"Off", "Log to file", "Log to chat", "Tracelog"};
+    // Explicitly sized array for clarity - 4 debug modes
+    char modes[4][] = {"Off", "Log to file", "Log to chat", "Tracelog"};
     if(value >= 0 && value < sizeof(modes))
     {
         PrintToChat(client, "\x04[Admin]\x01 Debug mode: %s", modes[value]);
