@@ -384,6 +384,13 @@ void SetGlowColor()
 	rgb[1] = StringToInt(split[1]);
 	rgb[2] = StringToInt(split[2]);
 	
+	// Validate RGB values are in valid range (0-255)
+	for (int i = 0; i < 3; i++)
+	{
+		if (rgb[i] < 0) rgb[i] = 0;
+		if (rgb[i] > 255) rgb[i] = 255;
+	}
+	
 	// Store color as single integer: R + (G << 8) + (B << 16)
 	g_rageGlowColor = rgb[0] + (rgb[1] << 8) + (rgb[2] << 16);
 }

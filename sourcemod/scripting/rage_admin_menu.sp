@@ -138,12 +138,13 @@ void HandleReloadOption(int client, int value)
         case 0:
         {
             PrintToChat(client, "\x04[Admin]\x01 Reloading map...");
-            ServerCommand("sm_map %s", mapname);
+            ForceChangeLevel(mapname, "Map reloaded by admin");
         }
         case 1:
         {
             PrintToChat(client, "\x04[Admin]\x01 Reloading Rage plugins...");
-            ServerCommand("sm plugins reload rage_");
+            // Reload all plugins - SourceMod doesn't support wildcard reloading
+            ServerCommand("sm plugins reload");
         }
         case 2:
         {
@@ -160,7 +161,7 @@ void HandleReloadOption(int client, int value)
 
 void HandleDebugMode(int client, int value)
 {
-    char[] modes = {"Off", "Log to file", "Log to chat", "Tracelog"};
+    char modes[][] = {"Off", "Log to file", "Log to chat", "Tracelog"};
     if(value >= 0 && value < sizeof(modes))
     {
         PrintToChat(client, "\x04[Admin]\x01 Debug mode: %s", modes[value]);
