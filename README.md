@@ -90,6 +90,24 @@ A celebratory remix of Left 4 Dead 2 DLR Mode that turns every round into a play
 - **Class Skill Actions** – Bind `skill_action_1` through `skill_action_3` and `deployment_action` to trigger your class's abilities. Inputs are fully configurable per class in `configs/rage_class_skills.cfg`.
 - Keeps chosen class throughout the campaign unless user changes it.
 
+## Predicaments Plugin
+Enhances survivor gameplay with self-help mechanics and struggle system:
+- **Self-Revival**: Revive yourself from incapacitation by holding CROUCH and consuming pills, adrenaline, or first-aid kits
+- **Ledge Rescue**: Pull yourself up from ledges using available medical items
+- **Pin Escape**: Break free from Special Infected (Smoker, Hunter, Jockey, Charger) by struggling or using items
+- **Teammate Revival**: Incapacitated survivors can revive other incapacitated teammates by pressing RELOAD
+- **Struggle System**: Mash CROUCH to build up struggle progress and escape from pins
+- **Item Pickup While Down**: Grab nearby medical supplies while incapacitated
+- **Bot Support**: Bots can revive themselves with configurable settings
+
+Configure via `cfg/sourcemod/l4d2_predicaments.cfg` (auto-generated on first load). Key convars:
+- `l4d2_predicament_enable` - Master switch (default: 1)
+- `l4d2_predicament_use` - Items allowed: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
+- `l4d2_predicament_struggle_mode` - Struggle system: 0=disabled, 1=hold crouch, 2=mash crouch (default: 2)
+- `l4d2_predicament_bot` - Bot revival enabled (default: 1)
+
+For developers: The plugin provides API hooks via `l4d2_predicaments.inc` for controlling healing and struggle mechanics.
+
 ## Toys, tricks, and server spice
 - **Music player** – Type `!music` to choose the soundtrack, skip songs, or go silent. Preferences stick with you between maps.
 - **Away toggle** – Need a breather? Mark yourself AFK directly from the menu and hop back in when ready.
@@ -128,4 +146,5 @@ Rage Edition grew out of DLR keeps a mix of community talent and community open-
 - Enhanced graphics and custom Adawong model by LuxLuma
 - Ripping custom soundtrack by Zorasoft
 - Additional sound effects and event themes by Yaniho
+- Predicaments plugin based on Pan Xiaohai's original work, enhanced by cravenge and Yani
 - Alliedmodders community
