@@ -130,12 +130,15 @@ void HandleSpawnItems(int client, int value)
 
 void HandleReloadOption(int client, int value)
 {
+    char mapname[64];
+    GetCurrentMap(mapname, sizeof(mapname));
+    
     switch(value)
     {
         case 0:
         {
             PrintToChat(client, "\x04[Admin]\x01 Reloading map...");
-            ServerCommand("sm_map %s", GetCurrentMap());
+            ServerCommand("sm_map %s", mapname);
         }
         case 1:
         {
@@ -198,13 +201,6 @@ void HandleGameSpeed(int client, int value)
     float speed = 0.1 + (value * 0.1); // 0.1 to 1.0 based on slider position
     PrintToChat(client, "\x04[Admin]\x01 Game speed set to %.1f", speed);
     ServerCommand("host_timescale %.2f", speed);
-}
-
-char[] GetCurrentMap()
-{
-    char mapname[64];
-    GetCurrentMap(mapname, sizeof(mapname));
-    return mapname;
 }
 
 void BuildAdminMenu()

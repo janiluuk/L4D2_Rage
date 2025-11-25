@@ -120,12 +120,13 @@ stock bool IsClientValidAdmin(int client, AdminFlag flag = ADMFLAG_ROOT)
 }
 
 /**
- * Checks if an entity is valid and exists.
+ * Checks if an entity index is valid. Note that this only verifies the
+ * entity slot is valid, not that the entity actually exists in the world.
  * 
  * @param entity    Entity index to validate
- * @return          True if entity is valid, false otherwise
+ * @return          True if entity slot is valid, false otherwise
  */
-stock bool IsValidEntity(int entity)
+stock bool IsValidEntityIndex(int entity)
 {
     return (entity > 0 && IsValidEdict(entity));
 }
