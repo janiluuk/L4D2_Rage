@@ -395,10 +395,18 @@ void ReadCookie(int client)
 public void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    g_rageCookie[client] = 0;
-    g_rageTimerMusic[client] = INVALID_HANDLE;
-    g_rageFirstConnect[client] = true;
-    g_rageMusicPlaying[client] = false;
+    if (client > 0 && client <= MaxClients)
+    {
+        // Kill timer if it exists
+        if (g_rageTimerMusic[client] != INVALID_HANDLE)
+        {
+            KillTimer(g_rageTimerMusic[client]);
+        }
+        g_rageCookie[client] = 0;
+        g_rageTimerMusic[client] = INVALID_HANDLE;
+        g_rageFirstConnect[client] = true;
+        g_rageMusicPlaying[client] = false;
+    }
 }
 
 public Action Cmd_MusicUpdate(int client, int args)
@@ -479,12 +487,14 @@ bool UpdateListNewly(int client = 0)
 
 public void OnClientPutInServer(int client)
 {
-    if (client && !IsFakeClient(client))
+    if (client > 0 && client <= MaxClients && !IsFakeClient(client))
     {
-        if (g_rageTimerMusic[client] == INVALID_HANDLE)
+        // Kill existing timer before creating new one
+        if (g_rageTimerMusic[client] != INVALID_HANDLE)
         {
-            g_rageTimerMusic[client] = CreateTimer(g_rageCvarDelay.FloatValue, Timer_PlayMusic, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+            KillTimer(g_rageTimerMusic[client]);
         }
+        g_rageTimerMusic[client] = CreateTimer(g_rageCvarDelay.FloatValue, Timer_PlayMusic, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
     }
 }
 
@@ -522,6 +532,11 @@ void ResetTimer()
 {
     for (int i = 1; i <= MaxClients; i++)
     {
+        // Kill existing timer before resetting
+        if (g_rageTimerMusic[i] != INVALID_HANDLE)
+        {
+            KillTimer(g_rageTimerMusic[i]);
+        }
         g_rageTimerMusic[i] = INVALID_HANDLE;
     }
 }

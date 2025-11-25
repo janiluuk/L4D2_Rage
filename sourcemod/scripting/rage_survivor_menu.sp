@@ -495,8 +495,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
                 else
                 {
                     FakeClientCommand(client, "sm_music_play");
-                    FakeClientCommand(client, "sm_music"); // open menu for quick control
-                    PrintHintText(client, "Music playing. Use menu to change track.");
+                    // Open music menu for full control
+                    FakeClientCommand(client, "sm_music");
                 }
             }
             case Menu_MusicVolume:
