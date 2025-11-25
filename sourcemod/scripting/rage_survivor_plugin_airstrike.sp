@@ -113,6 +113,8 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <l4d2_airstrike>
+#include <rage/common>
+#include <rage/skills>
 #define PLUGIN_SKILL_NAME	"Airstrike"
 #define CVAR_FLAGS			FCVAR_NOTIFY
 #define CHAT_TAG			"\x03[Airstrike] \x05"
@@ -133,9 +135,6 @@
 #define SOUND_PASS6			"animation/jets/jet_by_04_lr.wav"
 #define SOUND_PASS7			"animation/jets/jet_by_05_lr.wav"
 #define SOUND_PASS8			"animation/jets/jet_by_05_rl.wav"
-#define SOUND_EXPLODE3		"weapons/hegrenade/explode3.wav"
-#define SOUND_EXPLODE4		"weapons/hegrenade/explode4.wav"
-#define SOUND_EXPLODE5		"weapons/hegrenade/explode5.wav"
 
 // #define PARTICLE_BOMB1		"FluidExplosion_fps" // Broken? Only shows sometimes
 #define PARTICLE_BOMB2		"missile_hit1"
@@ -145,7 +144,6 @@
 #define PARTICLE_FIRE		"fire_medium_01"
 #define PARTICLE_SPARKS		"fireworks_sparkshower_01e"
 #define PARTICLE_SMOKE		"rpg_smoke"
-#include <rage/skills>
 
 int g_iClassID = -1;
 bool g_bRageAvailable = false;
