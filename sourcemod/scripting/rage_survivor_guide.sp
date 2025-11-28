@@ -386,8 +386,9 @@ public int MenuHandler_Soldier(Menu menu, MenuAction action, int param1, int par
             }
             else if (StrEqual(info, "weapons"))
             {
-                PrintGuideLine(param1, "Faster weapon handling and melee stagger let you bully commons while absorbing chip damage.");
-                PrintGuideLine(param1, "Your movement speed boost helps you reposition and protect vulnerable teammates.");
+                PrintGuideLine(param1, "Faster weapon handling and melee attacks let you bully commons while absorbing chip damage.");
+                PrintGuideLine(param1, "Your movement speed boost (15% faster than normal) helps you reposition and protect vulnerable teammates.");
+                PrintGuideLine(param1, "Enhanced armor reduces incoming damage, making you tough as nails on the front line.");
                 DisplaySoldierMenu(param1);
             }
             else if (StrEqual(info, "nightvision"))
@@ -420,6 +421,7 @@ void DisplayAthleteMenu(int client)
     AddMenuItem(menu, "ninja", "Active skill: Ninja kick");
     AddMenuItem(menu, "parachute", "Air control & parachute");
     AddMenuItem(menu, "grenades", "Antigravity grenades");
+    AddMenuItem(menu, "movement", "Advanced movement: jumps & parkour");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -454,6 +456,13 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
             {
                 PrintGuideLine(param1, "Throw antigravity grenades that lift and suspend infected, giving your team time to reposition.");
                 PrintGuideLine(param1, "Excellent for controlling choke points and disrupting infected swarms.");
+                DisplayAthleteMenu(param1);
+            }
+            else if (StrEqual(info, "movement"))
+            {
+                PrintGuideLine(param1, "Athletes excel at parkour with double jump, long jump, high jump, and bunnyhop capabilities.");
+                PrintGuideLine(param1, "Wall run to traverse obstacles and reach elevated positions that other classes can't access.");
+                PrintGuideLine(param1, "Your superior mobility makes you perfect for objective runs and scouting ahead safely.");
                 DisplayAthleteMenu(param1);
             }
         }
@@ -629,7 +638,7 @@ void DisplayEngineerMenu(int client)
     AddMenuItem(menu, "kits", "Role & upgrade kits");
     AddMenuItem(menu, "grenades", "Skill 1: Experimental grenades");
     AddMenuItem(menu, "turrets", "Turret workshop & deployment");
-    AddMenuItem(menu, "defense", "Shields & barricades");
+    AddMenuItem(menu, "defense", "Shields, barricades & laser grids");
     AddMenuItem(menu, "pickups", "Carrying turrets & supplies");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
@@ -669,7 +678,8 @@ public int MenuHandler_Engineer(Menu menu, MenuAction action, int param1, int pa
             }
             else if (StrEqual(info, "defense"))
             {
-                PrintGuideLine(param1, "Deploy protective shields, laser grids and barricade doors/windows to control infected flow.");
+                PrintGuideLine(param1, "Deploy protective shields, laser grids, and barricade doors/windows to control infected flow.");
+                PrintGuideLine(param1, "Barricades block entry points to create safe zones and funnel infected into kill zones.");
                 PrintGuideLine(param1, "Turrets can be blown up by infected if overrun - maintain defensive lines and reposition as needed.");
                 DisplayEngineerMenu(param1);
             }
@@ -704,7 +714,7 @@ void DisplaySaboteurMenu(int client)
     AddMenuItem(menu, "stealth", "Active skill: Cloak & stealth");
     AddMenuItem(menu, "sight", "Utility: Extended sight");
     AddMenuItem(menu, "mines", "Gadgets & mines");
-    AddMenuItem(menu, "damage", "Damage profile");
+    AddMenuItem(menu, "damage", "Damage profile & combat style");
     SetMenuExitBackButton(menu, true);
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
@@ -719,26 +729,35 @@ public int MenuHandler_Saboteur(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             char action1[64], action2[64], action3[64], deploy[64];
             GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
-            if (StrEqual(info, "overview"))
+            if (StrEqual(info, "stealth"))
             {
-                PrintGuideLine(param1, "Use skill_action_1 (default: middle mouse) to vanish with the Dead Ringer, drop a fake corpse and sprint past ambushes.");
+                char line[256];
+                Format(line, sizeof(line), "Use %s (default: middle mouse) to vanish with the Dead Ringer, drop a fake corpse and sprint past ambushes.", action1);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Cloak grants invisibility and faster crouch movement to sneak past infected or reposition unseen.");
                 DisplaySaboteurMenu(param1);
             }
             else if (StrEqual(info, "sight"))
             {
                 PrintGuideLine(param1, "!extendedsight highlights special infected for 20 seconds every two minutes - call targets for your team.");
+                PrintGuideLine(param1, "Perfect for scouting ahead and identifying threats before they ambush your team.");
+                DisplaySaboteurMenu(param1);
             }
             else if (StrEqual(info, "mines"))
             {
                 char minesLine[192];
                 Format(minesLine, sizeof(minesLine), "Use %s to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.", deploy);
                 PrintGuideLine(param1, minesLine);
+                PrintGuideLine(param1, "Lay traps at choke points, doorways, and retreat paths to control the battlefield.");
+                DisplaySaboteurMenu(param1);
             }
-            else if (StrEqual(info, "tips"))
+            else if (StrEqual(info, "damage"))
             {
-                PrintGuideLine(param1, "Paint sight lines, bait specials with a fake death, then mine their retreat for pick-offs.");
+                PrintGuideLine(param1, "Saboteurs deal reduced damage to survivors but increased damage to infected - focus on special infected.");
+                PrintGuideLine(param1, "Your role is reconnaissance and traps, not direct combat with the horde.");
+                PrintGuideLine(param1, "Use stealth to avoid confrontation and set up ambushes instead of face-to-face fights.");
+                DisplaySaboteurMenu(param1);
             }
-            DisplaySaboteurMenu(param1);
         }
         case MenuAction_Cancel:
         {
