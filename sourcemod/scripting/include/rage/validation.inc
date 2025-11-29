@@ -147,7 +147,8 @@ stock bool IsValidEntityEx(int entity)
     // Verify the entity actually exists by checking if we can get its classname
     // GetEdictClassname returns number of bytes written, > 0 means valid
     char classname[64];
-    return view_as<bool>(GetEdictClassname(entity, classname, sizeof(classname)) > 0);
+    int result = GetEdictClassname(entity, classname, sizeof(classname));
+    return (result > 0);
 }
 
 /**
