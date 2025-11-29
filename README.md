@@ -2,6 +2,8 @@
 
 Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick your class, unleash devastating abilities, and survive the chaos with friends. Think of it as your favorite zombie shooter... but turned up to 11.
 
+**Looking for the infected side?** Check out the companion mod [L4D2 Rage: Infected Edition](https://github.com/janiluuk/L4D2_Rage_Infected) for enhanced special infected gameplay!
+
 ## What Makes It Special? ✨
 
 **Choose Your Hero** – Six unique classes (Soldier, Ninja, Trooper, Medic, Engineer, Saboteur) each with their own superpowers and playstyle

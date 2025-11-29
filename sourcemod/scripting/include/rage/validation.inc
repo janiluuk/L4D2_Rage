@@ -104,7 +104,7 @@ stock bool IsPlayerHanging(int client)
  * @param flag      Admin flag to check (default: ADMFLAG_ROOT)
  * @return          True if client has admin access, false otherwise
  */
-stock bool IsClientValidAdmin(int client, AdminFlag flag = ADMFLAG_ROOT)
+stock bool IsClientValidAdmin(int client, AdminFlag flag = view_as<AdminFlag>(ADMFLAG_ROOT))
 {
     if (!IsValidClient(client))
         return false;
@@ -147,7 +147,8 @@ stock bool IsValidEntityEx(int entity)
     // Verify the entity actually exists by checking if we can get its classname
     // GetEdictClassname returns number of bytes written, > 0 means valid
     char classname[64];
-    return (GetEdictClassname(entity, classname, sizeof(classname)) > 0);
+    int result = GetEdictClassname(entity, classname, sizeof(classname));
+    return (result > 0);
 }
 
 /**

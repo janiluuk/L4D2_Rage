@@ -211,6 +211,8 @@ public Action HealingBallTimerFunction(Handle timer, Handle pack)
 		KillTimer(HealingBallTimer[Client]);
 		HealingBallTimer[Client] = INVALID_HANDLE;
 	}
+	
+	return Plugin_Continue;
 }
 
 /* Read crosshair position */
@@ -285,6 +287,8 @@ public Action DeleteParticles(Handle timer, any particle)
 			RemoveEdict(particle);
 		}
 	}
+	
+	return Plugin_Continue;
 }
 
 public void PrecacheParticle(char[] particlename)
