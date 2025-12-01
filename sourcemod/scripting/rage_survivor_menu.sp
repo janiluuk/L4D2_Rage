@@ -171,8 +171,7 @@ public void OnPluginStart()
     RegConsoleCmd("sm_guide", CmdRageGuideMenu, "Open the Rage tutorial guide");
     RegConsoleCmd("+rage_menu", CmdRageMenuHoldStart, "Hold to open Rage menu");
     RegConsoleCmd("-rage_menu", CmdRageMenuHoldEnd, "Release to close Rage menu");
-    AddCommandListener(Command_VoiceRageMenuHoldStart, "+voicerecord");
-    AddCommandListener(Command_VoiceRageMenuHoldEnd, "-voicerecord");
+    AddCommandListener(Command_QuickRageMenu, "voice_menu_2");
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
     g_hCvarMPGameMode = FindConVar("mp_gamemode");
@@ -462,16 +461,15 @@ Action CmdRageMenuHoldEnd(int client, int args)
     return Plugin_Handled;
 }
 
-Action Command_VoiceRageMenuHoldStart(int client, const char[] command, int argc)
+Action Command_QuickRageMenu(int client, const char[] command, int argc)
 {
-    StartRageMenuHold(client);
-    return Plugin_Continue;
-}
+    if (client <= 0 || !IsClientInGame(client))
+    {
+        return Plugin_Continue;
+    }
 
-Action Command_VoiceRageMenuHoldEnd(int client, const char[] command, int argc)
-{
-    StopRageMenuHold(client);
-    return Plugin_Continue;
+    DisplayRageMenu(client, true);
+    return Plugin_Handled;
 }
 
 void StartRageMenuHold(int client)
@@ -824,7 +822,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Hold V (voice) or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
+        PrintHintText(client, "Press X (voice menu) or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);
