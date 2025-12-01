@@ -747,7 +747,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Hold F1 (bind F1 \"+rage_menu\") and use W/S/A/D to navigate.");
+        PrintHintText(client, "Hold TAB (bind TAB \"+rage_menu\") and use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);
