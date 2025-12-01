@@ -1475,7 +1475,7 @@ public Action CmdClassMenu(int client, int args)
                 return Plugin_Handled;
         }
 
-        PrintToChat(client, "[Rage] Use the main Rage menu (sm_rage or hold ALT) to select your class.");
+        PrintToChat(client, "[Rage] Use the main Rage menu (sm_rage or hold F1) to select your class.");
         return Plugin_Handled;
 }
 

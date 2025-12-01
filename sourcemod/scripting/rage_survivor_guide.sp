@@ -97,7 +97,7 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             {
                 PrintGuideLine(param1, "Rage Edition is a modular class overhaul with perk-driven abilities.");
                 PrintGuideLine(param1, "Open this tutorial anytime with !guide, !ragetutorial or the Rage menu.");
-                PrintGuideLine(param1, "Hold ALT to show the quick menu, move with WASD to select, release ALT to exit.");
+                PrintGuideLine(param1, "Hold F1 (bind F1 \"+rage_menu\") to show the quick menu, move with WASD to select, release F1 to exit.");
                 PrintGuideLine(param1, "Pick a class, bind the four actions, and coordinate before leaving the saferoom.");
                 PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
                 DisplayGuideMainMenu(param1);
@@ -174,8 +174,8 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "menu"))
             {
-                PrintGuideLine(param1, "Hold ALT to show the quick menu, move with WASD keys to navigate options.");
-                PrintGuideLine(param1, "Release ALT to exit the menu. You can trigger class actions from the menu too.");
+                PrintGuideLine(param1, "Hold F1 to show the quick menu, move with WASD keys to navigate options.");
+                PrintGuideLine(param1, "Release F1 to exit the menu. You can trigger class actions from the menu too.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "skillkeys"))
