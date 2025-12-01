@@ -11,7 +11,7 @@ This document provides a comprehensive analysis of each compiled plugin in the L
 
 ## Compilation Overview
 
-The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod/scripting/` directory. Additional support plugins like `extra_menu.sp`, `l4d2_predicaments.sp`, and `left4dhooks.sp` are included but not automatically compiled.
+The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod/scripting/` directory. Additional support plugins like `rage_menu_base.sp`, `rage_survivor_preficament.sp`, and `left4dhooks.sp` are included but not automatically compiled.
 
 ---
 
@@ -52,12 +52,12 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 **Functionality**:
 - Class selection menu
 - Settings menu
-- Integration with extra_menu system
+- Integration with rage_menu_base system
 - Persistent user preferences
 
 **Code Quality**: ⭐⭐⭐⭐ (Good)
 - Clean menu structure
-- Good integration with the extra_menu library
+- Good integration with the rage_menu_base library
 
 **Issues Identified**:
 - ❌ **No critical issues**
@@ -183,7 +183,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 
 ## Support Plugins
 
-### 7. **extra_menu.sp** (1,163 lines)
+### 7. **rage_menu_base.sp** (1,163 lines)
 **Purpose**: Provides a custom menu system using WASD navigation.
 
 **Functionality**:
@@ -208,7 +208,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 
 ---
 
-### 8. **l4d2_predicaments.sp** (2,806 lines)
+### 8. **rage_survivor_preficament.sp** (3,132 lines)
 **Purpose**: Enhanced survival mechanics (self-revival, crawling, struggle system).
 
 **Functionality**:

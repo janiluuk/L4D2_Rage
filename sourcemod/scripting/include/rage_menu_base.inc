@@ -16,17 +16,17 @@
 *	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#if defined _extra_menu_api_included
+#if defined _rage_menu_base_api_included
  #endinput
 #endif
-#define _extra_menu_api_included
+#define _rage_menu_base_api_included
 
 
 
-public SharedPlugin __pl_extramenu = 
+public SharedPlugin __pl_rage_menu_base =
 {
-	name = "extra_menu",
-	file = "extra_menu.smx",
+        name = "rage_menu_base",
+        file = "rage_menu_base.smx",
 #if defined REQUIRE_PLUGIN
 	required = 1,
 #else
@@ -35,14 +35,14 @@ public SharedPlugin __pl_extramenu =
 };
 
 #if !defined REQUIRE_PLUGIN
-public void __pl_extramenu_SetNTVOptional()
+public void __pl_rage_menu_base_SetNTVOptional()
 {
-	MarkNativeAsOptional("ExtraMenu_Create");
-	MarkNativeAsOptional("ExtraMenu_Delete");
-	MarkNativeAsOptional("ExtraMenu_AddOptions");
-	MarkNativeAsOptional("ExtraMenu_AddEntry");
-	MarkNativeAsOptional("ExtraMenu_NewPage");
-	MarkNativeAsOptional("ExtraMenu_Display");
+        MarkNativeAsOptional("ExtraMenu_Create");
+        MarkNativeAsOptional("ExtraMenu_Delete");
+        MarkNativeAsOptional("ExtraMenu_AddOptions");
+        MarkNativeAsOptional("ExtraMenu_AddEntry");
+        MarkNativeAsOptional("ExtraMenu_NewPage");
+        MarkNativeAsOptional("ExtraMenu_Display");
 }
 #endif
 
