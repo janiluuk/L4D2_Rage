@@ -33,17 +33,17 @@ ConVar shEnable, shUse, shIncapPickup, shDelay, shKillAttacker, shBot, shBotChan
 	shTempHP, shMaxCount, cvarReviveDuration, cvarMaxIncapCount, cvarAdrenalineDuration, shCrawlEnable, shCrawlSpeed,
 	shStruggleMode, shStruggleGain, shStrugglePushback, shStruggleAlertInterval, shStruggleEscapeEffect;
 
-bool bIsL4D, bEnabled, bIncapPickup, bBot, bCrawlEnable;
+bool bIsL4D, bEnabled, bIncapPickup, bKillAttacker, bBot, bCrawlEnable;
 float fAdrenalineDuration, fDelay, fTempHP, fLastPos[MAXPLAYERS+1][3], fSelfHelpTime[MAXPLAYERS+1], fCrawlSpeed,
-        fStruggleProgress[MAXPLAYERS+1], fLastStruggleInput[MAXPLAYERS+1], fLastStruggleAlert[MAXPLAYERS+1],
-        fStruggleAlertInterval;
+	fStruggleProgress[MAXPLAYERS+1], fLastStruggleInput[MAXPLAYERS+1], fLastStruggleAlert[MAXPLAYERS+1],
+	fStruggleGain, fStrugglePushback, fStruggleAlertInterval;
 int iSurvivorClass, iKillAttacker, iUse, iBotChance, iHardHP, iMaxCount, iAttacker[MAXPLAYERS+1],
-        iBotHelp[MAXPLAYERS+1], iReviveDuration, iMaxIncapCount, iSHCount[MAXPLAYERS+1],
-        iStruggleMode, iStruggleEscapeEffect;
+	iBotHelp[MAXPLAYERS+1], iReviveDuration, iMaxIncapCount, iSHCount[MAXPLAYERS+1],
+	iStruggleMode, iStruggleEscapeEffect;
 bool bWasCrouching[MAXPLAYERS+1], bAttackerWasSprinting[MAXPLAYERS+1];
 
-Handle hSHTime[MAXPLAYERS+1], hSHGameData = null, hSHSetTempHP = null, hSHAdrenalineRush = null,
-        hSHOnRevived = null, hSHStagger = null;
+Handle hSHTime[MAXPLAYERS+1] = null, hSHGameData = null, hSHSetTempHP = null, hSHAdrenalineRush = null,
+	hSHOnRevived = null, hSHStagger = null;
 
 // Global forwards for external plugin hooks
 Handle g_hForwardCanHealOthers = null;
@@ -202,7 +202,9 @@ public void OnPluginStart()
 	fDelay = shDelay.FloatValue;
 	fTempHP = shTempHP.FloatValue;
 	fCrawlSpeed = shCrawlSpeed.FloatValue;
-    fStruggleAlertInterval = shStruggleAlertInterval.FloatValue;
+	fStruggleGain = shStruggleGain.FloatValue;
+	fStrugglePushback = shStrugglePushback.FloatValue;
+	fStruggleAlertInterval = shStruggleAlertInterval.FloatValue;
 	
 	shEnable.AddChangeHook(OnSHCVarsChanged);
 	shUse.AddChangeHook(OnSHCVarsChanged);
@@ -285,6 +287,7 @@ public void OnSHCVarsChanged(ConVar cvar, const char[] sOldValue, const char[] s
 
         bEnabled = shEnable.BoolValue;
         bIncapPickup = shIncapPickup.BoolValue;
+        bKillAttacker = shKillAttacker.BoolValue;
         iKillAttacker = shKillAttacker.IntValue;
 
 	bBot = shBot.BoolValue;
@@ -293,7 +296,9 @@ public void OnSHCVarsChanged(ConVar cvar, const char[] sOldValue, const char[] s
 	fDelay = shDelay.FloatValue;
 	fTempHP = shTempHP.FloatValue;
 	fCrawlSpeed = shCrawlSpeed.FloatValue;
-    fStruggleAlertInterval = shStruggleAlertInterval.FloatValue;
+	fStruggleGain = shStruggleGain.FloatValue;
+	fStrugglePushback = shStrugglePushback.FloatValue;
+	fStruggleAlertInterval = shStruggleAlertInterval.FloatValue;
 	
 	if (bIsL4D)
 	{
@@ -369,12 +374,15 @@ public Action RecordLastPosition(Handle timer)
 
 public void OnMapStart()
 {
-        if (!bIsL4D)
-        {
-                PrecacheSound("weapons/knife/knife_deploy.wav", true);
-        }
-
-        PrecacheSound("weapons/knife/knife_hitwall1.wav", true);
+	if (!bIsL4D && !IsSoundPrecached("weapons/knife/knife_deploy.wav"))
+	{
+		PrecacheSound("weapons/knife/knife_deploy.wav", true);
+	}
+	
+	if (!IsSoundPrecached("weapons/knife/knife_hitwall1.wav"))
+	{
+		PrecacheSound("weapons/knife/knife_hitwall1.wav", true);
+	}
 }
 
 public void OnRoundEvents(Event event, const char[] name, bool dontBroadcast)
@@ -1511,6 +1519,63 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 	return Plugin_Continue;
 }
 
+void AlertAttacker(int attacker, int client, float fGameTime)
+{
+        if (!IsValidClient(attacker) || GetClientTeam(attacker) != 3 || IsFakeClient(attacker))
+        {
+                return;
+        }
+
+        if (fGameTime - fLastStruggleAlert[attacker] < fStruggleAlertInterval)
+        {
+                return;
+        }
+
+        fLastStruggleAlert[attacker] = fGameTime;
+        PrintHintText(attacker, "%N is breaking free, hit SHIFT!", client);
+}
+
+int GetStruggleVictim(int attacker)
+{
+        for (int i = 1; i <= MaxClients; i++)
+        {
+                if (!IsSurvivor(i) || !IsPlayerAlive(i))
+                {
+                        continue;
+                }
+
+                if (iAttacker[i] == attacker)
+                {
+                        return i;
+                }
+        }
+
+        return 0;
+}
+
+void UpdateStruggleBar(int client)
+{
+        if (!IsValidClient(client) || IsFakeClient(client))
+        {
+                return;
+        }
+
+        float fDuration = 10.0;
+        float fStart = GetGameTime() - (fStruggleProgress[client] / 100.0 * fDuration);
+
+        SetEntProp(client, Prop_Send, "m_reviveTarget", client);
+        SetEntPropFloat(client, Prop_Send, "m_flProgressBarStartTime", fStart);
+        if (bIsL4D)
+        {
+                SetEntProp(client, Prop_Send, "m_iProgressBarDuration", RoundToNearest(fDuration));
+                SetEntPropString(client, Prop_Send, "m_progressBarText", "BREAK FREE");
+        }
+        else
+        {
+                SetEntPropFloat(client, Prop_Send, "m_flProgressBarDuration", fDuration);
+        }
+}
+
 void ClearStruggleBar(int client)
 {
         if (!IsValidClient(client) || IsFakeClient(client))
@@ -1528,6 +1593,20 @@ void ClearStruggleBar(int client)
         {
                 SetEntProp(client, Prop_Send, "m_iProgressBarDuration", 0);
                 SetEntPropString(client, Prop_Send, "m_progressBarText", "");
+        }
+}
+
+void HandleStruggleEscape(int client, int dominator)
+{
+        ClearStruggleBar(client);
+        fStruggleProgress[client] = 0.0;
+        bWasCrouching[client] = false;
+
+        RemoveHindrance(client, true);
+
+        if (IsValidClient(dominator) && GetClientTeam(dominator) == 3 && IsPlayerAlive(dominator))
+        {
+                SDKCall(hSHStagger, dominator, client, fLastPos[client]);
         }
 }
 

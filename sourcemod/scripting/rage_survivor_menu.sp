@@ -190,11 +190,6 @@ public void OnPluginStart()
     RefreshGuideLibraryStatus();
 }
 
-public void OnAllPluginsLoaded()
-{
-    RefreshGuideLibraryStatus();
-}
-
 public void OnClientPutInServer(int client)
 {
     g_bMenuHeld[client] = false;

@@ -22,7 +22,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. Press V (default voice key) to open the quick menu
+2. Press V (or type !rage in chat) to open the quick menu
 3. Pick your class and learn your abilities from the menu
 4. Type `!guide` in chat to open the full tutorial anytime
 
