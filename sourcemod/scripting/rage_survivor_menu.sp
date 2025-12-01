@@ -811,7 +811,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Hold V (voice) or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
+        PrintHintText(client, "Hold V or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);
