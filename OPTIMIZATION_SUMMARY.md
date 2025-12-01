@@ -155,7 +155,7 @@ Consolidates common validation functions used across plugins:
 | rage_admin_menu.sp | 235 | ✅ **Optimized** | Handlers implemented |
 | rage_music.sp | 1,002 | ✅ Good | None needed |
 | rage_menu_base.sp | 1,163 | ✅ Good | None needed |
-| rage_survivor_predicament.sp | 3,052 | ✅ Good | None needed |
+| rage_survivor_preficament.sp | 3,132 | ✅ Good | None needed |
 | left4dhooks.sp | 1,781 | ✅ Core lib | Do not modify |
 | left_4_ai.sp | 366 | ✅ Good | Queries nearby survivor responses |
 | rage_survivor_plugin_airstrike.sp | 1,339 | ✅ Good | None needed |
