@@ -25,10 +25,7 @@ enum HTTPStatus
 
 #pragma newdecls required
 
-typeset HTTPResponseCallback
-{
-    function void (HTTPResponse response, any data);
-};
+typedef function void HTTPResponseCallback(HTTPResponse response, any data);
 
 typedef int HTTPHeader;
 
@@ -36,55 +33,36 @@ typedef int HTTPBody;
 
 methodmap HTTPRequest < Handle
 {
-    public HTTPRequest(const char[] url, HTTPMethod method = HTTPMethod_Post)
-    {
-        return view_as<HTTPRequest>(null);
-    }
+    public native HTTPRequest(const char[] url, HTTPMethod method = HTTPMethod_Post);
 
     property float Timeout
     {
-        public float get()
-        {
-            return 0.0;
-        }
-
-        public void set(float value)
-        {
-        }
+        public native float get();
+        public native void set(float value);
     }
 
-    public void SetHeader(const char[] name, const char[] value) {}
-    public void AppendHeader(const char[] name, const char[] value) {}
-    public void SetBody(HTTPBody body) {}
-    public void AppendBodyString(const char[] data) {}
-    public void Post(const char[] data, HTTPResponseCallback callback, any value = 0) {}
-    public void Send(HTTPResponseCallback callback, any value = 0) {}
+    public native void SetHeader(const char[] name, const char[] value);
+    public native void AppendHeader(const char[] name, const char[] value);
+    public native void SetBody(HTTPBody body);
+    public native void AppendBodyString(const char[] data);
+    public native void Post(const char[] data, HTTPResponseCallback callback, any value = 0);
+    public native void Send(HTTPResponseCallback callback, any value = 0);
 }
 
 methodmap HTTPResponseBody < Handle
 {
-    public int ReadString(char[] buffer, int maxlen, int offset = 0)
-    {
-        buffer[0] = '\0';
-        return 0;
-    }
+    public native int ReadString(char[] buffer, int maxlen, int offset = 0);
 }
 
 methodmap HTTPResponse < Handle
 {
     property HTTPStatus Status
     {
-        public HTTPStatus get()
-        {
-            return HTTPStatus_OK;
-        }
+        public native HTTPStatus get();
     }
 
     property HTTPResponseBody Body
     {
-        public HTTPResponseBody get()
-        {
-            return view_as<HTTPResponseBody>(null);
-        }
+        public native HTTPResponseBody get();
     }
 }
