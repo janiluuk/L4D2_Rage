@@ -194,6 +194,16 @@ Check `sourcemod/scripting/` for clean, documented examples. The architecture:
 
 Want to build something? The code is ready for you.
 
+## Troubleshooting missing map entities
+
+If the server log shows messages like `Couldn't find any entities named fire13_timer, which point_template fire13_template is specifying`, the running BSP is missing the child entities that a `point_template` expects to clone. The fix must be applied to the map files, not the gameplay plugins:
+
+- **Verify the BSP and workshop files.** Redownload the affected campaign/workshop map so the original template children (timers, smoke, hurt volumes, decals, sounds) are present in the `left4dead2/maps/*.bsp` bundle.
+- **Patch with Stripper if you cannot rebuild the map.** Add the missing entities under `left4dead2/addons/stripper/maps/<mapname>.cfg` (e.g., `fire13_timer`, `fire13_clip`, `fire13_smoke`, `fire13_fog_volume`, or `fire_ballroom_07-sound`). Stripper runs server-side and can recreate those entities at load time.
+- **Source for the entities.** Copy the entity definitions from the map author's VMF/decompiled BSP or request the fixed map from the campaign’s workshop page; the names in the error text tell you which blocks to restore.
+
+These errors are map-content issues—once the missing template members exist in the map or Stripper config, the log spam stops and scripted fires/sounds will spawn correctly.
+
 ## Credits
 
 Rage Edition is powered by community talent and open-source awesomeness:
