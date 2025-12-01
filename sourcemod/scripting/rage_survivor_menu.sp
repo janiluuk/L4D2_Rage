@@ -179,17 +179,17 @@ public void OnPluginStart()
 
     g_hThirdPersonCookie = RegClientCookie("rage_tp_mode", "Rage third person preference", CookieAccess_Public);
 
+    RefreshGuideLibraryStatus();
+}
+
+public void OnAllPluginsLoaded()
+{
     g_bExtraMenuLoaded = LibraryExists("extra_menu");
     if (g_bExtraMenuLoaded)
     {
         OnLibraryAdded("extra_menu");
     }
 
-    RefreshGuideLibraryStatus();
-}
-
-public void OnAllPluginsLoaded()
-{
     RefreshGuideLibraryStatus();
 }
 
