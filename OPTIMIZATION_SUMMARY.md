@@ -154,7 +154,7 @@ Consolidates common validation functions used across plugins:
 | rage_survivor_guide.sp | 1,392 | ✅ Good | None needed |
 | rage_admin_menu.sp | 235 | ✅ **Optimized** | Handlers implemented |
 | rage_music.sp | 1,002 | ✅ Good | None needed |
-| extra_menu.sp | 1,163 | ✅ Good | None needed |
+| rage_menu_base.sp | 1,163 | ✅ Good | None needed |
 | rage_survivor_preficament.sp | 3,132 | ✅ Good | None needed |
 | left4dhooks.sp | 1,781 | ✅ Core lib | Do not modify |
 | left_4_ai.sp | 24 | 🔧 Stub | Needs implementation |

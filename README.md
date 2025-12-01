@@ -12,7 +12,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **Survival Tools** – Self-revive when downed, crawl while incapacitated, struggle free from infected pins, and help your teammates even when you're down
 
-**Slick Controls** – Hold V (bind V "+rage_menu") for a radial menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
+**Slick Controls** – Hold V (voice key) for a radial menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
 
 **Custom Everything** – Play your own music, customize every ability, adjust difficulty, and tinker with 100+ settings
 

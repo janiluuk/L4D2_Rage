@@ -194,7 +194,6 @@ public void OnPluginStart()
 
         bEnabled = shEnable.BoolValue;
         bIncapPickup = shIncapPickup.BoolValue;
-        bKillAttacker = shKillAttacker.BoolValue;
         iKillAttacker = shKillAttacker.IntValue;
 
 	bBot = shBot.BoolValue;

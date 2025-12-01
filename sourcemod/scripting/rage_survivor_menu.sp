@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <admin>
 #include <clientprefs>
-#include <extra_menu>
+#include <rage_menu_base>
 #include <rage_survivor_guide>
 #include <l4d2hud>
 #include <rage/hud>
@@ -168,6 +168,8 @@ public void OnPluginStart()
     RegConsoleCmd("sm_guide", CmdRageGuideMenu, "Open the Rage tutorial guide");
     RegConsoleCmd("+rage_menu", CmdRageMenuHoldStart, "Hold to open Rage menu");
     RegConsoleCmd("-rage_menu", CmdRageMenuHoldEnd, "Release to close Rage menu");
+    AddCommandListener(Command_VoiceRageMenuHoldStart, "+voicerecord");
+    AddCommandListener(Command_VoiceRageMenuHoldEnd, "-voicerecord");
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
     g_hCvarMPGameMode = FindConVar("mp_gamemode");
@@ -179,15 +181,10 @@ public void OnPluginStart()
 
     g_hThirdPersonCookie = RegClientCookie("rage_tp_mode", "Rage third person preference", CookieAccess_Public);
 
-    RefreshGuideLibraryStatus();
-}
-
-public void OnAllPluginsLoaded()
-{
-    g_bExtraMenuLoaded = LibraryExists("extra_menu");
+    g_bExtraMenuLoaded = LibraryExists("rage_menu_base");
     if (g_bExtraMenuLoaded)
     {
-        OnLibraryAdded("extra_menu");
+        OnLibraryAdded("rage_menu_base");
     }
 
     RefreshGuideLibraryStatus();
@@ -249,7 +246,7 @@ public Action OnWeaponSwitchPost(int client, int weapon)
 
 public void OnLibraryAdded(const char[] name)
 {
-    if (strcmp(name, "extra_menu") == 0)
+    if (strcmp(name, "rage_menu_base") == 0)
     {
         g_bExtraMenuLoaded = true;
         bool buttons_nums = false;
@@ -358,7 +355,7 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-    if (strcmp(name, "extra_menu") == 0)
+    if (strcmp(name, "rage_menu_base") == 0)
     {
         g_bExtraMenuLoaded = false;
         OnPluginEnd();
@@ -403,29 +400,51 @@ Action CmdRageGuideMenu(int client, int args)
 
 Action CmdRageMenuHoldStart(int client, int args)
 {
+    StartRageMenuHold(client);
+    return Plugin_Handled;
+}
+
+Action CmdRageMenuHoldEnd(int client, int args)
+{
+    StopRageMenuHold(client);
+    return Plugin_Handled;
+}
+
+Action Command_VoiceRageMenuHoldStart(int client, const char[] command, int argc)
+{
+    StartRageMenuHold(client);
+    return Plugin_Continue;
+}
+
+Action Command_VoiceRageMenuHoldEnd(int client, const char[] command, int argc)
+{
+    StopRageMenuHold(client);
+    return Plugin_Continue;
+}
+
+void StartRageMenuHold(int client)
+{
     if (client <= 0 || !IsClientInGame(client))
     {
-        return Plugin_Handled;
+        return;
     }
 
     if (g_bMenuHeld[client])
     {
-        return Plugin_Handled;
+        return;
     }
 
     if (DisplayRageMenu(client, false))
     {
         g_bMenuHeld[client] = true;
     }
-
-    return Plugin_Handled;
 }
 
-Action CmdRageMenuHoldEnd(int client, int args)
+void StopRageMenuHold(int client)
 {
     if (client <= 0 || !IsClientInGame(client))
     {
-        return Plugin_Handled;
+        return;
     }
 
     if (g_bMenuHeld[client])
@@ -433,8 +452,6 @@ Action CmdRageMenuHoldEnd(int client, int args)
         CancelClientMenu(client, true);
         g_bMenuHeld[client] = false;
     }
-
-    return Plugin_Handled;
 }
 
 public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
@@ -747,7 +764,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Hold V (bind V \"+rage_menu\") and use W/S/A/D to navigate.");
+        PrintHintText(client, "Hold V (voice) or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);
