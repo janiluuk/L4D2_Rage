@@ -118,10 +118,10 @@ Never feel helpless again! The Predicaments system gives you ways to save yourse
 
 **🤖 Smart Bots** – Bots can revive themselves too (configurable)
 
-All settings live in `cfg/sourcemod/l4d2_predicaments.cfg`. The key ones:
-- `l4d2_predicament_enable` – Turn it on/off (default: 1)
-- `l4d2_predicament_use` – Which items work: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
-- `self_help_crawl_speed` – How fast you crawl (0.0-1.0, default: 0.15)
+All settings live in `cfg/sourcemod/rage_survivor_preficament.cfg`. The key ones:
+- `rage_survivor_preficament_enable` – Turn it on/off (default: 1)
+- `rage_survivor_preficament_use` – Which items work: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
+- `rage_survivor_preficament_crawl_speed` – How fast you crawl (0.0-1.0, default: 0.15)
 
 ## Fun Extras & Quality of Life
 

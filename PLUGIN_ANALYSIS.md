@@ -11,7 +11,7 @@ This document provides a comprehensive analysis of each compiled plugin in the L
 
 ## Compilation Overview
 
-The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod/scripting/` directory. Additional support plugins like `extra_menu.sp`, `l4d2_predicaments.sp`, and `left4dhooks.sp` are included but not automatically compiled.
+The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod/scripting/` directory. Additional support plugins like `extra_menu.sp`, `rage_survivor_preficament.sp`, and `left4dhooks.sp` are included but not automatically compiled.
 
 ---
 
@@ -208,7 +208,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 
 ---
 
-### 8. **l4d2_predicaments.sp** (2,806 lines)
+### 8. **rage_survivor_preficament.sp** (3,132 lines)
 **Purpose**: Enhanced survival mechanics (self-revival, crawling, struggle system).
 
 **Functionality**:

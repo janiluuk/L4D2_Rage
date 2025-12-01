@@ -77,23 +77,23 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("Predicaments_CanHealOthers", Native_CanHealOthers);
 	CreateNative("Predicaments_CanStruggle", Native_CanStruggle);
 	
-	RegPluginLibrary("l4d2_predicaments");
+	RegPluginLibrary("rage_survivor_preficament");
 	
 	return APLRes_Success;
 }
 
 public Plugin myinfo =
 {
-	name = "L4D2 Predicaments",
-	author = "yani, cravenge, panxiaohai",
-	description = "Lets Players Help Themselves When In Predicaments.",
-	version = PLUGIN_VERSION,
+        name = "Rage Survivor Preficament",
+        author = "yani, cravenge, panxiaohai",
+        description = "Lets Players Help Themselves When In Predicaments.",
+        version = PLUGIN_VERSION,
 	url = "https://forums.alliedmods.net/showthread.php?t=281620"
 };
 
 public void OnPluginStart()
 {
-	hSHGameData = LoadGameConfigFile("l4d2_predicaments");
+	hSHGameData = LoadGameConfigFile("rage_survivor_preficament");
 	if (hSHGameData == null)
 	{
 		SetFailState("[Predicaments] Game Data Missing!");
@@ -161,27 +161,27 @@ public void OnPluginStart()
 		cvarAdrenalineDuration.AddChangeHook(OnSHCVarsChanged);
 	}
 	
-	CreateConVar("self_help_version", PLUGIN_VERSION, "Self-Help (Reloaded) Version", FCVAR_NOTIFY|FCVAR_SPONLY|FCVAR_DONTRECORD);
-	shEnable = CreateConVar("self_help_enable", "1", "Enable/Disable Plugin", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-	shUse = CreateConVar("self_help_use", "3", "Use: 0=None, 1=Pills And Adrenalines, 2=First Aid Kits Only, 3=Both", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 3.0);
-	shIncapPickup = CreateConVar("self_help_incap_pickup", "1", "Enable/Disable Item Pick-Ups While Incapacitated", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-	shDelay = CreateConVar("self_help_delay", "1.0", "Delay Before Plugin Mechanism Kicks In", FCVAR_NOTIFY|FCVAR_SPONLY);
-	shKillAttacker = CreateConVar("self_help_kill_attacker", "2", "0=Unpin using gear 1=Unpin and kill attacker 2=Unpin disabled", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
-	shBot = CreateConVar("self_help_bot", "1", "Enable/Disable Bot Self-Help", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-	shBotChance = CreateConVar("self_help_bot_chance", "4", "Chance Of Bot Self-Helping: 1=Sometimes, 2=Often, 3=Seldom 4=Always", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0, true, 4.0);
-	shHardHP = CreateConVar("self_help_hard_hp", "50", "Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
-	shTempHP = CreateConVar("self_help_temp_hp", "50.0", "Temporary Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
-	shCrawlEnable = CreateConVar("self_help_crawl_enable", "1", "Enable/Disable Incapped Crawling", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-	shCrawlSpeed = CreateConVar("self_help_crawl_speed", "0.15", "Crawling Speed Multiplier (0.0 - 1.0)", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-	shStruggleMode = CreateConVar("self_help_struggle_mode", "0", "0=Disabled, 1=Automatic escape, 2=Manual struggle", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
-	shStruggleGain = CreateConVar("self_help_struggle_gain", "10.0", "Progress gained per struggle input", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.1);
-	shStrugglePushback = CreateConVar("self_help_struggle_pushback", "5.0", "Progress lost when attacker counters", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
-	shStruggleAlertInterval = CreateConVar("self_help_struggle_alert_interval", "3.0", "Seconds between alerting attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
-	shStruggleEscapeEffect = CreateConVar("self_help_struggle_escape_effect", "0", "0=Stagger attacker, 1=Kill attacker, 2=Incap attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
+    CreateConVar("rage_survivor_preficament_version", PLUGIN_VERSION, "Self-Help (Reloaded) Version", FCVAR_NOTIFY|FCVAR_SPONLY|FCVAR_DONTRECORD);
+    shEnable = CreateConVar("rage_survivor_preficament_enable", "1", "Enable/Disable Plugin", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shUse = CreateConVar("rage_survivor_preficament_use", "3", "Use: 0=None, 1=Pills And Adrenalines, 2=First Aid Kits Only, 3=Both", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 3.0);
+    shIncapPickup = CreateConVar("rage_survivor_preficament_incap_pickup", "1", "Enable/Disable Item Pick-Ups While Incapacitated", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shDelay = CreateConVar("rage_survivor_preficament_delay", "1.0", "Delay Before Plugin Mechanism Kicks In", FCVAR_NOTIFY|FCVAR_SPONLY);
+    shKillAttacker = CreateConVar("rage_survivor_preficament_kill_attacker", "2", "0=Unpin using gear 1=Unpin and kill attacker 2=Unpin disabled", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
+    shBot = CreateConVar("rage_survivor_preficament_bot", "1", "Enable/Disable Bot Self-Help", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shBotChance = CreateConVar("rage_survivor_preficament_bot_chance", "4", "Chance Of Bot Self-Helping: 1=Sometimes, 2=Often, 3=Seldom 4=Always", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0, true, 4.0);
+    shHardHP = CreateConVar("rage_survivor_preficament_hard_hp", "50", "Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
+    shTempHP = CreateConVar("rage_survivor_preficament_temp_hp", "50.0", "Temporary Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
+    shCrawlEnable = CreateConVar("rage_survivor_preficament_crawl_enable", "1", "Enable/Disable Incapped Crawling", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shCrawlSpeed = CreateConVar("rage_survivor_preficament_crawl_speed", "0.15", "Crawling Speed Multiplier (0.0 - 1.0)", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shStruggleMode = CreateConVar("rage_survivor_preficament_struggle_mode", "0", "0=Disabled, 1=Automatic escape, 2=Manual struggle", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
+    shStruggleGain = CreateConVar("rage_survivor_preficament_struggle_gain", "10.0", "Progress gained per struggle input", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.1);
+    shStrugglePushback = CreateConVar("rage_survivor_preficament_struggle_pushback", "5.0", "Progress lost when attacker counters", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
+    shStruggleAlertInterval = CreateConVar("rage_survivor_preficament_struggle_alert_interval", "3.0", "Seconds between alerting attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
+    shStruggleEscapeEffect = CreateConVar("rage_survivor_preficament_struggle_escape_effect", "0", "0=Stagger attacker, 1=Kill attacker, 2=Incap attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
 	
 	if (bIsL4D)
 	{
-		shMaxCount = CreateConVar("l4d2_predicament_max_count", "3", "Maximum Attempts of Revival", FCVAR_NOTIFY|FCVAR_SPONLY, true, 3.0);
+            shMaxCount = CreateConVar("rage_survivor_preficament_max_count", "3", "Maximum Attempts of Revival", FCVAR_NOTIFY|FCVAR_SPONLY, true, 3.0);
 		iMaxCount = shMaxCount.IntValue;
 		shMaxCount.AddChangeHook(OnSHCVarsChanged);
 	}
@@ -225,7 +225,7 @@ public void OnPluginStart()
 	shStruggleAlertInterval.AddChangeHook(OnSHCVarsChanged);
 	shStruggleEscapeEffect.AddChangeHook(OnSHCVarsChanged);
 	
-	AutoExecConfig(true, "l4d2_predicaments");
+	AutoExecConfig(true, "rage_survivor_preficament");
 	
 	HookEvent("round_start", OnRoundEvents);
 	HookEvent("round_end", OnRoundEvents);
