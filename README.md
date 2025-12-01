@@ -30,7 +30,8 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 1. Drop the `sourcemod/` folder into your L4D2 server directory
 2. Edit `configs/rage_class_skills.cfg` to customize classes and abilities
 3. (Optional) Tweak settings in `cfg/sourcemod/talents.cfg` for cooldowns and limits
-4. Restart your server and you're good to go!
+4. Make sure the SourceMod **httpclient** extension is installed (ships with SM 1.12+); place `httpclient.ext.*` binaries in `addons/sourcemod/extensions/`
+5. Restart your server and you're good to go!
 
 **Pro tip:** Use Docker Compose if you want a one-click setup—just run `docker-compose up` and everything works out of the box.
 

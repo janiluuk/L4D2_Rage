@@ -275,6 +275,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 
 **Issues Identified**:
 - ⚠️ Minimal JSON parsing could break on atypical responses; consider full JSON parser if responses change
+- ⚠️ Requires the SourceMod `httpclient` extension (SM 1.12+) at runtime; ensure `httpclient.ext.*` is installed alongside the provided include
 
 **Optimization Opportunities**:
 1. Add streaming support for faster perceived responses
