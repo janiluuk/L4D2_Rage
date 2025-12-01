@@ -1,6 +1,6 @@
 #define PLUGIN_VERSION "0.1"
 #include <sourcemod>
-#include <extra_menu>
+#include <rage_menu_base>
 #include <rage/validation>
 
 #pragma semicolon 1
@@ -25,7 +25,7 @@ public void OnPluginStart()
 
 public void OnLibraryAdded(const char[] name)
 {
-    if (strcmp(name, "extra_menu") == 0)
+    if (strcmp(name, "rage_menu_base") == 0)
     {
         g_bExtraMenuLoaded = true;
         BuildAdminMenu();
@@ -34,7 +34,7 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-    if (strcmp(name, "extra_menu") == 0)
+    if (strcmp(name, "rage_menu_base") == 0)
     {
         DeleteAdminMenu();
         g_bExtraMenuLoaded = false;
@@ -236,7 +236,7 @@ void BuildAdminMenu()
 
 void DeleteAdminMenu()
 {
-    if (g_iAdminMenuID != 0 && LibraryExists("extra_menu"))
+    if (g_iAdminMenuID != 0 && LibraryExists("rage_menu_base"))
     {
         ExtraMenu_Delete(g_iAdminMenuID);
         g_iAdminMenuID = 0;

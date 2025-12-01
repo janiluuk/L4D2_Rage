@@ -154,10 +154,10 @@ Consolidates common validation functions used across plugins:
 | rage_survivor_guide.sp | 1,392 | ✅ Good | None needed |
 | rage_admin_menu.sp | 235 | ✅ **Optimized** | Handlers implemented |
 | rage_music.sp | 1,002 | ✅ Good | None needed |
-| extra_menu.sp | 1,163 | ✅ Good | None needed |
-| l4d2_predicaments.sp | 2,806 | ✅ Good | None needed |
+| rage_menu_base.sp | 1,163 | ✅ Good | None needed |
+| rage_survivor_predicament.sp | 3,052 | ✅ Good | None needed |
 | left4dhooks.sp | 1,781 | ✅ Core lib | Do not modify |
-| left_4_ai.sp | 24 | 🔧 Stub | Needs implementation |
+| left_4_ai.sp | 366 | ✅ Good | Queries nearby survivor responses |
 | rage_survivor_plugin_airstrike.sp | 1,339 | ✅ Good | None needed |
 | rage_survivor_plugin_berzerk.sp | 5,488 | ⚠️ Large | Refactoring recommended |
 | rage_survivor_plugin_deadringer.sp | 2,023 | ✅ Good | None needed |

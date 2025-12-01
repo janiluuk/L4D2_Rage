@@ -34,7 +34,7 @@
 
 1.4 (15-Oct-2022)
 	- New feature: Native "ExtraMenu_Create" can now create menus that use 1/2/3/4 to move and select instead of freezing the player and using W/A/S/D keys.
-	- Added new "translations/extra_menu.phrases.txt" translation file to support the new menu type.
+        - Added new "translations/rage_menu_base.phrases.txt" translation file to support the new menu type.
 	- Changed to store the menu data in StringMaps, for lower memory and an unlimited number of menus.
 	- This is still ultra fast to store and retrieve the menu data.
 
@@ -44,7 +44,7 @@
 1.2 (15-Aug-2022)
 	- Fixed errors thrown when displaying a menu and the clients index is 0.
 	- Increased the maximum length of rows to support multi-byte characters.
-	- Added a "meter" option demonstration to the "extra_menu_test" plugin.
+        - Added a "meter" option demonstration to the "rage_menu_base_test" plugin.
 
 1.1 (04-Aug-2022)
 	- Fixed the button sounds not playing.
@@ -58,7 +58,7 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <extra_menu>
+#include <rage_menu_base>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -236,7 +236,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_hFWD_ExtraMenu_OnSelect				= new GlobalForward("ExtraMenu_OnSelect", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
 
 	// Register library
-	RegPluginLibrary("extra_menu");
+        RegPluginLibrary("rage_menu_base");
 
 	return APLRes_Success;
 }
@@ -247,11 +247,11 @@ public void OnPluginStart()
 	LoadTranslations("core.phrases");
 
 	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/extra_menu.phrases.txt");
+        BuildPath(Path_SM, sPath, sizeof(sPath), "translations/rage_menu_base.phrases.txt");
 	if( FileExists(sPath) )
 	{
 		g_bTranslation = true;
-		LoadTranslations("extra_menu.phrases");
+                LoadTranslations("rage_menu_base.phrases");
 	}
 
 	// Sound path
@@ -270,10 +270,10 @@ public void OnPluginStart()
 	}
 
 	// Cvars
-	g_hCvarSoundMove =		CreateConVar("extra_menu_sound_move",	"buttons/button14.wav", 		"Path to the sound to play when moving through the menu. Or \"\" for no sound.", FCVAR_NOTIFY);
-	g_hCvarSoundClick =		CreateConVar("extra_menu_sound_click",	sTemp,							"Path to the sound to play when clicking a menu option. Or \"\" for no sound.", FCVAR_NOTIFY);
-	CreateConVar("extra_menu_version", PLUGIN_VERSION, "Extra Menu API plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
-	AutoExecConfig(true, "extra_menu_api");
+	g_hCvarSoundMove =		CreateConVar("rage_menu_base_sound_move",	"buttons/button14.wav", 		"Path to the sound to play when moving through the menu. Or \"\" for no sound.", FCVAR_NOTIFY);
+	g_hCvarSoundClick =		CreateConVar("rage_menu_base_sound_click",	sTemp,							"Path to the sound to play when clicking a menu option. Or \"\" for no sound.", FCVAR_NOTIFY);
+	CreateConVar("rage_menu_base_version", PLUGIN_VERSION, "Extra Menu API plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	AutoExecConfig(true, "rage_menu_base_api");
 
 	g_hCvarSoundMove.AddChangeHook(ConVarChanged_Cvars);
 	g_hCvarSoundClick.AddChangeHook(ConVarChanged_Cvars);

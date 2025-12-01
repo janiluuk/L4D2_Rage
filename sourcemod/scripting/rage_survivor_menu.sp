@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <admin>
 #include <clientprefs>
-#include <extra_menu>
+#include <rage_menu_base>
 #include <rage_survivor_guide>
 #include <l4d2hud>
 #include <rage/hud>
@@ -93,6 +93,7 @@ int g_iSelectableEntryCount = 0;
 bool g_bGuideNativeAvailable = false;
 bool g_bExtraMenuLoaded = false;
 bool g_bMenuHeld[MAXPLAYERS + 1];
+int g_iKitsUsed[MAXPLAYERS + 1];
 bool g_bHudEnabled = true;
 
 enum ThirdPersonMode
@@ -108,6 +109,7 @@ Handle g_hThirdPersonCookie = INVALID_HANDLE;
 
 ConVar g_hCvarMPGameMode;
 ConVar g_hGameModeCvars[GAMEMODE_OPTION_COUNT];
+ConVar g_hKitSlots;
 
 enum RageMenuOption
 {
@@ -149,6 +151,7 @@ void ApplyThirdPersonMode(int client);
 void PersistThirdPersonMode(int client);
 bool IsMeleeWeapon(int weapon);
 void SetHudEnabled(bool enabled, int activator);
+public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue);
 
 // ====================================================================================================
 //					PLUGIN INFO
@@ -168,6 +171,8 @@ public void OnPluginStart()
     RegConsoleCmd("sm_guide", CmdRageGuideMenu, "Open the Rage tutorial guide");
     RegConsoleCmd("+rage_menu", CmdRageMenuHoldStart, "Hold to open Rage menu");
     RegConsoleCmd("-rage_menu", CmdRageMenuHoldEnd, "Release to close Rage menu");
+    AddCommandListener(Command_VoiceRageMenuHoldStart, "+voicerecord");
+    AddCommandListener(Command_VoiceRageMenuHoldEnd, "-voicerecord");
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
     g_hCvarMPGameMode = FindConVar("mp_gamemode");
@@ -179,10 +184,20 @@ public void OnPluginStart()
 
     g_hThirdPersonCookie = RegClientCookie("rage_tp_mode", "Rage third person preference", CookieAccess_Public);
 
-    g_bExtraMenuLoaded = LibraryExists("extra_menu");
+    g_hKitSlots = CreateConVar("rage_menu_kit_slots", "1", "How many kits a player can request from the Rage menu per life.");
+    g_hKitSlots.AddChangeHook(OnKitSlotsChanged);
+
+    g_bExtraMenuLoaded = LibraryExists("rage_menu_base") || LibraryExists("extra_menu");
     if (g_bExtraMenuLoaded)
     {
-        OnLibraryAdded("extra_menu");
+        if (LibraryExists("rage_menu_base"))
+        {
+            OnLibraryAdded("rage_menu_base");
+        }
+        else
+        {
+            OnLibraryAdded("extra_menu");
+        }
     }
 
     RefreshGuideLibraryStatus();
@@ -198,6 +213,7 @@ public void OnClientPutInServer(int client)
     g_bMenuHeld[client] = false;
     g_ThirdPersonActive[client] = false;
     g_ThirdPersonMode[client] = TP_Off;
+    g_iKitsUsed[client] = 0;
     SDKHook(client, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
 }
 
@@ -206,6 +222,7 @@ public void OnClientDisconnect(int client)
     g_bMenuHeld[client] = false;
     g_ThirdPersonActive[client] = false;
     g_ThirdPersonMode[client] = TP_Off;
+    g_iKitsUsed[client] = 0;
 }
 
 public void OnClientCookiesCached(int client)
@@ -225,6 +242,19 @@ public void OnClientCookiesCached(int client)
     ApplyThirdPersonMode(client);
 }
 
+public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    if (convar == null)
+    {
+        return;
+    }
+
+    if (convar.IntValue < 0)
+    {
+        convar.SetInt(0);
+    }
+}
+
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
@@ -233,6 +263,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
         return;
     }
 
+    g_iKitsUsed[client] = 0;
     ApplyThirdPersonMode(client);
 }
 
@@ -249,8 +280,13 @@ public Action OnWeaponSwitchPost(int client, int weapon)
 
 public void OnLibraryAdded(const char[] name)
 {
-    if (strcmp(name, "extra_menu") == 0)
+    if (strcmp(name, "rage_menu_base") == 0 || strcmp(name, "extra_menu") == 0)
     {
+        if (g_iMenuID != 0)
+        {
+            return;
+        }
+
         g_bExtraMenuLoaded = true;
         bool buttons_nums = false;
 
@@ -264,7 +300,7 @@ public void OnLibraryAdded(const char[] name)
         if (!buttons_nums)
             ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
         ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-        ExtraMenu_AddEntry(menu_id, "1. Get Kit (1 left)", MENU_SELECT_LIST);
+        ExtraMenu_AddEntry(menu_id, "1. Get Kit", MENU_SELECT_LIST);
         TrackSelectableEntry(MENU_SELECT_LIST);
         ExtraMenu_AddOptions(menu_id, "Medic kit|Rambo kit|Counter-terrorist kit|Ninja kit");
 
@@ -358,7 +394,7 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnLibraryRemoved(const char[] name)
 {
-    if (strcmp(name, "extra_menu") == 0)
+    if (strcmp(name, "rage_menu_base") == 0 || strcmp(name, "extra_menu") == 0)
     {
         g_bExtraMenuLoaded = false;
         OnPluginEnd();
@@ -403,29 +439,51 @@ Action CmdRageGuideMenu(int client, int args)
 
 Action CmdRageMenuHoldStart(int client, int args)
 {
+    StartRageMenuHold(client);
+    return Plugin_Handled;
+}
+
+Action CmdRageMenuHoldEnd(int client, int args)
+{
+    StopRageMenuHold(client);
+    return Plugin_Handled;
+}
+
+Action Command_VoiceRageMenuHoldStart(int client, const char[] command, int argc)
+{
+    StartRageMenuHold(client);
+    return Plugin_Continue;
+}
+
+Action Command_VoiceRageMenuHoldEnd(int client, const char[] command, int argc)
+{
+    StopRageMenuHold(client);
+    return Plugin_Continue;
+}
+
+void StartRageMenuHold(int client)
+{
     if (client <= 0 || !IsClientInGame(client))
     {
-        return Plugin_Handled;
+        return;
     }
 
     if (g_bMenuHeld[client])
     {
-        return Plugin_Handled;
+        return;
     }
 
     if (DisplayRageMenu(client, false))
     {
         g_bMenuHeld[client] = true;
     }
-
-    return Plugin_Handled;
 }
 
-Action CmdRageMenuHoldEnd(int client, int args)
+void StopRageMenuHold(int client)
 {
     if (client <= 0 || !IsClientInGame(client))
     {
-        return Plugin_Handled;
+        return;
     }
 
     if (g_bMenuHeld[client])
@@ -433,8 +491,6 @@ Action CmdRageMenuHoldEnd(int client, int args)
         CancelClientMenu(client, true);
         g_bMenuHeld[client] = false;
     }
-
-    return Plugin_Handled;
 }
 
 public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
@@ -465,7 +521,15 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         {
             case Menu_GetKit:
             {
-                PrintHintText(client, "Kit presets are not available yet.");
+                int maxKits = (g_hKitSlots != null) ? g_hKitSlots.IntValue : 1;
+                if (maxKits <= 0 || g_iKitsUsed[client] >= maxKits)
+                {
+                    PrintHintText(client, "out of kits");
+                    return;
+                }
+
+                g_iKitsUsed[client]++;
+                FakeClientCommand(client, "sm_kit");
             }
             case Menu_SetAway:
             {
@@ -747,7 +811,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Hold ALT (bind \"+rage_menu\") and use W/S/A/D to navigate.");
+        PrintHintText(client, "Hold V (voice) or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);

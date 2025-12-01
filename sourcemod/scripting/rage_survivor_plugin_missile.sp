@@ -35,6 +35,12 @@ bool g_bHomingMissile[MAX_ENTITY_LIMIT];
 Handle g_hHomingTimer[MAX_ENTITY_LIMIT];
 int g_iMissileOwner[MAX_ENTITY_LIMIT];
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+    CreateNative("RageMissile_ShowCount", Native_ShowMissileCount);
+    return APLRes_Success;
+}
+
 public void OnPluginStart()
 {
     g_hMissileSpeed = CreateConVar("l4d2_missile_speed", "950.0", "Initial speed for fired missiles.");
@@ -104,11 +110,11 @@ public int OnCustomCommand(char[] name, int client, int entity, int type)
 
     if (homing)
     {
-        PrintHintText(client, "Homing missile launched!");
+        PrintHintText(client, "Homing missile");
     }
     else
     {
-        PrintHintText(client, "Dummy missile away!");
+        PrintHintText(client, "Dummy missile");
     }
 
     return 1;
@@ -119,11 +125,29 @@ public void OnMissileSettingsChanged(ConVar convar, const char[] oldValue, const
     UpdateSettings();
 }
 
+public any Native_ShowMissileCount(Handle plugin, int numParams)
+{
+    int client = GetNativeCell(1);
+    int missiles = GetNativeCell(2);
+    PrintMissileCountHint(client, missiles);
+    return 0;
+}
+
 void UpdateSettings()
 {
     g_fMissileSpeed = g_hMissileSpeed.FloatValue;
     g_fHomingStrength = g_hHomingStrength.FloatValue;
     g_fHomingRange = g_hHomingRange.FloatValue;
+}
+
+void PrintMissileCountHint(int client, int missiles)
+{
+    if (client <= 0 || !IsClientInGame(client) || missiles < 0)
+    {
+        return;
+    }
+
+    PrintHintText(client, "You have now %d missiles", missiles);
 }
 
 int LaunchMissile(int client, bool homing)
