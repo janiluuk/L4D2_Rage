@@ -23,10 +23,12 @@ enum HTTPStatus
     HTTPStatus_OK = 200,
 };
 
+#pragma newdecls required
+
 typeset HTTPResponseCallback
 {
     function void (HTTPResponse response, any data);
-}
+};
 
 typedef int HTTPHeader;
 
