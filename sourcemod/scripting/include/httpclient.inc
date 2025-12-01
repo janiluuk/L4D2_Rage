@@ -23,7 +23,7 @@ enum HTTPStatus
     HTTPStatus_OK = 200,
 };
 
-typedef void HTTPResponseCallback(HTTPResponse response, any data);
+typedef function void HTTPResponseCallback(HTTPResponse response, any data);
 
 typedef int HTTPHeader;
 
