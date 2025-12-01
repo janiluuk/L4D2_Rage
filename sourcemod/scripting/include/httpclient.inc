@@ -3,6 +3,8 @@
 #endif
 #define _httpclient_included
 
+#pragma newdecls required
+
 /** Minimal httpclient include stub for compilation. */
 
 enum HTTPMethod
@@ -23,32 +25,6 @@ enum HTTPStatus
     HTTPStatus_OK = 200,
 };
 
-#pragma newdecls required
-
-typedef function void HTTPResponseCallback(HTTPResponse response, any data);
-
-typedef int HTTPHeader;
-
-typedef int HTTPBody;
-
-methodmap HTTPRequest < Handle
-{
-    public native HTTPRequest(const char[] url, HTTPMethod method = HTTPMethod_Post);
-
-    property float Timeout
-    {
-        public native float get();
-        public native void set(float value);
-    }
-
-    public native void SetHeader(const char[] name, const char[] value);
-    public native void AppendHeader(const char[] name, const char[] value);
-    public native void SetBody(HTTPBody body);
-    public native void AppendBodyString(const char[] data);
-    public native void Post(const char[] data, HTTPResponseCallback callback, any value = 0);
-    public native void Send(HTTPResponseCallback callback, any value = 0);
-}
-
 methodmap HTTPResponseBody < Handle
 {
     public native int ReadString(char[] buffer, int maxlen, int offset = 0);
@@ -65,4 +41,27 @@ methodmap HTTPResponse < Handle
     {
         public native HTTPResponseBody get();
     }
+}
+
+typeset HTTPResponseCallback
+{
+    function void (HTTPResponse response, any data);
+}
+
+methodmap HTTPRequest < Handle
+{
+    public native HTTPRequest(const char[] url, HTTPMethod method = HTTPMethod_Post);
+
+    property float Timeout
+    {
+        public native float get();
+        public native void set(float value);
+    }
+
+    public native void SetHeader(const char[] name, const char[] value);
+    public native void AppendHeader(const char[] name, const char[] value);
+    public native void SetBody(Handle body);
+    public native void AppendBodyString(const char[] data);
+    public native void Post(const char[] data, HTTPResponseCallback callback, any value = 0);
+    public native void Send(HTTPResponseCallback callback, any value = 0);
 }
