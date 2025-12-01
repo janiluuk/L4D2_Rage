@@ -255,6 +255,19 @@ public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[]
     }
 }
 
+public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    if (convar == null)
+    {
+        return;
+    }
+
+    if (convar.IntValue < 0)
+    {
+        convar.SetInt(0);
+    }
+}
+
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
@@ -488,11 +501,8 @@ void StopRageMenuHold(int client)
 
     if (g_bMenuHeld[client])
     {
+        CancelClientMenu(client, true);
         g_bMenuHeld[client] = false;
-        if (g_bExtraMenuLoaded && g_iMenuID != 0)
-        {
-            ExtraMenu_Close(client);
-        }
     }
 }
 
@@ -814,7 +824,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Hold V or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
+        PrintHintText(client, "Hold V (voice) or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, g_iMenuID, MENU_TIME_FOREVER);

@@ -77,7 +77,7 @@ Pure damage output. Reloads faster, hits harder, and can take down a Tank hand-t
 Your team's lifeline. Heals faster, drops supplies, and keeps everyone alive.
 - **Healing Grenades** – Throw a grenade that heals instead of hurts
 - **Healing Orb** – Summon glowing orbs that restore health to nearby players
-- **Cleanse Bile** – Remove boomer bile from teammates
+- **Cleanse Bile** – Press Skill Action 3 (shown in-game) or `!unvomit` while covered to clear boomer bile (120s cooldown)
 - **Deploy Supplies** – Drop medkits and defibs for your team
 - **Bonus:** Speed boost while healing, better revival times
 

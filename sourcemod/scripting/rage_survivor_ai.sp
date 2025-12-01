@@ -4,14 +4,14 @@
 #include <sourcemod>
 #include <sdktools>
 #include <httpclient>
-#include <left_4_ai>
+#include <rage_survivor_ai>
 
 #define MAX_QUERY_LENGTH 256
 #define MAX_RESPONSE_LENGTH 4096
 #define MAX_REQUEST_BODY 2048
 
 public Plugin myinfo = {
-    name = "left_4_ai",
+    name = "rage_survivor_ai",
     author = "original authors, integrated by Rage",
     description = "AI chat for L4D2",
     version = "1.0.0",
@@ -32,15 +32,15 @@ float g_fMaxDistance = 750.0;
 
 public void OnPluginStart()
 {
-    g_hApiUrl = CreateConVar("left4ai_url", "http://127.0.0.1:11434/v1/chat/completions", "OpenAI-compatible chat completion endpoint.");
-    g_hApiKey = CreateConVar("left4ai_api_key", "", "Bearer token for the OpenAI-compatible server (blank to disable header).", FCVAR_PROTECTED);
-    g_hModel = CreateConVar("left4ai_model", "gpt-4o-mini", "Model name to request from the OpenAI-compatible server.");
-    g_hTimeout = CreateConVar("left4ai_timeout", "8.0", "HTTP timeout in seconds for AI calls.");
-    g_hMaxDistance = CreateConVar("left4ai_max_distance", "750.0", "Maximum range (in Hammer units) to pick a nearby survivor as the speaker.");
+    g_hApiUrl = CreateConVar("rage_survivor_ai_url", "http://127.0.0.1:11434/v1/chat/completions", "OpenAI-compatible chat completion endpoint.");
+    g_hApiKey = CreateConVar("rage_survivor_ai_api_key", "", "Bearer token for the OpenAI-compatible server (blank to disable header).", FCVAR_PROTECTED);
+    g_hModel = CreateConVar("rage_survivor_ai_model", "gpt-4o-mini", "Model name to request from the OpenAI-compatible server.");
+    g_hTimeout = CreateConVar("rage_survivor_ai_timeout", "8.0", "HTTP timeout in seconds for AI calls.");
+    g_hMaxDistance = CreateConVar("rage_survivor_ai_max_distance", "750.0", "Maximum range (in Hammer units) to pick a nearby survivor as the speaker.");
 
     RegConsoleCmd("sm_ai", Cmd_AI);
 
-    RegPluginLibrary("left_4_ai");
+    RegPluginLibrary("rage_survivor_ai");
 
     HookConVarChange(g_hApiUrl, OnSettingsChanged);
     HookConVarChange(g_hApiKey, OnSettingsChanged);
@@ -76,7 +76,7 @@ public Action Cmd_AI(int client, int args)
 
     if (g_sApiUrl[0] == '\0')
     {
-        PrintToChat(client, "\x04[AI]\x01 No AI endpoint configured. Set left4ai_url.");
+        PrintToChat(client, "\x04[AI]\x01 No AI endpoint configured. Set rage_survivor_ai_url.");
         return Plugin_Handled;
     }
 

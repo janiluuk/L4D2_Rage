@@ -34,7 +34,6 @@ public Plugin myinfo =
 #include <jutils>
 #include <l4d2>
 #include <rage/skill_actions>
-#include <rage/movement>
 
 #if !defined MAX_SKILL_NAME_LENGTH
         #define MAX_SKILL_NAME_LENGTH 32
@@ -110,7 +109,6 @@ char g_ClassActionCommandPlugin[MAXCLASSES][ClassSkill_Count][CLASS_COMMAND_PLUG
 int g_ClassActionCommandType[MAXCLASSES][ClassSkill_Count];
 int g_ClassActionCommandEntity[MAXCLASSES][ClassSkill_Count];
 
-ParachuteAbility g_Parachute;
 
 SkillActionSlot GetSkillActionSlotForInput(ClassSkillInput input)
 {
@@ -282,10 +280,11 @@ void ApplyActionDefinition(ClassTypes classType, ClassSkillInput input, const ch
 
 void ConfigureDefaultClassSkills()
 {
-	ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Airstrike");
-	ApplyActionDefinition(athlete, ClassSkill_Special, "command:Grenades:15");
+        ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Airstrike");
+        ApplyActionDefinition(athlete, ClassSkill_Special, "command:Grenades:15");
         ApplyActionDefinition(medic, ClassSkill_Special, "skill:Grenades");
         ApplyActionDefinition(medic, ClassSkill_Secondary, "skill:HealingOrb");
+        ApplyActionDefinition(medic, ClassSkill_Tertiary, "skill:UnVomit");
         ApplyActionDefinition(medic, ClassSkill_Deploy, "builtin:medic_supply");
         ApplyActionDefinition(saboteur, ClassSkill_Special, "skill:cloak:1");
         ApplyActionDefinition(saboteur, ClassSkill_Deploy, "builtin:saboteur_mines");
@@ -649,8 +648,7 @@ public OnPluginStart( )
 	g_iViewModelO = FindSendPropInfo("CTerrorPlayer","m_hViewModel");
 	g_iActiveWeaponOffset = FindSendPropInfo("CBasePlayer", "m_hActiveWeapon");
 	g_iNextSecondaryAttack	= FindSendPropInfo("CBaseCombatWeapon","m_flNextSecondaryAttack");
-        g_Parachute.Initialize();
-	g_iShovePenalty = FindSendPropInfo("CTerrorPlayer", "m_iShovePenalty");
+        g_iShovePenalty = FindSendPropInfo("CTerrorPlayer", "m_iShovePenalty");
 	g_flMeleeRate = 0.45;	
 	g_flAttackRate = 0.666;
 	g_flReloadRate = 0.5;
@@ -715,7 +713,7 @@ public OnPluginStart( )
 
 	ATHLETE_JUMP_VEL = CreateConVar("talents_athlete_jump", "450.0", "How high a soldier should be able to jump. Make this higher to make them jump higher, or 0.0 for normal height");
 	ATHLETE_SPEED = CreateConVar("talents_athlete_speed", "1.20", "How fast athlete should run. A value of 1.0 = normal speed");
-	ATHLETE_PARACHUTE_ENABLED = CreateConVar("talents_athlete_enable_parachute","0.0","Enable parachute for athlete. Hold E in air to use it. 0 = OFF, 1 = ON.", FCVAR_NOTIFY, true, 0.0, true, 1.0);		
+        ATHLETE_PARACHUTE_ENABLED = CreateConVar("talents_athlete_enable_parachute","1.0","Enable parachute for athlete. Hold E in air to use it. 0 = OFF, 1 = ON.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	
 	MEDIC_HEAL_DIST = CreateConVar("talents_medic_heal_dist", "256.0", "How close other survivors have to be to heal. Larger values = larger radius");
 	MEDIC_HEALTH_VALUE = CreateConVar("talents_medic_health", "10", "How much health to restore");
@@ -3227,7 +3225,7 @@ public setDebugMode(int mode) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-// Parachute 
+// Player command handling
 ///////////////////////////////////////////////////////////////////////////////////
 
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon)
@@ -3254,7 +3252,6 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
                         SetEntityFlags(client,flags);
 
                 }
-                g_Parachute.HandleRunCmd(client, buttons, flags, ATHLETE_PARACHUTE_ENABLED, g_bLeft4Dead2);
         }
         ClientData[client].LastButtons = buttons;
 

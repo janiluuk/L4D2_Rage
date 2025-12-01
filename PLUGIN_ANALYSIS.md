@@ -261,7 +261,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 
 ---
 
-### 10. **left_4_ai.sp** (366 lines)
+### 10. **rage_survivor_ai.sp** (366 lines)
 **Purpose**: AI chat system that relays OpenAI-compatible responses through nearby survivors.
 
 **Functionality**:
@@ -724,7 +724,7 @@ The `sourcemod/scripting/todo/` directory contains incomplete plugins:
 |--------|---------|-------|
 | ⭐⭐⭐⭐⭐ (5/5) | nightvision, admin_menu, left4dhooks | Perfect structure |
 | ⭐⭐⭐⭐ (4/5) | 11 plugins | Good with minor issues |
-| ⭐⭐⭐ (3/5) | 8 plugins (incl. left_4_ai) | Fair, needs improvements |
+| ⭐⭐⭐ (3/5) | 8 plugins (incl. rage_survivor_ai) | Fair, needs improvements |
 | ⭐⭐ (2/5) | 0 plugins | None |
 | ⭐ (1/5) | — | None |
 
