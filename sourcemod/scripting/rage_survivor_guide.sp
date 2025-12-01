@@ -153,7 +153,7 @@ void DisplayControlsMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Controls);
     SetMenuTitle(menu, "Controls & Core Features");
-    AddMenuItem(menu, "menu", "Quick menu (ALT + WASD)");
+    AddMenuItem(menu, "menu", "Quick menu (F1 + WASD)");
     AddMenuItem(menu, "skillkeys", "Skill & deploy buttons");
     AddMenuItem(menu, "thirdperson", "Third-person camera");
     AddMenuItem(menu, "hudmusic", "HUD & music toggles");
