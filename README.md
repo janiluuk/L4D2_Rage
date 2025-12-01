@@ -12,7 +12,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **Survival Tools** – Self-revive when downed, crawl while incapacitated, struggle free from infected pins, and help your teammates even when you're down
 
-**Slick Controls** – Hold V (voice key) for a radial menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
+**Slick Controls** – Tap X (voice menu) for a quick Rage menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
 
 **Custom Everything** – Play your own music, customize every ability, adjust difficulty, and tinker with 100+ settings
 
@@ -22,7 +22,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. Press V (default voice key) to open the quick menu
+2. Press X (voice menu key) to open the quick menu
 3. Pick your class and learn your abilities from the menu
 4. Type `!guide` in chat to open the full tutorial anytime
 
