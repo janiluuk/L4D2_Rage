@@ -12,7 +12,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **Survival Tools** – Self-revive when downed, crawl while incapacitated, struggle free from infected pins, and help your teammates even when you're down
 
-**Slick Controls** – Hold ALT for a radial menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
+**Slick Controls** – Hold V (voice key) for a radial menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
 
 **Custom Everything** – Play your own music, customize every ability, adjust difficulty, and tinker with 100+ settings
 
@@ -22,7 +22,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. Press ALT to open the quick menu
+2. Press V (default voice key) to open the quick menu
 3. Pick your class and learn your abilities from the menu
 4. Type `!guide` in chat to open the full tutorial anytime
 
@@ -45,7 +45,7 @@ Every class has special powers! Here's how to trigger them:
 | **Third ability** | Crouch + Use + Fire | Extra trick up your sleeve |
 | **Deploy stuff** | Look down + Hold Shift | Drop turrets, supplies, or mines |
 
-**Too complicated?** Just press ALT and select abilities from the quick menu instead!
+**Too complicated?** Just press V and select abilities from the quick menu instead!
 
 You can also rebind these in `configs/rage_skill_actions.cfg` or use console commands like `skill_action_1`, `skill_action_2`, etc.
 
@@ -118,10 +118,10 @@ Never feel helpless again! The Predicaments system gives you ways to save yourse
 
 **🤖 Smart Bots** – Bots can revive themselves too (configurable)
 
-All settings live in `cfg/sourcemod/l4d2_predicaments.cfg`. The key ones:
-- `l4d2_predicament_enable` – Turn it on/off (default: 1)
-- `l4d2_predicament_use` – Which items work: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
-- `self_help_crawl_speed` – How fast you crawl (0.0-1.0, default: 0.15)
+All settings live in `cfg/sourcemod/rage_survivor_predicament.cfg`. The key ones:
+- `rage_survivor_predicament_enable` – Turn it on/off (default: 1)
+- `rage_survivor_predicament_use` – Which items work: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
+- `rage_survivor_predicament_crawl_speed` – How fast you crawl (0.0-1.0, default: 0.15)
 
 ## Fun Extras & Quality of Life
 
