@@ -11,7 +11,7 @@ This document provides a comprehensive analysis of each compiled plugin in the L
 
 ## Compilation Overview
 
-The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod/scripting/` directory. Additional support plugins like `rage_menu_base.sp`, `rage_survivor_preficament.sp`, and `left4dhooks.sp` are included but not automatically compiled.
+The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod/scripting/` directory. Additional support plugins like `rage_menu_base.sp`, `rage_survivor_predicament.sp`, and `left4dhooks.sp` are included but not automatically compiled.
 
 ---
 
@@ -208,7 +208,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 
 ---
 
-### 8. **rage_survivor_preficament.sp** (3,132 lines)
+### 8. **rage_survivor_predicament.sp** (3,052 lines)
 **Purpose**: Enhanced survival mechanics (self-revival, crawling, struggle system).
 
 **Functionality**:
@@ -261,23 +261,26 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 
 ---
 
-### 10. **left_4_ai.sp** (24 lines)
-**Purpose**: AI chat system (stub implementation).
+### 10. **left_4_ai.sp** (366 lines)
+**Purpose**: AI chat system that relays OpenAI-compatible responses through nearby survivors.
 
 **Functionality**:
-- Currently just a stub with placeholder command
-- TODO: Port actual AI chat functionality
+- Registers `!ai` command to send player prompts to a configurable OpenAI-compatible endpoint
+- Picks the nearest alive survivor as the speaker and relays the AI reply in chat
+- Configurable model, API URL/key, timeout, and survivor search radius
 
-**Code Quality**: ⭐ (Stub)
-- Intentionally incomplete
+**Code Quality**: ⭐⭐⭐ (Solid)
+- Handles missing endpoint/key gracefully
+- Basic JSON escaping and parsing without external dependencies
 
 **Issues Identified**:
-- 🔧 **INCOMPLETE**: This is just a placeholder stub
+- ⚠️ Minimal JSON parsing could break on atypical responses; consider full JSON parser if responses change
 
 **Optimization Opportunities**:
-1. **COMPLETE**: Implement actual AI chat functionality or remove plugin
+1. Add streaming support for faster perceived responses
+2. Cache nearest survivor lookup when multiple requests are in flight
 
-**Status**: 🔧 Stub - needs implementation or removal
+**Status**: ✅ Functional
 
 ---
 
@@ -662,7 +665,7 @@ The `sourcemod/scripting/todo/` directory contains incomplete plugins:
 |--------|-------|-------|
 | Total Plugins Analyzed | 24 | Including TODOs |
 | Compiled Plugins | 21 | Active and functional |
-| TODO/Incomplete | 4 | Need implementation |
+| TODO/Incomplete | 3 | Need implementation |
 | Lines of Code (Total) | ~31,000+ | Approximate |
 | Large Files (>2000 lines) | 6 | Candidates for refactoring |
 | Very Large Files (>4000 lines) | 3 | Priority refactoring targets |
@@ -684,7 +687,7 @@ The `sourcemod/scripting/todo/` directory contains incomplete plugins:
 
 3. **Fix Incomplete Plugins**
    - Implement `rage_admin_menu.sp` action handlers
-   - Complete or remove `left_4_ai.sp` stub
+   - Finish remaining TODO plugins and add regression tests for the new AI relay
 
 4. **Optimize HUD Plugin**
    - Consolidate timers in `rage_survivor_hud.sp`
@@ -721,9 +724,9 @@ The `sourcemod/scripting/todo/` directory contains incomplete plugins:
 |--------|---------|-------|
 | ⭐⭐⭐⭐⭐ (5/5) | nightvision, admin_menu, left4dhooks | Perfect structure |
 | ⭐⭐⭐⭐ (4/5) | 11 plugins | Good with minor issues |
-| ⭐⭐⭐ (3/5) | 7 plugins | Fair, needs improvements |
+| ⭐⭐⭐ (3/5) | 8 plugins (incl. left_4_ai) | Fair, needs improvements |
 | ⭐⭐ (2/5) | 0 plugins | None |
-| ⭐ (1/5) | left_4_ai (stub) | Intentionally incomplete |
+| ⭐ (1/5) | — | None |
 
 ---
 

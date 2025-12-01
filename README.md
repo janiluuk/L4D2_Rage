@@ -22,7 +22,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. Press V (or type !rage in chat) to open the quick menu
+2. Press V (default voice key) to open the quick menu
 3. Pick your class and learn your abilities from the menu
 4. Type `!guide` in chat to open the full tutorial anytime
 
@@ -118,10 +118,10 @@ Never feel helpless again! The Predicaments system gives you ways to save yourse
 
 **🤖 Smart Bots** – Bots can revive themselves too (configurable)
 
-All settings live in `cfg/sourcemod/rage_survivor_preficament.cfg`. The key ones:
-- `rage_survivor_preficament_enable` – Turn it on/off (default: 1)
-- `rage_survivor_preficament_use` – Which items work: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
-- `rage_survivor_preficament_crawl_speed` – How fast you crawl (0.0-1.0, default: 0.15)
+All settings live in `cfg/sourcemod/rage_survivor_predicament.cfg`. The key ones:
+- `rage_survivor_predicament_enable` – Turn it on/off (default: 1)
+- `rage_survivor_predicament_use` – Which items work: 0=none, 1=pills/adrenaline, 2=medkits, 3=both (default: 3)
+- `rage_survivor_predicament_crawl_speed` – How fast you crawl (0.0-1.0, default: 0.15)
 
 ## Fun Extras & Quality of Life
 
