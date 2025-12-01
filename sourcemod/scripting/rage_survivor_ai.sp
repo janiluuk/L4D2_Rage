@@ -350,13 +350,41 @@ void DecodeJsonString(const char[] input, char[] output, int maxLen)
 
         switch (c)
         {
-            case '"': output[outPos++] = '"'; break;
-            case '\\': output[outPos++] = '\\'; break;
-            case '/': output[outPos++] = '/'; break;
-            case 'n': output[outPos++] = '\n'; break;
-            case 'r': output[outPos++] = '\r'; break;
-            case 't': output[outPos++] = '\t'; break;
-            default: output[outPos++] = c; break;
+            case '"':
+            {
+                output[outPos++] = '"';
+                break;
+            }
+            case '\\':
+            {
+                output[outPos++] = '\\';
+                break;
+            }
+            case '/':
+            {
+                output[outPos++] = '/';
+                break;
+            }
+            case 'n':
+            {
+                output[outPos++] = '\n';
+                break;
+            }
+            case 'r':
+            {
+                output[outPos++] = '\r';
+                break;
+            }
+            case 't':
+            {
+                output[outPos++] = '\t';
+                break;
+            }
+            default:
+            {
+                output[outPos++] = c;
+                break;
+            }
         }
 
         escape = false;
