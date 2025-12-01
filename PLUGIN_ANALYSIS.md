@@ -189,7 +189,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 **Functionality**:
 - WASD-based menu navigation
 - Replaces standard SourceMod menus
-- Hold TAB (or custom bind) to show, release to hide
+- Hold V (or custom bind) to show, release to hide
 - Support for various menu entry types
 
 **Code Quality**: ⭐⭐⭐⭐ (Good)
@@ -201,7 +201,7 @@ The build system (`build.yml`) compiles all `rage*.sp` files from the `sourcemod
 - ⚠️ Input handling could be more robust
 
 **Optimization Opportunities**:
-1. Add configurable keybinds (currently hardcoded to WASD, but menu trigger is user-bindable to TAB or other keys)
+1. Add configurable keybinds (currently hardcoded to WASD, but menu trigger is user-bindable to V or other keys)
 2. Optimize menu rendering to reduce updates
 
 **Status**: ✅ Functional, minor improvements possible
