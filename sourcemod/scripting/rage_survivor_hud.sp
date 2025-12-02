@@ -1087,7 +1087,28 @@ void UpdateHUD()
     GameRules_SetPropFloat("m_fScriptedHUDWidth", g_fCvar_HUD4_Width, HUD4);
     GameRules_SetPropFloat("m_fScriptedHUDHeight", g_fCvar_HUD4_Height * (CountCharInString(g_sHUD_TextArray[HUD4], '\n') + 1), HUD4);
 
-    ImplodeStrings(g_sHUD_TextArray, sizeof(g_sHUD_TextArray), " ", g_sHUD_Text, sizeof(g_sHUD_Text));
+    // Only include non-empty HUD texts when imploding
+    char tempArray[4][128];
+    int count = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        TrimString(g_sHUD_TextArray[i]);
+        if (g_sHUD_TextArray[i][0] != '\0')
+        {
+            strcopy(tempArray[count], sizeof(tempArray[]), g_sHUD_TextArray[i]);
+            count++;
+        }
+    }
+    
+    if (count > 0)
+    {
+        ImplodeStrings(tempArray, count, " ", g_sHUD_Text, sizeof(g_sHUD_Text));
+    }
+    else
+    {
+        g_sHUD_Text[0] = '\0';
+    }
+    
     GameRules_SetPropString("m_szScriptedHUDStringSet", g_sHUD_Text);
 }
 
@@ -1280,8 +1301,11 @@ void GetHUD_Texts()
     else
     {
         GetHUD1_Text(g_sHUD1_Text, sizeof(g_sHUD1_Text));
-        FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD1_Text, g_sSpaces);
+        TrimString(g_sHUD1_Text);
+        if (g_sHUD1_Text[0] != '\0')
+            FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD1_Text, g_sSpaces);
     }
+    TrimString(g_sBuffer);
     g_sHUD_TextArray[HUD1] = g_sBuffer;
 
     g_sBuffer = "\0";
@@ -1296,8 +1320,11 @@ void GetHUD_Texts()
     else
     {
         GetHUD2_Text(g_sHUD2_Text, sizeof(g_sHUD2_Text));
-        FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD2_Text, g_sSpaces);
+        TrimString(g_sHUD2_Text);
+        if (g_sHUD2_Text[0] != '\0')
+            FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD2_Text, g_sSpaces);
     }
+    TrimString(g_sBuffer);
     g_sHUD_TextArray[HUD2] = g_sBuffer;
 
     g_sBuffer = "\0";
@@ -1312,8 +1339,11 @@ void GetHUD_Texts()
     else
     {
         GetHUD3_Text(g_sHUD3_Text, sizeof(g_sHUD3_Text));
-        FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD3_Text, g_sSpaces);
+        TrimString(g_sHUD3_Text);
+        if (g_sHUD3_Text[0] != '\0')
+            FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD3_Text, g_sSpaces);
     }
+    TrimString(g_sBuffer);
     g_sHUD_TextArray[HUD3] = g_sBuffer;
 
     g_sBuffer = "\0";
@@ -1328,8 +1358,11 @@ void GetHUD_Texts()
     else
     {
         GetHUD4_Text(g_sHUD4_Text, sizeof(g_sHUD4_Text));
-        FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD4_Text, g_sSpaces);
+        TrimString(g_sHUD4_Text);
+        if (g_sHUD4_Text[0] != '\0')
+            FormatEx(g_sBuffer, sizeof(g_sBuffer), "%s%s", g_sHUD4_Text, g_sSpaces);
     }
+    TrimString(g_sBuffer);
     g_sHUD_TextArray[HUD4] = g_sBuffer;
 }
 

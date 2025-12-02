@@ -99,7 +99,7 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
                 PrintGuideLine(param1, "Open this tutorial anytime with !guide, !ragetutorial or the Rage menu.");
                 PrintGuideLine(param1, "Press X (voice menu) to show the quick menu and use WASD to select.");
                 PrintGuideLine(param1, "Pick a class, bind the four actions, and coordinate before leaving the saferoom.");
-                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
+                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Z.");
                 DisplayGuideMainMenu(param1);
             }
             else if (StrEqual(info, "classes"))
@@ -181,7 +181,7 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             else if (StrEqual(info, "skillkeys"))
             {
                 PrintGuideLine(param1, "Bind skill_action_1/2/3 + deployment_action so you can react without typing.");
-                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Shift.");
+                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + Z.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "thirdperson"))
@@ -806,7 +806,7 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
                 PrintGuideLine(param1, "Athlete: sprint + jump together for the ninja kick gap opener; hold USE mid-air to deploy the parachute.");
                 PrintGuideLine(param1, "Medic: tap skill_action_2 (Use+Fire) to throw a healing orb; stay near teammates for the healing aura.");
                 PrintGuideLine(param1, "Engineer: press skill_action_1 (middle mouse) to pick a turret and ammo, left-click to place, USE to pack it up.");
-                PrintGuideLine(param1, "Saboteur: skill_action_1 drops a fake corpse and cloaks you; hold SHIFT to plant mines, and !extendedsight pings specials for 20s.");
+                PrintGuideLine(param1, "Saboteur: skill_action_1 drops a fake corpse and cloaks you; hold Z to plant mines, and !extendedsight pings specials for 20s.");
             }
             else if (StrEqual(info, "grenades"))
             {
@@ -822,7 +822,7 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "mines"))
             {
-                PrintGuideLine(param1, "Saboteurs hold SHIFT to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.");
+                PrintGuideLine(param1, "Saboteurs hold Z to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.");
             }
             else if (StrEqual(info, "recon"))
             {

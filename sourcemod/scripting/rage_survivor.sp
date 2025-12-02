@@ -1304,7 +1304,7 @@ public OnClientPutInServer(client)
                 ClientCommand(client, "bind mouse3 skill_action_1");
                 ClientCommand(client, "bind mouse4 skill_action_2");
                 ClientCommand(client, "bind mouse5 skill_action_3");
-                ClientCommand(client, "bind shift \"+speed; deployment_action\"");
+                ClientCommand(client, "bind z \"+speed; deployment_action\"");
         }
 }
 
@@ -1683,13 +1683,13 @@ public Action CmdDeploymentAction(int client, int args)
                 return Plugin_Handled;
         }
 
-        // Check if holding shift (IN_SPEED button)
+        // Check if holding z (IN_SPEED button)
         int buttons = GetClientButtons(client);
-        bool holdingShift = (buttons & IN_SPEED) != 0;
+        bool holdingDeploy = (buttons & IN_SPEED) != 0;
 
-        if (!holdingShift)
+        if (!holdingDeploy)
         {
-                PrintHintText(client, "Hold SHIFT while looking down to deploy");
+                PrintHintText(client, "Hold Z while looking down to deploy");
                 return Plugin_Handled;
         }
 

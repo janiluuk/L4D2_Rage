@@ -29,7 +29,7 @@ void ResetSkillActionBindings()
     strcopy(g_SkillActionBindings[SkillAction_Primary], sizeof(g_SkillActionBindings[]), "Mouse3");
     strcopy(g_SkillActionBindings[SkillAction_Secondary], sizeof(g_SkillActionBindings[]), "Mouse4");
     strcopy(g_SkillActionBindings[SkillAction_Tertiary], sizeof(g_SkillActionBindings[]), "Mouse5");
-    strcopy(g_SkillActionBindings[SkillAction_Deploy], sizeof(g_SkillActionBindings[]), "Shift");
+    strcopy(g_SkillActionBindings[SkillAction_Deploy], sizeof(g_SkillActionBindings[]), "Z");
 }
 
 void LoadSkillActionBindings()
