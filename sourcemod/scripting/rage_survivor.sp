@@ -1470,6 +1470,8 @@ public Action CmdClassSet(int client, int args)
 
         // Change to the selected class
         SetupClasses(client, classIndex);
+        LastClassConfirmed[client] = classIndex;
+        g_iQueuedClass[client] = 0;
         SaveClassCookie(client, view_as<ClassTypes>(classIndex));
 
         // Schedule return to normal view
