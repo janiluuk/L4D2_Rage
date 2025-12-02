@@ -122,7 +122,7 @@ void SetupHUD(hudPosition position, int flags, float x, float y, float w, float 
 
     
     int id = view_as<int>(position);
-    Format(huds[id], 1024, "SMHud%d <- { Fields = { players = { slot = g_ModeScript.HUD_%s, staticstring = \"Players:\", special = HUD_SPECIAL_COOLDOWN, dataval = \"%%s\", %s name = \"smhud%d\" } } }; HUDSetLayout( SMHud%d ); HUDPlace( g_ModeScript.HUD_%s, %f, %f, %f, %f )", id, hudPositions[id], buffer, id, id, hudPositions[id], x, y, w, h);
+    Format(huds[id], 1024, "SMHud%d <- { Fields = { players = { slot = g_ModeScript.HUD_%s, staticstring = \"Players:\", special = g_ModeScript.HUD_SPECIAL_COOLDOWN, dataval = \"%%s\", %s name = \"smhud%d\" } } }; HUDSetLayout( SMHud%d ); HUDPlace( g_ModeScript.HUD_%s, %f, %f, %f, %f )", id, hudPositions[id], buffer, id, id, hudPositions[id], x, y, w, h);
     L4D2_RunScript(huds[id], "");
 }
 
