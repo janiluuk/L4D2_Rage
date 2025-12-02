@@ -166,6 +166,7 @@ new bool:g_bInSaferoom[MAXPLAYERS+1];
 new bool:g_bClassSelectionThirdPerson[MAXPLAYERS+1];
 new Float:g_SpawnPos[MAXPLAYERS+1][3];
 new bool:RoundStarted =false;
+new bool:LeftSafeAreaMessageShown = false;
 new bool:disableInfected = false;
 stock int g_iPlayerSkill[MAXPLAYERS+1];
 stock PlayerInfo ClientData[MAXPLAYERS+1];
