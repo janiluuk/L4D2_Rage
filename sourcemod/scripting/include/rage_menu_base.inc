@@ -43,6 +43,7 @@ public void __pl_rage_menu_base_SetNTVOptional()
         MarkNativeAsOptional("ExtraMenu_AddEntry");
         MarkNativeAsOptional("ExtraMenu_NewPage");
         MarkNativeAsOptional("ExtraMenu_Display");
+        MarkNativeAsOptional("ExtraMenu_Close");
 }
 #endif
 
@@ -124,6 +125,15 @@ native void ExtraMenu_NewPage(int menu_id);
 * @return	True on success, false otherwise (possibly if menu is not available).
 */
 native bool ExtraMenu_Display(int client, int menu_id, int time = MENU_TIME_FOREVER);
+
+/**
+* @brief Closes a menu for a client.
+*
+* @param	client			Player to close the menu for
+*
+* @return	True on success, false otherwise (possibly if menu is not open).
+*/
+native bool ExtraMenu_Close(int client);
 
 
 
