@@ -3,7 +3,16 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <httpclient>
+
+// Check if httpclient extension is available at compile time
+#tryinclude <httpclient>
+
+#if defined _httpclient_included
+    #define HTTPCLIENT_AVAILABLE 1
+#else
+    #define HTTPCLIENT_AVAILABLE 0
+#endif
+
 #include <rage_survivor_ai>
 
 #define MAX_QUERY_LENGTH 256
@@ -13,7 +22,7 @@
 public Plugin myinfo = {
     name = "rage_survivor_ai",
     author = "original authors, integrated by Rage",
-    description = "AI chat for L4D2",
+    description = "AI chat for L4D2 (requires httpclient extension)",
     version = "1.0.0",
     url = "https://github.com/janiluuk/L4D2_Rage"
 };
@@ -32,6 +41,11 @@ float g_fMaxDistance = 750.0;
 
 public void OnPluginStart()
 {
+#if !HTTPCLIENT_AVAILABLE
+    SetFailState("This plugin requires the httpclient extension. Install it from https://github.com/alliedmodders/sourcemod/tree/master/extensions/httpclient");
+    return;
+#endif
+
     g_hApiUrl = CreateConVar("rage_survivor_ai_url", "http://127.0.0.1:11434/v1/chat/completions", "OpenAI-compatible chat completion endpoint.");
     g_hApiKey = CreateConVar("rage_survivor_ai_api_key", "", "Bearer token for the OpenAI-compatible server (blank to disable header).", FCVAR_PROTECTED);
     g_hModel = CreateConVar("rage_survivor_ai_model", "gpt-4o-mini", "Model name to request from the OpenAI-compatible server.");
@@ -104,6 +118,10 @@ public Action Cmd_AI(int client, int args)
 
 void SendAIRequest(int requester, int speaker, const char[] query)
 {
+#if !HTTPCLIENT_AVAILABLE
+    PrintToChat(requester, "\x04[AI]\x01 httpclient extension is not available.");
+    return;
+#else
     HTTPRequest request = new HTTPRequest(g_sApiUrl);
     if (request == null)
     {
@@ -140,10 +158,14 @@ void SendAIRequest(int requester, int speaker, const char[] query)
     pack.WriteCell(GetClientUserId(speaker));
 
     request.Post(body, OnAIResponse, pack);
+#endif
 }
 
 public void OnAIResponse(HTTPResponse response, any data)
 {
+#if !HTTPCLIENT_AVAILABLE
+    return;
+#else
     DataPack pack = view_as<DataPack>(data);
     pack.Reset();
     int requesterUserId = pack.ReadCell();
@@ -188,6 +210,7 @@ public void OnAIResponse(HTTPResponse response, any data)
     {
         PrintToChat(requester, "\x04[AI]\x01 %s", content);
     }
+#endif
 }
 
 void RefreshSettings()
