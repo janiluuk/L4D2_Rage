@@ -115,6 +115,8 @@ Handle g_hThirdPersonCookie = INVALID_HANDLE;
 ConVar g_hCvarMPGameMode;
 ConVar g_hGameModeCvars[GAMEMODE_OPTION_COUNT];
 ConVar g_hKitSlots;
+ConVar g_hDefaultMenuKey;
+Handle g_hMenuKeyCookie = INVALID_HANDLE;
 
 enum RageMenuOption
 {
@@ -187,9 +189,13 @@ public void OnPluginStart()
     }
 
     g_hThirdPersonCookie = RegClientCookie("rage_tp_mode", "Rage third person preference", CookieAccess_Public);
+    g_hMenuKeyCookie = RegClientCookie("rage_menu_key_bound", "Rage menu key auto-bind status", CookieAccess_Private);
 
     g_hKitSlots = CreateConVar("rage_menu_kit_slots", "1", "How many kits a player can request from the Rage menu per life.");
     g_hKitSlots.AddChangeHook(OnKitSlotsChanged);
+    
+    g_hDefaultMenuKey = CreateConVar("rage_menu_default_key", "v", "Default key to bind the Rage menu to. Set to empty string to disable auto-binding.", FCVAR_NONE);
+    AutoExecConfig(true, "rage_survivor_menu");
 
     g_bExtraMenuLoaded = LibraryExists("rage_menu_base") || LibraryExists("extra_menu");
     if (g_bExtraMenuLoaded)
@@ -249,19 +255,49 @@ public void OnClientDisconnect(int client)
 
 public void OnClientCookiesCached(int client)
 {
-    if (g_hThirdPersonCookie == INVALID_HANDLE || !IsClientInGame(client))
+    if (!IsClientInGame(client) || IsFakeClient(client))
     {
         return;
     }
-
-    char buffer[8];
-    GetClientCookie(client, g_hThirdPersonCookie, buffer, sizeof(buffer));
-    if (buffer[0] != '\0')
+    
+    // Handle third person cookie
+    if (g_hThirdPersonCookie != INVALID_HANDLE)
     {
-        g_ThirdPersonMode[client] = view_as<ThirdPersonMode>(StringToInt(buffer));
+        char buffer[8];
+        GetClientCookie(client, g_hThirdPersonCookie, buffer, sizeof(buffer));
+        if (buffer[0] != '\0')
+        {
+            g_ThirdPersonMode[client] = view_as<ThirdPersonMode>(StringToInt(buffer));
+        }
+        ApplyThirdPersonMode(client);
     }
-
-    ApplyThirdPersonMode(client);
+    
+    // Auto-bind menu key if not already done
+    if (g_hMenuKeyCookie != INVALID_HANDLE && g_hDefaultMenuKey != null)
+    {
+        char boundStatus[8];
+        GetClientCookie(client, g_hMenuKeyCookie, boundStatus, sizeof(boundStatus));
+        
+        // If cookie is empty or "0", the key hasn't been bound yet
+        if (boundStatus[0] == '\0' || StringToInt(boundStatus) == 0)
+        {
+            char defaultKey[32];
+            g_hDefaultMenuKey.GetString(defaultKey, sizeof(defaultKey));
+            
+            // Only bind if a default key is configured
+            if (defaultKey[0] != '\0')
+            {
+                // Execute bind command for the client
+                ClientCommand(client, "bind %s +rage_menu", defaultKey);
+                
+                // Mark as bound in cookie
+                SetClientCookie(client, g_hMenuKeyCookie, "1");
+                
+                // Notify the player
+                CreateTimer(2.0, Timer_NotifyMenuKey, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+            }
+        }
+    }
 }
 
 public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -1053,4 +1089,26 @@ public void ApplyThirdPersonMode(int client)
     {
         ClientCommand(client, "firstperson");
     }
+}
+
+public Action Timer_NotifyMenuKey(Handle timer, int userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
+    {
+        return Plugin_Stop;
+    }
+    
+    char defaultKey[32];
+    if (g_hDefaultMenuKey != null)
+    {
+        g_hDefaultMenuKey.GetString(defaultKey, sizeof(defaultKey));
+        if (defaultKey[0] != '\0')
+        {
+            PrintToChat(client, "\x04[Rage]\x01 Menu bound to \x03%s\x01 key. Hold to open, release to close.", defaultKey);
+            PrintToChat(client, "\x01Or press \x03X\x01 (voice menu) for quick access. Type \x03!rage_bind\x01 to change key.");
+        }
+    }
+    
+    return Plugin_Stop;
 }
