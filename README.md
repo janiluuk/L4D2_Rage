@@ -22,16 +22,18 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. Press X (voice menu key) to open the quick menu, or type `!rage_bind` to bind it to any key
-3. Pick your class and learn your abilities from the menu
-4. Type `!guide` in chat to open the full tutorial anytime
+2. The menu is automatically bound to the **V** key on first join—just hold V to open, release to close
+3. You can also press **X** (voice menu key) for quick access, or type `!rage_bind` to change the key
+4. Pick your class and learn your abilities from the menu
+5. Type `!guide` in chat to open the full tutorial anytime
 
 **For Server Owners:**
 1. Drop the `sourcemod/` folder into your L4D2 server directory
 2. Edit `configs/rage_class_skills.cfg` to customize classes and abilities
 3. (Optional) Tweak settings in `cfg/sourcemod/talents.cfg` for cooldowns and limits
-4. Make sure the SourceMod **httpclient** extension is installed (ships with SM 1.12+); place `httpclient.ext.*` binaries in `addons/sourcemod/extensions/`
-5. Restart your server and you're good to go!
+4. (Optional) Change the default menu bind key in `cfg/sourcemod/rage_survivor_menu.cfg` (default is "v")
+5. Make sure the SourceMod **httpclient** extension is installed (ships with SM 1.12+); place `httpclient.ext.*` binaries in `addons/sourcemod/extensions/`
+6. Restart your server and you're good to go!
 
 **Pro tip:** Use Docker Compose if you want a one-click setup—just run `docker-compose up` and everything works out of the box.
 
@@ -46,13 +48,13 @@ Every class has special powers! Here's how to trigger them:
 | **Third ability** | Crouch + Use + Fire | Extra trick up your sleeve |
 | **Deploy stuff** | Look down + Hold Shift | Drop turrets, supplies, or mines |
 
-**Too complicated?** Just press X (voice menu) and select abilities from the quick menu instead!
+**Too complicated?** The Rage menu is automatically bound to **V** on first join—just hold it to open! You can also press X (voice menu) to access it instantly.
 
-**Pro Tip:** Bind a key to hold-open the menu! Type `!rage_bind` in chat to see instructions, or add this to your autoexec.cfg:
+**Want to change the key?** Type `!rage_bind` in chat for instructions, or add this to your autoexec.cfg:
 ```
-bind v +rage_menu  // Hold V to open menu, release to close
+bind <key> +rage_menu  // Hold to open menu, release to close
 ```
-Try binding it to keys like V, B, N, M, or mouse side buttons (mouse4/mouse5) for quick access.
+Try keys like B, N, M, or mouse side buttons (mouse4/mouse5) for quick access.
 
 You can also rebind abilities in `configs/rage_skill_actions.cfg` or use console commands like `skill_action_1`, `skill_action_2`, etc.
 
