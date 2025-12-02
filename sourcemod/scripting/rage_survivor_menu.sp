@@ -157,6 +157,7 @@ void ApplyThirdPersonMode(int client);
 void PersistThirdPersonMode(int client);
 bool IsMeleeWeapon(int weapon);
 void SetHudEnabled(bool enabled, int activator);
+bool IsValidKeyString(const char[] key);
 public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue);
 
 // ====================================================================================================
@@ -284,8 +285,8 @@ public void OnClientCookiesCached(int client)
             char defaultKey[32];
             g_hDefaultMenuKey.GetString(defaultKey, sizeof(defaultKey));
             
-            // Only bind if a default key is configured
-            if (defaultKey[0] != '\0')
+            // Only bind if a default key is configured and valid
+            if (defaultKey[0] != '\0' && IsValidKeyString(defaultKey))
             {
                 // Execute bind command for the client
                 ClientCommand(client, "bind %s +rage_menu", defaultKey);
@@ -1089,6 +1090,30 @@ public void ApplyThirdPersonMode(int client)
     {
         ClientCommand(client, "firstperson");
     }
+}
+
+bool IsValidKeyString(const char[] key)
+{
+    // Validate that the key string only contains safe characters
+    // Valid keys are alphanumeric, mouse buttons, or common special keys
+    int len = strlen(key);
+    if (len == 0 || len > 31)
+    {
+        return false;
+    }
+    
+    // Check each character - allow alphanumeric, underscore, and digits
+    for (int i = 0; i < len; i++)
+    {
+        char c = key[i];
+        // Allow: a-z, A-Z, 0-9, underscore
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'))
+        {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 public Action Timer_NotifyMenuKey(Handle timer, int userid)
