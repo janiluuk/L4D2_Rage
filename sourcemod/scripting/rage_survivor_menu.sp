@@ -12,6 +12,8 @@
 
 #define GAMEMODE_OPTION_COUNT 11
 #define CLASS_OPTION_COUNT 7
+#define MENU_OPTION_EXIT -1
+#define MENU_OPTION_BACK_ON_FIRST_PAGE -2
 
 static const char g_sGameModeNames[GAMEMODE_OPTION_COUNT][] =
 {
@@ -463,14 +465,14 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         guideIndex = g_iGuideOptionIndexInfected;
     }
 
-    // Handle special menu actions: -1 = Exit, -2 = Back on first page
-    if (option == -1)
+    // Handle special menu actions
+    if (option == MENU_OPTION_EXIT)
     {
         // Exit button pressed - just close the menu gracefully
         g_bMenuHeld[client] = false;
         return;
     }
-    else if (option == -2)
+    else if (option == MENU_OPTION_BACK_ON_FIRST_PAGE)
     {
         // Back button pressed on first page - close the menu
         g_bMenuHeld[client] = false;
