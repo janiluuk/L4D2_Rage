@@ -173,26 +173,26 @@ stock const String:ClassCustomModels[][64] =
 
 stock String:ClassTips[][] =
 {
-	", He can't do shit.",
-	", He has high attack melee & shoot rate, takes less damage and moves faster.",
-	", He can Jump high",
-	", He can heal nearby players, revive others faster, drop supplies. Speciality: Healing orbs.",
-	", He can go invisible, drop variety of mines. Speciality: Nightvision.",
-	", He has increased damage, fast reload and immune to Tank knockdowns! Speciality: Berzerk mode!",
-	", He can drop auto turrets and ammo supplies. Speciality: Protective shield granades.",
-	", He has lots of health."
+        ", He can't do shit.",
+        ", He has high attack melee & shoot rate, takes less damage and moves faster. Speciality: Satellite Strike.",
+        ", He can Jump high",
+        ", He can heal nearby players, revive others faster, drop supplies. Speciality: Healing orbs.",
+        ", He can go invisible, drop variety of mines. Speciality: Nightvision.",
+        ", He has increased damage, fast reload and immune to Tank knockdowns! Speciality: Berzerk mode!",
+        ", He can drop auto turrets and ammo supplies. Speciality: Experimental grenades.",
+        ", He has lots of health."
 };
 
 stock String:SpecialReadyTips[][] =
 {
-	"No go",
-	"Airstrike is ready!",
-	"Anti-Gravity grenade is ready!",
-	"You can deploy and throw healing grenades again",
-	"You can plant mines or use cloak again",
-	"Berzerk mode is ready!",
-	"You can deploy or throw armoring grenades again",
-	"Brute force is ready to unleash again"
+        "No go",
+        "Satellite strike is ready!",
+        "Anti-Gravity grenade is ready!",
+        "You can deploy and throw healing grenades again",
+        "You can plant mines or use cloak again",
+        "Berzerk mode is ready!",
+        "Experimental grenades are ready again",
+        "You're healthy and ready to tank—no special to trigger"
 };
 
 enum BombType {

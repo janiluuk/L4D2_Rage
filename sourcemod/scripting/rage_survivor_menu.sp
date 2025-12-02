@@ -450,7 +450,7 @@ Action CmdRageMenuBind(int client, int args)
     PrintToChat(client, "\x04[Rage]\x01 To bind the menu to a key, open your console and type:");
     PrintToChat(client, "\x03bind <key> +rage_menu");
     PrintToChat(client, "\x01Example: \x03bind v +rage_menu");
-    PrintToChat(client, "\x01Suggested keys: \x03v, b, n, m, mouse4, mouse5");
+    PrintToChat(client, "\x01Suggested keys: \x03v, g, k, mouse4, mouse5");
     PrintToChat(client, "\x01Hold the key to open menu, release to close.");
 
     return Plugin_Handled;

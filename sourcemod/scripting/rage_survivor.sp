@@ -281,7 +281,7 @@ void ApplyActionDefinition(ClassTypes classType, ClassSkillInput input, const ch
 
 void ConfigureDefaultClassSkills()
 {
-        ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Airstrike");
+        ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Satellite");
         ApplyActionDefinition(athlete, ClassSkill_Special, "command:Grenades:15");
         ApplyActionDefinition(medic, ClassSkill_Special, "skill:Grenades");
         ApplyActionDefinition(medic, ClassSkill_Secondary, "skill:HealingOrb");
@@ -289,10 +289,9 @@ void ConfigureDefaultClassSkills()
         ApplyActionDefinition(medic, ClassSkill_Deploy, "builtin:medic_supply");
         ApplyActionDefinition(saboteur, ClassSkill_Special, "skill:cloak:1");
         ApplyActionDefinition(saboteur, ClassSkill_Deploy, "builtin:saboteur_mines");
-        ApplyActionDefinition(commando, ClassSkill_Special, "skill:Satellite");
-        ApplyActionDefinition(commando, ClassSkill_Secondary, "skill:Berzerk");
-        ApplyActionDefinition(engineer, ClassSkill_Special, "skill:Multiturret");
-        ApplyActionDefinition(engineer, ClassSkill_Secondary, "command:Grenades:7");
+        ApplyActionDefinition(commando, ClassSkill_Special, "skill:Berzerk");
+        ApplyActionDefinition(engineer, ClassSkill_Special, "command:Grenades:7");
+        ApplyActionDefinition(engineer, ClassSkill_Secondary, "skill:Multiturret");
         ApplyActionDefinition(engineer, ClassSkill_Deploy, "builtin:engineer_supply");
 }
 
@@ -599,7 +598,7 @@ public OnPluginStart( )
         RegConsoleCmd("sm_class_set", CmdClassSet, "Select a class directly");
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows class descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
-        RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
+        RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Satellite Strike for Soldier)");
         RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
         RegConsoleCmd("skill_action_3", CmdSkillAction3, "Trigger your tertiary class action");
         RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (look down + SHIFT by default)");
@@ -849,8 +848,10 @@ public void SetupClasses(client, class)
 
         char primaryBind[64];
         char deployBind[64];
+        char secondaryBind[64];
         GetActionBindingLabel(ClassSkill_Special, primaryBind, sizeof(primaryBind));
         GetActionBindingLabel(ClassSkill_Deploy, deployBind, sizeof(deployBind));
+        GetActionBindingLabel(ClassSkill_Secondary, secondaryBind, sizeof(secondaryBind));
 
         ClientData[client].ChosenClass = view_as<ClassTypes>(class);
 ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_DROP_INTERVAL);
@@ -869,14 +870,14 @@ switch (view_as<ClassTypes>(class))
                         char text[64];
                         text[0] = '\0';
                         if (g_bAirstrike == true) {
-                                Format(text, sizeof(text), "Press %s for Airstrike!", primaryBind);
+                                Format(text, sizeof(text), "Press %s for Satellite Strike!", primaryBind);
                         }
 
                         PrintHintText(client,"You have armor, fast attack rate and movement %s", text );
-			ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_AIRSTRIKE_INTERVAL);
-			ClientData[client].SpecialLimit = GetConVarInt(SOLDIER_MAX_AIRSTRIKES);
-			MaxPossibleHP = GetConVarInt(SOLDIER_HEALTH);
-		}
+                        ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_AIRSTRIKE_INTERVAL);
+                        ClientData[client].SpecialLimit = GetConVarInt(SOLDIER_MAX_AIRSTRIKES);
+                        MaxPossibleHP = GetConVarInt(SOLDIER_HEALTH);
+                }
 		
                 case medic:
                 {
@@ -903,8 +904,8 @@ switch (view_as<ClassTypes>(class))
 		{
                         char text[64];
 
-			ClientData[client].SpecialDropInterval = 120;
-			ClientData[client].SpecialLimit = 3;
+                        ClientData[client].SpecialDropInterval = 120;
+                        ClientData[client].SpecialLimit = 3;
 
                         if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK)) {
                                 text = ", You can knock down tanks!";
@@ -913,10 +914,10 @@ switch (view_as<ClassTypes>(class))
                         PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
                         MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
                 }
-		
+
                 case engineer:
                 {
-                        PrintHintText(client,"Press %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, deployBind);
+                        PrintHintText(client,"Press %s to launch experimental grenades. Use %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, secondaryBind, deployBind);
                         MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
                         ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
                 }
@@ -926,14 +927,14 @@ switch (view_as<ClassTypes>(class))
                         PrintHintText(client,"Use %s to drop mines! Hold CROUCH 3 sec to go invisible.\nPress %s to summon a Decoy. Toggle extended sight from your menu for wallhack support", deployBind, primaryBind);
 			MaxPossibleHP = GetConVarInt(SABOTEUR_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(SABOTEUR_MAX_BOMBS);
-		}
-		
-		case brawler:
-		{
-			PrintHintText(client,"You've got lots of health!");
-			MaxPossibleHP = GetConVarInt(BRAWLER_HEALTH);
-		}
-	}
+                }
+
+                case brawler:
+                {
+                        PrintHintText(client,"You've got lots of health! No special skill—just tank the damage for your team.");
+                        MaxPossibleHP = GetConVarInt(BRAWLER_HEALTH);
+                }
+        }
 
 	AssignSkills(client);
 	setPlayerHealth(client, MaxPossibleHP);
