@@ -428,7 +428,7 @@ public OnPluginStart()
 	g_cvarColor = CreateConVar("l4d2_berserk_mode_color", "1", "What color should the players have on berserker? (1 = RED, 2 = BLUE, 3 = GREEN, 4 = BLACK, 5 = TRANSPARENT)", FCVAR_NOTIFY, true, 1.0, true, 5.0);
 	g_cvarMusicFile = CreateConVar("l4d2_berserk_mode_music_file", "music/tank/onebadtank.wav", "Which music should be played on berserker mode?");
 	g_cvarDownloadMusic = CreateConVar("l4d2_berserk_mode_music_custom", "0", "Is the music sound file a non-standard one? If it is, it will be forced to be downloaded", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	g_cvarKeyToBind = CreateConVar("l4d2_berserk_mode_binding_key", "b", "Which key should the plugin bind for berserker? Default is B key", FCVAR_NOTIFY);
+        g_cvarKeyToBind = CreateConVar("l4d2_berserk_mode_binding_key", "k", "Which key should the plugin bind for berserker? Default is K key", FCVAR_NOTIFY);
 	g_cvarBindKey = CreateConVar("l4d2_berserk_mode_bind_key", "0", "Should the plugin bind the specified key for berserker?", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarEnableMusicShield  = CreateConVar("l4d2_berserk_mode_esthetic_shield", "1", "Should the plugin avoid playing the music if it is anoying? (On finale escapes, tanks on play, etc)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarAdrenCheckEnable = CreateConVar("l4d2_berserk_mode_adren_safeguard", "1", "Should we activate the Adrenaline Safe Guard for sound? (Prevents glitches)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
