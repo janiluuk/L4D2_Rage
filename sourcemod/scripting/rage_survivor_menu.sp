@@ -258,19 +258,6 @@ public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[]
     }
 }
 
-public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-    if (convar == null)
-    {
-        return;
-    }
-
-    if (convar.IntValue < 0)
-    {
-        convar.SetInt(0);
-    }
-}
-
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
