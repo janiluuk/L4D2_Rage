@@ -1292,6 +1292,13 @@ public OnClientPutInServer(client)
         ResetClientVariables(client);
         RebuildCache();
         HookPlayer(client);
+        
+        // Auto-bind skill action keys for convenience
+        if (!IsFakeClient(client))
+        {
+                ClientCommand(client, "bind mouse3 skill_action_1");  // Middle mouse button
+                ClientCommand(client, "bind shift +duck");  // Ensure shift is bound for deployment
+        }
 }
 
 public void OnClientCookiesCached(int client)
