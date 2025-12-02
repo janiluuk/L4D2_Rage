@@ -15,6 +15,7 @@
 #define DEBUG 0
 #define DEBUG_LOG 1
 #define DEBUG_TRACE 0
+#define DEPLOY_LOOK_DOWN_ANGLE 45.0  // Minimum pitch angle (degrees) required to look down for deployment
 stock int DEBUG_MODE = 0;
 
 public Plugin myinfo =
@@ -1297,7 +1298,7 @@ public OnClientPutInServer(client)
         if (!IsFakeClient(client))
         {
                 ClientCommand(client, "bind mouse3 skill_action_1");  // Middle mouse button
-                ClientCommand(client, "bind shift +duck");  // Ensure shift is bound for deployment
+                ClientCommand(client, "bind shift +speed");  // Ensure shift is bound to walk/run modifier for deployment checks
         }
 }
 
@@ -1633,14 +1634,19 @@ public Action CmdDeploymentAction(int client, int args)
         // Check if deployment action is configured for this class
         if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
         {
-                PrintHintText(client, "No deployment action is bound for %s.", MENU_OPTIONS[classType]);
+                char className[32] = "your class";
+                if (classType >= 0 && classType < MAXCLASSES)
+                {
+                        strcopy(className, sizeof(className), MENU_OPTIONS[classType]);
+                }
+                PrintHintText(client, "No deployment action is bound for %s.", className);
                 return Plugin_Handled;
         }
 
         // Check if looking down
         float angles[3];
         GetClientEyeAngles(client, angles);
-        bool lookingDown = (angles[0] > 45.0);
+        bool lookingDown = (angles[0] > DEPLOY_LOOK_DOWN_ANGLE);
 
         if (!lookingDown)
         {
