@@ -544,7 +544,8 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         case Menu_Deploy:
         {
-            FakeClientCommand(client, "deployment_action");
+            // Use quick_deploy command which skips look-down/shift requirements
+            FakeClientCommand(client, "quick_deploy");
         }
         case Menu_GetKit:
         {

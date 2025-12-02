@@ -611,6 +611,7 @@ public OnPluginStart( )
         RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (look down + SHIFT by default)");
         RegConsoleCmd("+deployment_action", CmdDeploymentAction, "Trigger your deployment action (on press)");
         RegConsoleCmd("-deployment_action", CmdSkillActionRelease, "Deployment action release (no-op)");
+        RegConsoleCmd("quick_deploy", CmdQuickDeploy, "Quick deploy without look-down/shift requirements (for menu use)");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
         g_hClassCookie = RegClientCookie("rage_class_choice", "Rage preferred class", CookieAccess_Public);
         RegisterAdminCommands();
@@ -1628,6 +1629,33 @@ public Action CmdSkillAction3(int client, int args)
 public Action CmdSkillActionRelease(int client, int args)
 {
         // No-op for button release events
+        return Plugin_Handled;
+}
+
+public Action CmdQuickDeploy(int client, int args)
+{
+        // Quick deploy for menu use - skips look-down and shift requirements
+        if (client < 1 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return Plugin_Handled;
+        }
+
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                PrintHintText(client, "Select a class from the Rage menu first.");
+                return Plugin_Handled;
+        }
+
+        // Check if deployment action is configured for this class
+        if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
+        {
+                PrintHintText(client, "No deployment action is available for your class.");
+                return Plugin_Handled;
+        }
+
+        // Execute deployment directly
+        TryExecuteSkillInput(client, ClassSkill_Deploy);
         return Plugin_Handled;
 }
 
