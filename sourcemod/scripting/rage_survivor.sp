@@ -15,6 +15,7 @@
 #define DEBUG 0
 #define DEBUG_LOG 1
 #define DEBUG_TRACE 0
+#define DEPLOY_LOOK_DOWN_ANGLE 45.0  // Minimum pitch angle (degrees) required to look down for deployment
 stock int DEBUG_MODE = 0;
 
 public Plugin myinfo =
@@ -1292,6 +1293,13 @@ public OnClientPutInServer(client)
         ResetClientVariables(client);
         RebuildCache();
         HookPlayer(client);
+        
+        // Auto-bind skill action keys for convenience
+        if (!IsFakeClient(client))
+        {
+                ClientCommand(client, "bind mouse3 skill_action_1");  // Middle mouse button
+                ClientCommand(client, "bind shift +speed");  // Ensure shift is bound to walk/run modifier for deployment checks
+        }
 }
 
 public void OnClientCookiesCached(int client)
@@ -1611,6 +1619,62 @@ public Action CmdSkillAction3(int client, int args)
 
 public Action CmdDeploymentAction(int client, int args)
 {
+        if (client < 1 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return Plugin_Handled;
+        }
+
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                PrintHintText(client, "Select a class from the Rage menu first.");
+                return Plugin_Handled;
+        }
+
+        // Check if deployment action is configured for this class
+        if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
+        {
+                char className[32] = "your class";
+                if (classType >= 0 && classType < MAXCLASSES)
+                {
+                        strcopy(className, sizeof(className), MENU_OPTIONS[classType]);
+                }
+                PrintHintText(client, "No deployment action is bound for %s.", className);
+                return Plugin_Handled;
+        }
+
+        // Check if looking down
+        float angles[3];
+        GetClientEyeAngles(client, angles);
+        bool lookingDown = (angles[0] > DEPLOY_LOOK_DOWN_ANGLE);
+
+        if (!lookingDown)
+        {
+                PrintHintText(client, "Look down to deploy");
+                return Plugin_Handled;
+        }
+
+        // Check if on ground
+        int flags = GetEntityFlags(client);
+        bool onGround = (flags & FL_ONGROUND) != 0;
+
+        if (!onGround)
+        {
+                PrintHintText(client, "You must stand on solid ground to deploy");
+                return Plugin_Handled;
+        }
+
+        // Check if holding shift (IN_SPEED button)
+        int buttons = GetClientButtons(client);
+        bool holdingShift = (buttons & IN_SPEED) != 0;
+
+        if (!holdingShift)
+        {
+                PrintHintText(client, "Hold SHIFT while looking down to deploy");
+                return Plugin_Handled;
+        }
+
+        // Now execute the deployment action
         TryExecuteSkillInput(client, ClassSkill_Deploy);
         return Plugin_Handled;
 }
