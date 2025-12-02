@@ -201,7 +201,8 @@ public void OnPluginStart()
         }
     }
 
-    SetHudEnabled(true, 0);
+    // Note: HUD initialization is delayed until OnMapStart to avoid entity creation before map is running
+    g_bHudEnabled = true;
 
     RefreshGuideLibraryStatus();
 }
@@ -209,6 +210,21 @@ public void OnPluginStart()
 public void OnAllPluginsLoaded()
 {
     RefreshGuideLibraryStatus();
+}
+
+public void OnMapStart()
+{
+    // Initialize HUD now that a map is running
+    if (g_bHudEnabled)
+    {
+        hudPosition currentPos = view_as<hudPosition>(getCurrentHud());
+        if (currentPos < HUD_POSITION_FAR_LEFT || currentPos > HUD_POSITION_SCORE_4)
+        {
+            currentPos = HUD_POSITION_MID_TOP;
+        }
+
+        SetupMessageHud(currentPos, HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEAM_SURVIVORS);
+    }
 }
 
 public void OnClientPutInServer(int client)
@@ -917,6 +933,15 @@ public void SetHudEnabled(bool enabled, int activator)
             PrintHintText(activator, "HUD disabled.");
         }
 
+        return;
+    }
+
+    // Only setup HUD if a map is running (entities can be created)
+    char mapname[64];
+    GetCurrentMap(mapname, sizeof(mapname));
+    if (mapname[0] == '\0')
+    {
+        // Map not loaded yet, HUD will be initialized in OnMapStart
         return;
     }
 
