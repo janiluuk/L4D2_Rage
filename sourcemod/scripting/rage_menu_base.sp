@@ -231,6 +231,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("ExtraMenu_AddOptions",	Native_AddOptions);
 	CreateNative("ExtraMenu_NewPage",		Native_AddPage);
 	CreateNative("ExtraMenu_Display",		Native_Display);
+	CreateNative("ExtraMenu_SetClientValue",	Native_SetClientValue);
 	CreateNative("ExtraMenu_Close",			Native_CloseMenu);
 
 	// Forward
@@ -561,8 +562,41 @@ int Native_Display(Handle plugin, int numParams)
 	}
 
 	#if VERIFY_INDEXES
-	return false;
-	#endif
+        return false;
+#endif
+}
+
+int Native_SetClientValue(Handle plugin, int numParams)
+{
+        int menu_id = GetNativeCell(1);
+        int client = GetNativeCell(2);
+        int row = GetNativeCell(3);
+        int value = GetNativeCell(4);
+
+        if( client <= 0 || client > MaxClients ) return false;
+
+        char sKey[MAX_KEYS];
+        IntToString(menu_id, sKey, sizeof(sKey));
+
+#if VERIFY_INDEXES
+        if( !g_AllMenus.ContainsKey(sKey) )
+        {
+                return false;
+        }
+#endif
+
+        MenuData data;
+        g_AllMenus.GetArray(sKey, data, sizeof(data));
+
+        int length = data.RowsData.Length;
+        if( row < 0 || row >= length )
+        {
+                return false;
+        }
+
+        data.MenuVals[client].Set(row, value);
+        g_AllMenus.SetArray(sKey, data, sizeof(data));
+        return true;
 }
 
 int Native_CloseMenu(Handle plugin, int numParams)

@@ -43,6 +43,7 @@ public void __pl_rage_menu_base_SetNTVOptional()
         MarkNativeAsOptional("ExtraMenu_AddEntry");
         MarkNativeAsOptional("ExtraMenu_NewPage");
         MarkNativeAsOptional("ExtraMenu_Display");
+        MarkNativeAsOptional("ExtraMenu_SetClientValue");
 }
 #endif
 
@@ -124,6 +125,18 @@ native void ExtraMenu_NewPage(int menu_id);
 * @return	True on success, false otherwise (possibly if menu is not available).
 */
 native bool ExtraMenu_Display(int client, int menu_id, int time = MENU_TIME_FOREVER);
+
+/**
+* @brief Overrides the current value for a client and row in the menu.
+*
+* @param        menu_id                 The menu ID to modify, returned from ExtraMenu_Create()
+* @param        client                  Player whose row value should change
+* @param        row                     Row index to update
+* @param        value                   New value to store for the row
+*
+* @return       True on success, false otherwise.
+*/
+native bool ExtraMenu_SetClientValue(int menu_id, int client, int row, int value);
 
 /**
 * @brief Closes a menu for a client.
