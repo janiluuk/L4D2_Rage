@@ -58,6 +58,32 @@ Try keys like B, N, M, or mouse side buttons (mouse4/mouse5) for quick access.
 
 You can also rebind abilities in `configs/rage_skill_actions.cfg` or use console commands like `skill_action_1`, `skill_action_2`, etc.
 
+### Special skill quick reference
+
+Most classes have a unique special mapped to **Skill Action 1** (default: middle mouse button). The Brawler is passive-only and relies on sheer health:
+
+| Class | Special skill | Default button |
+| ----- | ------------- | --------------- |
+| Soldier | Satellite Strike | Skill Action 1 (Middle Mouse) |
+| Athlete/Ninja | Anti-gravity Grenades | Skill Action 1 (Middle Mouse) |
+| Commando/Trooper | Berzerk Rage | Skill Action 1 (Middle Mouse) |
+| Medic | Healing Grenades | Skill Action 1 (Middle Mouse) |
+| Engineer | Experimental Grenades | Skill Action 1 (Middle Mouse) |
+| Saboteur | Dead Ringer Cloak | Skill Action 1 (Middle Mouse) |
+| Brawler | None (extra health passive) | N/A |
+
+### Deployables quick reference
+
+| Class | What you can deploy | Default deploy button |
+| ----- | ------------------- | --------------------- |
+| Soldier | Nothing to deploy | N/A |
+| Athlete/Ninja | Nothing to deploy | N/A |
+| Commando/Trooper | Nothing to deploy | N/A |
+| Medic | Medkits, defibs, and supplies | Deploy Action (Look down + Hold Shift) |
+| Engineer | Ammo supplies (deploy) and automated turrets (Secondary Action) | Deploy Action (Look down + Hold Shift) |
+| Saboteur | Motion mines (various types) | Deploy Action (Look down + Hold Shift) |
+| Brawler | Nothing to deploy | N/A |
+
 ## Meet Your Squad 💪
 
 ### 🎖️ Soldier (Soldierboy)
@@ -78,7 +104,6 @@ Speed demon built for parkour and aerial combat. Double jump, wall run, and floa
 ### ⚔️ Trooper (Commando)
 Pure damage output. Reloads faster, hits harder, and can take down a Tank hand-to-hand.
 - **Berserk Mode** – Build rage and unleash a devastating rampage
-- **Satellite Cannon** – Another orbital option for crowd control
 - **Tank Knockdown** – Melee a Tank to stagger it
 - **Bonus:** Massive health pool for sustained combat
 
@@ -92,8 +117,8 @@ Your team's lifeline. Heals faster, drops supplies, and keeps everyone alive.
 
 ### 🔧 Engineer
 The builder who fortifies positions and rains experimental hell on zombies.
-- **Deploy Turrets** – Place auto-firing turrets with 20+ ammo types (regular bullets, explosive rounds, lasers, you name it)
 - **Experimental Grenades** – 20 wild options: Black Hole vortexes, Tesla lightning, Airstrike markers, healing clouds, and more
+- **Deploy Turrets** – Place auto-firing turrets with 20+ ammo types (regular bullets, explosive rounds, lasers, you name it)
 - **Ammo Supplies** – Drop infinite ammo packs for your squad
 - **Barricades** – Block doors and windows
 - **Bonus:** Turrets can be carried around and redeployed
@@ -107,6 +132,7 @@ The stealth specialist who sneaks, scouts, and plants deadly traps.
 
 ### 🥊 Brawler *(Experimental)*
 Heavy-duty tank class with massive health for soaking damage. Still being tested!
+- **Passive Tankiness** – No active special skill; you simply soak damage better than everyone else
 - **Bonus:** Huge health pool to take punishment for your team
 
 ## Survival Mechanics (Predicaments System)
