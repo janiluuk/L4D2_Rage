@@ -120,7 +120,8 @@ Handle g_hMenuKeyCookie = INVALID_HANDLE;
 
 enum RageMenuOption
 {
-    Menu_GetKit = 0,
+    Menu_Deploy = 0,
+    Menu_GetKit,
     Menu_SetAway,
     Menu_SelectTeam,
     Menu_ChangeClass,
@@ -195,7 +196,7 @@ public void OnPluginStart()
     g_hKitSlots = CreateConVar("rage_menu_kit_slots", "1", "How many kits a player can request from the Rage menu per life.");
     g_hKitSlots.AddChangeHook(OnKitSlotsChanged);
     
-    g_hDefaultMenuKey = CreateConVar("rage_menu_default_key", "v", "Default key to bind the Rage menu to. Set to empty string to disable auto-binding.", FCVAR_NONE);
+    g_hDefaultMenuKey = CreateConVar("rage_menu_default_key", "shift", "Default key to bind the Rage menu to. Set to empty string to disable auto-binding.", FCVAR_NONE);
     AutoExecConfig(true, "rage_survivor_menu");
 
     g_bExtraMenuLoaded = LibraryExists("rage_menu_base") || LibraryExists("extra_menu");
@@ -541,6 +542,10 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
 
     switch (menuOption)
     {
+        case Menu_Deploy:
+        {
+            FakeClientCommand(client, "deployment_action");
+        }
         case Menu_GetKit:
         {
             int maxKits = (g_hKitSlots != null) ? g_hKitSlots.IntValue : 1;
@@ -827,27 +832,29 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "1. Get Kit", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "1. Deploy (Medic/Engineer/Saboteur)", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_Deploy));
+    ExtraMenu_AddEntry(menu_id, "2. Get Kit", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_GetKit));
     ExtraMenu_AddOptions(menu_id, "Medic kit|Rambo kit|Counter-terrorist kit|Ninja kit");
 
-    ExtraMenu_AddEntry(menu_id, "2. Set yourself away", MENU_SELECT_ONLY);
+    ExtraMenu_AddEntry(menu_id, "3. Set yourself away", MENU_SELECT_ONLY);
     optionMap.Push(view_as<int>(Menu_SetAway));
-    ExtraMenu_AddEntry(menu_id, "3. Select team", MENU_SELECT_ONLY);
+    ExtraMenu_AddEntry(menu_id, "4. Select team", MENU_SELECT_ONLY);
     optionMap.Push(view_as<int>(Menu_SelectTeam));
 
     if (includeChangeClass)
     {
-        ExtraMenu_AddEntry(menu_id, "4. Change class: _OPT_", MENU_SELECT_LIST);
+        ExtraMenu_AddEntry(menu_id, "5. Change class: _OPT_", MENU_SELECT_LIST);
         optionMap.Push(view_as<int>(Menu_ChangeClass));
         AddClassOptions(menu_id);
     }
 
-    ExtraMenu_AddEntry(menu_id, "5. See your ranking", MENU_SELECT_ONLY);
+    ExtraMenu_AddEntry(menu_id, "6. See your ranking", MENU_SELECT_ONLY);
     optionMap.Push(view_as<int>(Menu_ViewRank));
-    ExtraMenu_AddEntry(menu_id, "6. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
+    ExtraMenu_AddEntry(menu_id, "7. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
     optionMap.Push(view_as<int>(Menu_VoteCustomMap));
-    ExtraMenu_AddEntry(menu_id, "7. Vote for gamemode", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "8. Vote for gamemode", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_VoteGameMode));
     AddGameModeOptions(menu_id);
     ExtraMenu_NewPage(menu_id);

@@ -1709,11 +1709,8 @@ bool canUseSpecialSkill(client, char[] pendingMessage, bool ignorePinned = false
 		PrintHintText(client, "Cannot deploy here");
 		return false;
 	}
-	if (FindAttacker(client) > 0 || IsIncapacitated(client)) {
-		PrintHintText(client, "You're too screwed to use special skills");
-		return false;
-	}
-	if ((FindAttacker(client) > 0 || IsIncapacitated(client)) && ignorePinned == false) {
+	// Don't allow special skills when pinned or incapacitated (unless ignorePinned is true)
+	if (!ignorePinned && (FindAttacker(client) > 0 || IsIncapacitated(client))) {
 		PrintHintText(client, "You're too screwed to use special skills");
 		return false;
 	}
