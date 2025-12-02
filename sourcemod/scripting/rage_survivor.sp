@@ -1213,6 +1213,7 @@ public OnMapStart()
 	// Cache
 	ClearCache();
 	RoundStarted = false;
+	LeftSafeAreaMessageShown = false;
 	ClassHint = false;
 	// Shake
 
@@ -1238,6 +1239,7 @@ public void OnMapEnd()
 {
 	// Cache
 	RoundStarted=false;
+	LeftSafeAreaMessageShown = false;
 	ClearCache();
 	OnRoundState(0);
 }
@@ -1281,6 +1283,7 @@ public OnPluginReady() {
 void ResetPlugin()
 {
 	RoundStarted=false;
+	LeftSafeAreaMessageShown = false;
 	g_iPlayerSpawn = false;
 }
 
@@ -1788,6 +1791,7 @@ public Event_RoundChange(Handle:event, String:name[], bool:dontBroadcast)
 	
 	RndSession++;
 	RoundStarted = false;
+	LeftSafeAreaMessageShown = false;
 }
 
 public Event_RoundStart(Handle:event, String:name[], bool:dontBroadcast)
@@ -1920,7 +1924,11 @@ public Event_LeftSaferoom(Handle:event, String:Event_name[], bool:dontBroadcast)
 public Action:Event_LeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	RoundStarted = true;
-	PrintToChatAll("%s Players left safe area, classes now locked!",PRINT_PREFIX);	
+	if (!LeftSafeAreaMessageShown)
+	{
+		LeftSafeAreaMessageShown = true;
+		PrintToChatAll("%s Players left safe area, classes now locked!",PRINT_PREFIX);
+	}
 }
 
 public Event_PlayerTeam(Handle:hEvent, String:sName[], bool:bDontBroadcast)
