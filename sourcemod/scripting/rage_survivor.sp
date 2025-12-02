@@ -600,9 +600,17 @@ public OnPluginStart( )
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows class descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
         RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
+        RegConsoleCmd("+skill_action_1", CmdSkillAction1, "Trigger your primary class action (on press)");
+        RegConsoleCmd("-skill_action_1", CmdSkillActionRelease, "Skill action release (no-op)");
         RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
+        RegConsoleCmd("+skill_action_2", CmdSkillAction2, "Trigger your secondary class action (on press)");
+        RegConsoleCmd("-skill_action_2", CmdSkillActionRelease, "Skill action release (no-op)");
         RegConsoleCmd("skill_action_3", CmdSkillAction3, "Trigger your tertiary class action");
+        RegConsoleCmd("+skill_action_3", CmdSkillAction3, "Trigger your tertiary class action (on press)");
+        RegConsoleCmd("-skill_action_3", CmdSkillActionRelease, "Skill action release (no-op)");
         RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (look down + SHIFT by default)");
+        RegConsoleCmd("+deployment_action", CmdDeploymentAction, "Trigger your deployment action (on press)");
+        RegConsoleCmd("-deployment_action", CmdSkillActionRelease, "Deployment action release (no-op)");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
         g_hClassCookie = RegClientCookie("rage_class_choice", "Rage preferred class", CookieAccess_Public);
         RegisterAdminCommands();
@@ -1614,6 +1622,12 @@ public Action CmdSkillAction2(int client, int args)
 public Action CmdSkillAction3(int client, int args)
 {
         TryExecuteSkillInput(client, ClassSkill_Tertiary);
+        return Plugin_Handled;
+}
+
+public Action CmdSkillActionRelease(int client, int args)
+{
+        // No-op for button release events
         return Plugin_Handled;
 }
 
