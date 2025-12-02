@@ -22,7 +22,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. Press X (voice menu key) to open the quick menu
+2. Press X (voice menu key) to open the quick menu, or type `!rage_bind` to bind it to any key
 3. Pick your class and learn your abilities from the menu
 4. Type `!guide` in chat to open the full tutorial anytime
 
@@ -46,9 +46,15 @@ Every class has special powers! Here's how to trigger them:
 | **Third ability** | Crouch + Use + Fire | Extra trick up your sleeve |
 | **Deploy stuff** | Look down + Hold Shift | Drop turrets, supplies, or mines |
 
-**Too complicated?** Just press V and select abilities from the quick menu instead!
+**Too complicated?** Just press X (voice menu) and select abilities from the quick menu instead!
 
-You can also rebind these in `configs/rage_skill_actions.cfg` or use console commands like `skill_action_1`, `skill_action_2`, etc.
+**Pro Tip:** Bind a key to hold-open the menu! Type `!rage_bind` in chat to see instructions, or add this to your autoexec.cfg:
+```
+bind v +rage_menu  // Hold V to open menu, release to close
+```
+Try binding it to keys like V, B, N, M, or mouse side buttons (mouse4/mouse5) for quick access.
+
+You can also rebind abilities in `configs/rage_skill_actions.cfg` or use console commands like `skill_action_1`, `skill_action_2`, etc.
 
 ## Meet Your Squad 💪
 
