@@ -158,7 +158,7 @@ public void OnAIResponse(HTTPResponse response, any data)
         return;
     }
 
-    if (response == null)
+    if (response.Status == HTTPStatus_Invalid)
     {
         PrintToChat(requester, "\x04[AI]\x01 Failed to reach AI server.");
         return;

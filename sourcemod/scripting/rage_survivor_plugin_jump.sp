@@ -165,12 +165,12 @@ void PerformDoubleJump(int client)
     float eyeAngles[3];
     GetClientEyeAngles(client, eyeAngles);
 
-    float forward[3];
-    GetAngleVectors(eyeAngles, forward, NULL_VECTOR, NULL_VECTOR);
-    ScaleVector(forward, forwardBoost);
+    float forwardVec[3];
+    GetAngleVectors(eyeAngles, forwardVec, NULL_VECTOR, NULL_VECTOR);
+    ScaleVector(forwardVec, forwardBoost);
 
-    velocity[0] += forward[0];
-    velocity[1] += forward[1];
+    velocity[0] += forwardVec[0];
+    velocity[1] += forwardVec[1];
     velocity[2] = vertical;
 
     TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, velocity);
