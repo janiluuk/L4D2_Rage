@@ -4,8 +4,6 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: '30 03 01 */3 *' # Artifacts expire every 3 months
 
 jobs:
   build:

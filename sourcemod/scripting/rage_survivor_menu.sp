@@ -171,6 +171,7 @@ public void OnPluginStart()
 {
     RegConsoleCmd("sm_rage", CmdRageMenu, "Open the Rage game menu");
     RegConsoleCmd("sm_guide", CmdRageGuideMenu, "Open the Rage tutorial guide");
+    RegConsoleCmd("sm_rage_bind", CmdRageMenuBind, "Show instructions to bind the Rage menu to a key");
     RegConsoleCmd("+rage_menu", CmdRageMenuHoldStart, "Hold to open Rage menu");
     RegConsoleCmd("-rage_menu", CmdRageMenuHoldEnd, "Release to close Rage menu");
     AddCommandListener(Command_QuickRageMenu, "voice_menu_2");
@@ -374,6 +375,23 @@ Action CmdRageGuideMenu(int client, int args)
     return Plugin_Handled;
 }
 
+Action CmdRageMenuBind(int client, int args)
+{
+    if (client <= 0 || !IsClientInGame(client))
+    {
+        PrintToServer("[Rage] This command can only be used in-game.");
+        return Plugin_Handled;
+    }
+
+    PrintToChat(client, "\x04[Rage]\x01 To bind the menu to a key, open your console and type:");
+    PrintToChat(client, "\x03bind <key> +rage_menu");
+    PrintToChat(client, "\x01Example: \x03bind v +rage_menu");
+    PrintToChat(client, "\x01Suggested keys: \x03v, b, n, m, mouse4, mouse5");
+    PrintToChat(client, "\x01Hold the key to open menu, release to close.");
+
+    return Plugin_Handled;
+}
+
 Action CmdRageMenuHoldStart(int client, int args)
 {
     StartRageMenuHold(client);
@@ -443,6 +461,20 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         map = g_hMenuOptionsInfected;
         guideIndex = g_iGuideOptionIndexInfected;
+    }
+
+    // Handle special menu actions: -1 = Exit, -2 = Back on first page
+    if (option == -1)
+    {
+        // Exit button pressed - just close the menu gracefully
+        g_bMenuHeld[client] = false;
+        return;
+    }
+    else if (option == -2)
+    {
+        // Back button pressed on first page - close the menu
+        g_bMenuHeld[client] = false;
+        return;
     }
 
     if (map == null || option < 0 || option >= map.Length)
@@ -902,7 +934,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Press X (voice menu) or bind \"+rage_menu\" to open; use W/S/A/D to navigate.");
+        PrintHintText(client, "Press X (voice menu) or type !rage_bind to bind a key; use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);
