@@ -3294,19 +3294,21 @@ public setDebugMode(int mode) {
 
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon)
 {
-	if (!IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2)
-	return Plugin_Continue;
-	
-	new flags = GetEntityFlags(client);
-	
-	if (!(buttons & IN_DUCK) || !(flags & FL_ONGROUND)) {
-		ClientData[client].HideStartTime= GetGameTime();
-		ClientData[client].HealStartTime= GetGameTime();
-	}
+        if (!IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2)
+        return Plugin_Continue;
 
-	if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
-	return Plugin_Continue;
-	
+        new flags = GetEntityFlags(client);
+
+        bool pressedSpecial = (buttons & IN_ATTACK3) != 0 && (ClientData[client].LastButtons & IN_ATTACK3) == 0;
+
+        if (!(buttons & IN_DUCK) || !(flags & FL_ONGROUND)) {
+                ClientData[client].HideStartTime= GetGameTime();
+                ClientData[client].HealStartTime= GetGameTime();
+        }
+
+        if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
+        return Plugin_Continue;
+
         if (ClientData[client].ChosenClass == athlete)
         {
                 if (buttons & IN_JUMP && flags & FL_ONGROUND )
@@ -3316,6 +3318,11 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
                         SetEntityFlags(client,flags);
 
                 }
+        }
+
+        if (pressedSpecial)
+        {
+                TryExecuteSkillInput(client, ClassSkill_Special);
         }
         ClientData[client].LastButtons = buttons;
 

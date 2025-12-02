@@ -124,6 +124,7 @@ enum RageMenuOption
     Menu_SetAway,
     Menu_SelectTeam,
     Menu_ChangeClass,
+    Menu_DeployAction,
     Menu_ViewRank,
     Menu_VoteCustomMap,
     Menu_VoteGameMode,
@@ -252,6 +253,30 @@ public void OnClientDisconnect(int client)
     g_ThirdPersonActive[client] = false;
     g_ThirdPersonMode[client] = TP_Off;
     g_iKitsUsed[client] = 0;
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
+{
+    if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client) || IsFakeClient(client) || !g_bExtraMenuLoaded)
+    {
+        return Plugin_Continue;
+    }
+
+    bool holdingShift = (buttons & IN_SPEED) != 0;
+
+    if (holdingShift)
+    {
+        if (!g_bMenuHeld[client])
+        {
+            StartRageMenuHold(client);
+        }
+    }
+    else if (g_bMenuHeld[client])
+    {
+        StopRageMenuHold(client);
+    }
+
+    return Plugin_Continue;
 }
 
 public void OnClientCookiesCached(int client)
@@ -573,6 +598,10 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             FakeClientCommand(client, "sm_class_set %d", classIndex);
             PrintHintText(client, "Switching to %s", g_sClassOptions[value]);
         }
+        case Menu_DeployAction:
+        {
+            FakeClientCommand(client, "deployment_action");
+        }
         case Menu_ViewRank:
         {
             FakeClientCommand(client, "sm_stats");
@@ -843,11 +872,14 @@ void BuildSingleMenu(bool includeChangeClass)
         AddClassOptions(menu_id);
     }
 
-    ExtraMenu_AddEntry(menu_id, "5. See your ranking", MENU_SELECT_ONLY);
+    ExtraMenu_AddEntry(menu_id, "5. Deploy class ability", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_DeployAction));
+
+    ExtraMenu_AddEntry(menu_id, "6. See your ranking", MENU_SELECT_ONLY);
     optionMap.Push(view_as<int>(Menu_ViewRank));
-    ExtraMenu_AddEntry(menu_id, "6. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
+    ExtraMenu_AddEntry(menu_id, "7. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
     optionMap.Push(view_as<int>(Menu_VoteCustomMap));
-    ExtraMenu_AddEntry(menu_id, "7. Vote for gamemode", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "8. Vote for gamemode", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_VoteGameMode));
     AddGameModeOptions(menu_id);
     ExtraMenu_NewPage(menu_id);
