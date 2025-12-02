@@ -1216,7 +1216,7 @@ void GetHUD_Pos()
                 g_fHUD3_Y -= g_fCvar_HUD3_Y_Speed;
 
                 if (g_fHUD3_Y < g_fCvar_HUD3_Y_Min)
-                    g_fHUD3_Y = g_fCvar_HUD3_X_Max;
+                    g_fHUD3_Y = g_fCvar_HUD3_Y_Max;
             }
         }
     }
@@ -1258,7 +1258,7 @@ void GetHUD_Pos()
                 g_fHUD4_Y -= g_fCvar_HUD4_Y_Speed;
 
                 if (g_fHUD4_Y < g_fCvar_HUD4_Y_Min)
-                    g_fHUD4_Y = g_fCvar_HUD4_X_Max;
+                    g_fHUD4_Y = g_fCvar_HUD4_Y_Max;
             }
         }
     }
