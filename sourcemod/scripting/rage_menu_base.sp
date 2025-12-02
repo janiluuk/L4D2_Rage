@@ -231,6 +231,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("ExtraMenu_AddOptions",	Native_AddOptions);
 	CreateNative("ExtraMenu_NewPage",		Native_AddPage);
 	CreateNative("ExtraMenu_Display",		Native_Display);
+	CreateNative("ExtraMenu_Close",			Native_CloseMenu);
 
 	// Forward
 	g_hFWD_ExtraMenu_OnSelect				= new GlobalForward("ExtraMenu_OnSelect", ET_Event, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
@@ -562,6 +563,20 @@ int Native_Display(Handle plugin, int numParams)
 	#if VERIFY_INDEXES
 	return false;
 	#endif
+}
+
+int Native_CloseMenu(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	if( !client || !IsClientInGame(client) ) return false;
+
+	if( g_bMenuOpen[client] )
+	{
+		CloseExtraMenu(client);
+		return true;
+	}
+
+	return false;
 }
 
 

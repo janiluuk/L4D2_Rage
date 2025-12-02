@@ -488,8 +488,11 @@ void StopRageMenuHold(int client)
 
     if (g_bMenuHeld[client])
     {
-        CancelClientMenu(client, true);
         g_bMenuHeld[client] = false;
+        if (g_bExtraMenuLoaded && g_iMenuID != 0)
+        {
+            ExtraMenu_Close(client);
+        }
     }
 }
 
