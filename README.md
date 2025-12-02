@@ -22,7 +22,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. The menu is automatically bound to the **V** key on first join—just hold V to open, release to close
+2. The menu is automatically bound to the **Shift** key on first join—just hold Shift to open, release to close
 3. You can also press **X** (voice menu key) for quick access, or type `!rage_bind` to change the key
 4. Pick your class and learn your abilities from the menu
 5. Type `!guide` in chat to open the full tutorial anytime
@@ -31,7 +31,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 1. Drop the `sourcemod/` folder into your L4D2 server directory
 2. Edit `configs/rage_class_skills.cfg` to customize classes and abilities
 3. (Optional) Tweak settings in `cfg/sourcemod/talents.cfg` for cooldowns and limits
-4. (Optional) Change the default menu bind key in `cfg/sourcemod/rage_survivor_menu.cfg` (default is "v")
+4. (Optional) Change the default menu bind key in `cfg/sourcemod/rage_survivor_menu.cfg` (default is "shift")
 5. Make sure the SourceMod **httpclient** extension is installed (ships with SM 1.12+); place `httpclient.ext.*` binaries in `addons/sourcemod/extensions/`
 6. Restart your server and you're good to go!
 
@@ -48,7 +48,7 @@ Every class has special powers! Here's how to trigger them:
 | **Third ability** | Crouch + Use + Fire | Extra trick up your sleeve |
 | **Deploy stuff** | Look down + Hold Shift | Drop turrets, supplies, or mines |
 
-**Too complicated?** The Rage menu is automatically bound to **V** on first join—just hold it to open! You can also press X (voice menu) to access it instantly.
+**Too complicated?** The Rage menu is automatically bound to **Shift** on first join—just hold it to open! You can also press X (voice menu) to access it instantly.
 
 **Want to change the key?** Type `!rage_bind` in chat for instructions, or add this to your autoexec.cfg:
 ```
