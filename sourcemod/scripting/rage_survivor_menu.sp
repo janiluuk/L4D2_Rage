@@ -9,9 +9,13 @@
 #include <rage_survivor_guide>
 #include <l4d2hud>
 #include <rage/hud>
+#include "rage_survivor_menu_hud.inc"
+#include "rage_survivor_menu_kits.inc"
+#include "rage_survivor_menu_keybinds.inc"
+#include "rage_survivor_menu_thirdperson.inc"
 
 #define GAMEMODE_OPTION_COUNT 11
-#define CLASS_OPTION_COUNT 7
+#define CLASS_OPTION_COUNT 8
 #define MENU_OPTION_EXIT -1
 #define MENU_OPTION_BACK_ON_FIRST_PAGE -2
 
@@ -77,6 +81,7 @@ static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
 
 static const char g_sClassOptions[CLASS_OPTION_COUNT][] =
 {
+    "No class selected",
     "Soldier",
     "Athlete",
     "Medic",
@@ -84,6 +89,18 @@ static const char g_sClassOptions[CLASS_OPTION_COUNT][] =
     "Commando",
     "Engineer",
     "Brawler"
+};
+
+static const char g_sClassIdentifiers[CLASS_OPTION_COUNT][] =
+{
+    "none",
+    "soldier",
+    "athlete",
+    "medic",
+    "saboteur",
+    "commando",
+    "engineer",
+    "brawler"
 };
 
 #pragma semicolon 1
@@ -96,27 +113,13 @@ int g_iGuideOptionIndexInfected = -1;
 bool g_bGuideNativeAvailable = false;
 bool g_bExtraMenuLoaded = false;
 bool g_bMenuHeld[MAXPLAYERS + 1];
-int g_iKitsUsed[MAXPLAYERS + 1];
-bool g_bHudEnabled = true;
 ArrayList g_hMenuOptionsSurvivor = null;
 ArrayList g_hMenuOptionsInfected = null;
 
-enum ThirdPersonMode
-{
-    TP_Off = 0,
-    TP_MeleeOnly,
-    TP_Always
-};
-
-ThirdPersonMode g_ThirdPersonMode[MAXPLAYERS + 1];
-bool g_ThirdPersonActive[MAXPLAYERS + 1];
-Handle g_hThirdPersonCookie = INVALID_HANDLE;
+Handle g_hClassCookie = INVALID_HANDLE;
 
 ConVar g_hCvarMPGameMode;
 ConVar g_hGameModeCvars[GAMEMODE_OPTION_COUNT];
-ConVar g_hKitSlots;
-ConVar g_hDefaultMenuKey;
-Handle g_hMenuKeyCookie = INVALID_HANDLE;
 
 enum RageMenuOption
 {
@@ -133,7 +136,6 @@ enum RageMenuOption
     Menu_HudToggle,
     Menu_MusicToggle,
     Menu_MusicVolume,
-    Menu_ChangeCharacter,
     Menu_SpawnItems,
     Menu_Reload,
     Menu_ManageSkills,
@@ -155,11 +157,10 @@ bool TryShowGuideMenu(int client);
 bool DisplayRageMenu(int client, bool showHint);
 bool HasRageMenuAccess(int client);
 void ApplyThirdPersonMode(int client);
-void PersistThirdPersonMode(int client);
-bool IsMeleeWeapon(int weapon);
-void SetHudEnabled(bool enabled, int activator);
-bool IsValidKeyString(const char[] key);
-public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue);
+int GetSavedClassIndex(int client);
+int ClassIdentifierToIndex(const char[] ident);
+void SyncMenuSelections(int client, int menuId, ArrayList optionMap);
+void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value);
 
 // ====================================================================================================
 //					PLUGIN INFO
@@ -184,19 +185,16 @@ public void OnPluginStart()
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
     g_hCvarMPGameMode = FindConVar("mp_gamemode");
+    g_hClassCookie = FindClientCookie("rage_class_choice");
 
     for (int i = 0; i < GAMEMODE_OPTION_COUNT; i++)
     {
         g_hGameModeCvars[i] = CreateConVar(g_sGameModeCvarNames[i], g_sGameModeDefaults[i], g_sGameModeDescriptions[i], FCVAR_NONE);
     }
 
-    g_hThirdPersonCookie = RegClientCookie("rage_tp_mode", "Rage third person preference", CookieAccess_Public);
-    g_hMenuKeyCookie = RegClientCookie("rage_menu_key_bound", "Rage menu key auto-bind status", CookieAccess_Private);
-
-    g_hKitSlots = CreateConVar("rage_menu_kit_slots", "1", "How many kits a player can request from the Rage menu per life.");
-    g_hKitSlots.AddChangeHook(OnKitSlotsChanged);
-    
-    g_hDefaultMenuKey = CreateConVar("rage_menu_default_key", "v", "Default key to bind the Rage menu to. Set to empty string to disable auto-binding.", FCVAR_NONE);
+    ThirdPerson_OnPluginStart();
+    Keybinds_OnPluginStart();
+    Kits_OnPluginStart();
     AutoExecConfig(true, "rage_survivor_menu");
 
     g_bExtraMenuLoaded = LibraryExists("rage_menu_base") || LibraryExists("extra_menu");
@@ -225,118 +223,33 @@ public void OnAllPluginsLoaded()
 
 public void OnMapStart()
 {
-    // Initialize HUD now that a map is running
-    if (g_bHudEnabled)
-    {
-        hudPosition currentPos = view_as<hudPosition>(getCurrentHud());
-        if (currentPos < HUD_POSITION_FAR_LEFT || currentPos > HUD_POSITION_SCORE_4)
-        {
-            currentPos = HUD_POSITION_MID_TOP;
-        }
-
-        SetupMessageHud(currentPos, HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEAM_SURVIVORS);
-    }
+    Hud_OnMapStart();
 }
 
 public void OnClientPutInServer(int client)
 {
     g_bMenuHeld[client] = false;
-    g_ThirdPersonActive[client] = false;
-    g_ThirdPersonMode[client] = TP_Off;
-    g_iKitsUsed[client] = 0;
+    ThirdPerson_OnClientPutInServer(client);
+    Kits_OnClientPutInServer(client);
     SDKHook(client, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
 }
 
 public void OnClientDisconnect(int client)
 {
     g_bMenuHeld[client] = false;
-    g_ThirdPersonActive[client] = false;
-    g_ThirdPersonMode[client] = TP_Off;
-    g_iKitsUsed[client] = 0;
+    ThirdPerson_OnClientDisconnect(client);
+    Kits_OnClientDisconnect(client);
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
 {
-    if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client) || IsFakeClient(client) || !g_bExtraMenuLoaded)
-    {
-        return Plugin_Continue;
-    }
-
-    bool holdingShift = (buttons & IN_SPEED) != 0;
-
-    if (holdingShift)
-    {
-        if (!g_bMenuHeld[client])
-        {
-            StartRageMenuHold(client);
-        }
-    }
-    else if (g_bMenuHeld[client])
-    {
-        StopRageMenuHold(client);
-    }
-
     return Plugin_Continue;
 }
 
 public void OnClientCookiesCached(int client)
 {
-    if (!IsClientInGame(client) || IsFakeClient(client))
-    {
-        return;
-    }
-    
-    // Handle third person cookie
-    if (g_hThirdPersonCookie != INVALID_HANDLE)
-    {
-        char buffer[8];
-        GetClientCookie(client, g_hThirdPersonCookie, buffer, sizeof(buffer));
-        if (buffer[0] != '\0')
-        {
-            g_ThirdPersonMode[client] = view_as<ThirdPersonMode>(StringToInt(buffer));
-        }
-        ApplyThirdPersonMode(client);
-    }
-    
-    // Auto-bind menu key if not already done
-    if (g_hMenuKeyCookie != INVALID_HANDLE && g_hDefaultMenuKey != null)
-    {
-        char boundStatus[8];
-        GetClientCookie(client, g_hMenuKeyCookie, boundStatus, sizeof(boundStatus));
-        
-        // If cookie is empty or "0", the key hasn't been bound yet
-        if (boundStatus[0] == '\0' || StringToInt(boundStatus) == 0)
-        {
-            char defaultKey[32];
-            g_hDefaultMenuKey.GetString(defaultKey, sizeof(defaultKey));
-            
-            // Only bind if a default key is configured and valid
-            if (defaultKey[0] != '\0' && IsValidKeyString(defaultKey))
-            {
-                // Execute bind command for the client
-                ClientCommand(client, "bind %s +rage_menu", defaultKey);
-                
-                // Mark as bound in cookie
-                SetClientCookie(client, g_hMenuKeyCookie, "1");
-                
-                // Notify the player
-                CreateTimer(2.0, Timer_NotifyMenuKey, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-            }
-        }
-    }
-}
-
-public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-    if (convar == null)
-    {
-        return;
-    }
-
-    if (convar.IntValue < 0)
-    {
-        convar.SetInt(0);
-    }
+    ThirdPerson_OnCookiesCached(client);
+    Keybinds_OnClientCookiesCached(client);
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -347,8 +260,8 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
         return;
     }
 
-    g_iKitsUsed[client] = 0;
-    ApplyThirdPersonMode(client);
+    Kits_OnPlayerSpawn(client);
+    ThirdPerson_OnPlayerSpawn(client);
 }
 
 public Action OnWeaponSwitchPost(int client, int weapon)
@@ -358,7 +271,7 @@ public Action OnWeaponSwitchPost(int client, int weapon)
         return Plugin_Continue;
     }
 
-    ApplyThirdPersonMode(client);
+    ThirdPerson_OnWeaponSwitch(client);
     return Plugin_Continue;
 }
 
@@ -506,7 +419,7 @@ void StopRageMenuHold(int client)
 
     if (g_bMenuHeld[client])
     {
-        CancelClientMenu(client, true);
+        ExtraMenu_Close(client);
         g_bMenuHeld[client] = false;
     }
 }
@@ -564,169 +477,191 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         return;
     }
 
-    switch (menuOption)
+    if (menuOption == Menu_GetKit)
     {
-        case Menu_GetKit:
+        if (!Kits_CanUseKit(client))
         {
-            int maxKits = (g_hKitSlots != null) ? g_hKitSlots.IntValue : 1;
-            if (maxKits <= 0 || g_iKitsUsed[client] >= maxKits)
-            {
-                PrintHintText(client, "out of kits");
-                return;
-            }
+            PrintHintText(client, "out of kits");
+            return;
+        }
 
-            g_iKitsUsed[client]++;
-            FakeClientCommand(client, "sm_kit");
-        }
-        case Menu_SetAway:
-        {
-            PrintHintText(client, "Away mode is not available here.");
-        }
-        case Menu_SelectTeam:
-        {
-            PrintHintText(client, "Team selection is not available in this menu.");
-        }
-        case Menu_ChangeClass:
-        {
-            if (value < 0 || value >= CLASS_OPTION_COUNT)
-            {
-                PrintHintText(client, "Choose a class with left/right to apply it.");
-                return;
-            }
+        int kitsRemaining = Kits_ConsumeKit(client);
+        FakeClientCommand(client, "sm_kit");
 
-            int classIndex = value + 1; // class options skip the NONE slot
-            FakeClientCommand(client, "sm_class_set %d", classIndex);
-            PrintHintText(client, "Switching to %s", g_sClassOptions[value]);
-        }
-        case Menu_DeployAction:
-        {
-            FakeClientCommand(client, "deployment_action");
-        }
-        case Menu_ViewRank:
-        {
-            FakeClientCommand(client, "sm_stats");
-        }
-        case Menu_VoteCustomMap:
-        {
-            PrintHintText(client, "Custom map voting is not configured.");
-        }
-        case Menu_VoteGameMode:
-        {
-            ChangeGameModeByIndex(client, value);
-        }
-        case Menu_ThirdPerson:
-        {
-            if (value < 0 || value > 2)
-            {
-                PrintHintText(client, "Invalid camera selection.");
-                return;
-            }
-
-            ThirdPersonMode newMode = view_as<ThirdPersonMode>(value);
-            g_ThirdPersonMode[client] = newMode;
-            PersistThirdPersonMode(client);
-            ApplyThirdPersonMode(client);
-            PrintHintText(client, "Camera mode set to %s.", (newMode == TP_Always) ? "Always" : (newMode == TP_MeleeOnly) ? "Melee only" : "Off");
-        }
-        case Menu_MultiEquip:
-        {
-            PrintHintText(client, "Multiple equipment mode is not configured.");
-        }
-        case Menu_HudToggle:
-        {
-            bool enableHud = value != 0;
-            SetHudEnabled(enableHud, client);
-        }
-        case Menu_MusicToggle:
-        {
-            if (value == 0)
-            {
-                FakeClientCommand(client, "sm_music_pause");
-                PrintHintText(client, "Music paused.");
-            }
-            else
-            {
-                FakeClientCommand(client, "sm_music_play");
-                FakeClientCommand(client, "sm_music"); // open menu for quick control
-                PrintHintText(client, "Music playing. Use menu to change track.");
-            }
-        }
-        case Menu_MusicVolume:
-        {
-            // Value from ExtraMenu list index (0-10). Clamp defensively.
-            int vol = value;
-            if (vol < 0)
-            {
-                vol = 0;
-            }
-            else if (vol > 10)
-            {
-                vol = 10;
-            }
-
-            FakeClientCommand(client, "sm_music_volume %d", vol);
-            PrintHintText(client, "Music volume set to %d%%", vol * 10);
-        }
-        case Menu_ChangeCharacter:
-        {
-            PrintHintText(client, "Character change is not configured.");
-        }
-        case Menu_SpawnItems:
-        {
-            PrintHintText(client, "Item spawning is not available.");
-        }
-        case Menu_Reload:
-        {
-            PrintHintText(client, "Reload options are not available.");
-        }
-        case Menu_ManageSkills:
-        {
-            PrintHintText(client, "Skill management is not available.");
-        }
-        case Menu_ManagePerks:
-        {
-            PrintHintText(client, "Perk management is not available.");
-        }
-        case Menu_ApplyEffect:
-        {
-            PrintHintText(client, "Apply-effect option is not available.");
-        }
-        case Menu_DebugMode:
-        {
-            PrintHintText(client, "Debug mode toggle is not wired here.");
-        }
-        case Menu_HaltGame:
-        {
-            PrintHintText(client, "Halt game is not available.");
-        }
-        case Menu_InfectedSpawn:
-        {
-            PrintHintText(client, "Infected spawn toggle is not available.");
-        }
-        case Menu_GodMode:
-        {
-            PrintHintText(client, "God mode toggle is not available.");
-        }
-        case Menu_RemoveWeapons:
-        {
-            PrintHintText(client, "Remove weapons option is not available.");
-        }
-        case Menu_GameSpeed:
-        {
-            PrintHintText(client, "Game speed control is not available.");
-        }
-        case Menu_Guide:
-        {
-            if (!TryShowGuideMenu(client))
-            {
-                PrintToChat(client, "[Rage] Tutorial plugin is not available right now.");
-            }
-        }
-        default:
-        {
-            PrintHintText(client, "This menu option is not configured.");
-        }
+        PrintHintText(client, "Kit delivered (%d remaining).", kitsRemaining);
+        return;
     }
+    else if (menuOption == Menu_SetAway)
+    {
+        PrintHintText(client, "Away mode is not available here.");
+        return;
+    }
+    else if (menuOption == Menu_SelectTeam)
+    {
+        PrintHintText(client, "Team selection is not available in this menu.");
+        return;
+    }
+    else if (menuOption == Menu_ChangeClass)
+    {
+        if (value < 0 || value >= CLASS_OPTION_COUNT)
+        {
+            PrintHintText(client, "Choose a class with left/right to apply it.");
+            return;
+        }
+
+        if (value == 0)
+        {
+            PrintHintText(client, "No class selected yet.");
+            return;
+        }
+
+        int classIndex = value; // options align with actual class index
+        FakeClientCommand(client, "sm_class_set %d", classIndex);
+        PrintHintText(client, "Switching to %s", g_sClassOptions[value]);
+        return;
+    }
+    else if (menuOption == Menu_DeployAction)
+    {
+        FakeClientCommand(client, "deployment_action");
+        return;
+    }
+    else if (menuOption == Menu_ViewRank)
+    {
+        FakeClientCommand(client, "sm_stats");
+        return;
+    }
+    else if (menuOption == Menu_VoteCustomMap)
+    {
+        PrintHintText(client, "Custom map voting is not configured.");
+        return;
+    }
+    else if (menuOption == Menu_VoteGameMode)
+    {
+        ChangeGameModeByIndex(client, value);
+        return;
+    }
+    else if (menuOption == Menu_ThirdPerson)
+    {
+        if (value < 0 || value > 2)
+        {
+            PrintHintText(client, "Invalid camera selection.");
+            return;
+        }
+
+        ThirdPersonMode newMode = view_as<ThirdPersonMode>(value);
+        ThirdPerson_SetMode(client, newMode);
+        PrintHintText(client, "Camera mode set to %s.", (newMode == TP_Always) ? "Always" : (newMode == TP_MeleeOnly) ? "Melee only" : "Off");
+        return;
+    }
+    else if (menuOption == Menu_MultiEquip)
+    {
+        PrintHintText(client, "Multiple equipment mode is not configured.");
+        return;
+    }
+    else if (menuOption == Menu_HudToggle)
+    {
+        bool enableHud = value != 0;
+        Hud_SetEnabled(enableHud, client);
+        return;
+    }
+    else if (menuOption == Menu_MusicToggle)
+    {
+        if (value == 0)
+        {
+            FakeClientCommand(client, "sm_music_pause");
+            PrintHintText(client, "Music paused.");
+        }
+        else
+        {
+            FakeClientCommand(client, "sm_music_play");
+            FakeClientCommand(client, "sm_music"); // open menu for quick control
+            PrintHintText(client, "Music playing. Use menu to change track.");
+        }
+        return;
+    }
+    else if (menuOption == Menu_MusicVolume)
+    {
+        // Value from ExtraMenu list index (0-10). Clamp defensively.
+        int vol = value;
+        if (vol < 0)
+        {
+            vol = 0;
+        }
+        else if (vol > 10)
+        {
+            vol = 10;
+        }
+
+        FakeClientCommand(client, "sm_music_volume %d", vol);
+        PrintHintText(client, "Music volume set to %d%%", vol * 10);
+        return;
+    }
+    else if (menuOption == Menu_SpawnItems)
+    {
+        PrintHintText(client, "Item spawning is not available.");
+        return;
+    }
+    else if (menuOption == Menu_Reload)
+    {
+        PrintHintText(client, "Reload options are not available.");
+        return;
+    }
+    else if (menuOption == Menu_ManageSkills)
+    {
+        PrintHintText(client, "Manage skills menu is not available.");
+        return;
+    }
+    else if (menuOption == Menu_ManagePerks)
+    {
+        PrintHintText(client, "Perk management is not available.");
+        return;
+    }
+    else if (menuOption == Menu_ApplyEffect)
+    {
+        PrintHintText(client, "Apply-effect option is not available.");
+        return;
+    }
+    else if (menuOption == Menu_DebugMode)
+    {
+        PrintHintText(client, "Debug mode toggle is not wired here.");
+        return;
+    }
+    else if (menuOption == Menu_HaltGame)
+    {
+        PrintHintText(client, "Halt game is not available.");
+        return;
+    }
+    else if (menuOption == Menu_InfectedSpawn)
+    {
+        PrintHintText(client, "Infected spawn toggle is not available.");
+        return;
+    }
+    else if (menuOption == Menu_GodMode)
+    {
+        PrintHintText(client, "God mode toggle is not available.");
+        return;
+    }
+    else if (menuOption == Menu_RemoveWeapons)
+    {
+        PrintHintText(client, "Remove weapons option is not available.");
+        return;
+    }
+    else if (menuOption == Menu_GameSpeed)
+    {
+        PrintHintText(client, "Game speed control is not available.");
+        return;
+    }
+    else if (menuOption == Menu_Guide)
+    {
+        if (!TryShowGuideMenu(client))
+        {
+            PrintToChat(client, "[Rage] Tutorial plugin is not available right now.");
+        }
+        return;
+    }
+
+    PrintHintText(client, "This menu option is not configured.");
+
 }
 
 public void ExtraMenu_OnSelect(int client, int menu_id, int option, int value)
@@ -784,6 +719,44 @@ public void AddClassOptions(int menu_id)
     }
 
     ExtraMenu_AddOptions(menu_id, options);
+}
+
+int GetSavedClassIndex(int client)
+{
+    if (client <= 0 || client > MaxClients || g_hClassCookie == INVALID_HANDLE || !IsClientInGame(client))
+    {
+        return 0;
+    }
+
+    char stored[32];
+    GetClientCookie(client, g_hClassCookie, stored, sizeof(stored));
+    TrimString(stored);
+
+    if (stored[0] == '\0')
+    {
+        return 0;
+    }
+
+    int classIndex = ClassIdentifierToIndex(stored);
+    if (classIndex <= 0 || classIndex >= CLASS_OPTION_COUNT)
+    {
+        return 0;
+    }
+
+    return classIndex;
+}
+
+int ClassIdentifierToIndex(const char[] ident)
+{
+    for (int i = 1; i < CLASS_OPTION_COUNT; i++)
+    {
+        if (StrEqual(ident, g_sClassIdentifiers[i], false))
+        {
+            return i;
+        }
+    }
+
+    return 0;
 }
 
 void ChangeGameModeByIndex(int client, int modeIndex)
@@ -905,8 +878,6 @@ void BuildSingleMenu(bool includeChangeClass)
     optionMap.Push(view_as<int>(Menu_MusicVolume));
     ExtraMenu_AddOptions(menu_id, "----------|#---------|##--------|###-------|####------|#####-----|######----|#######---|########--|#########-|##########");
 
-    ExtraMenu_AddEntry(menu_id, "6. Change Character: _OPT_", MENU_SELECT_ONOFF);
-    optionMap.Push(view_as<int>(Menu_ChangeCharacter));
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
 
     ExtraMenu_NewPage(menu_id);
@@ -983,6 +954,27 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 }
 
+void SyncMenuSelections(int client, int menuId, ArrayList optionMap)
+{
+    if (optionMap == null)
+    {
+        return;
+    }
+
+    SyncMenuSelection(client, menuId, optionMap, Menu_ThirdPerson, view_as<int>(g_ThirdPersonMode[client]));
+    SyncMenuSelection(client, menuId, optionMap, Menu_HudToggle, g_bHudEnabled ? 1 : 0);
+    SyncMenuSelection(client, menuId, optionMap, Menu_ChangeClass, GetSavedClassIndex(client));
+}
+
+void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value)
+{
+    int index = optionMap.FindValue(view_as<int>(option));
+    if (index != -1)
+    {
+        ExtraMenu_SetClientValue(menuId, client, index, value);
+    }
+}
+
 public bool HasRageMenuAccess(int client)
 {
     return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", 0);
@@ -1003,6 +995,9 @@ public bool DisplayRageMenu(int client, bool showHint)
         return false;
     }
 
+    ArrayList optionMap = (GetClientTeam(client) == 2) ? g_hMenuOptionsSurvivor : g_hMenuOptionsInfected;
+    SyncMenuSelections(client, menuId, optionMap);
+
     if (showHint)
     {
         PrintHintText(client, "Press X (voice menu) or type !rage_bind to bind a key; use W/S/A/D to navigate.");
@@ -1012,160 +1007,3 @@ public bool DisplayRageMenu(int client, bool showHint)
     return true;
 }
 
-public void SetHudEnabled(bool enabled, int activator)
-{
-    if (activator > 0 && IsClientInGame(activator))
-    {
-        if (g_bHudEnabled == enabled)
-        {
-            PrintHintText(activator, "HUD is already %s.", enabled ? "on" : "off");
-            return;
-        }
-    }
-
-    g_bHudEnabled = enabled;
-
-    BuildRageMenus();
-
-    if (!enabled)
-    {
-        DeleteAllHUD();
-
-        if (activator > 0 && IsClientInGame(activator))
-        {
-            PrintHintText(activator, "HUD disabled.");
-        }
-
-        return;
-    }
-
-    // Only setup HUD if a map is running (entities can be created)
-    char mapname[64];
-    GetCurrentMap(mapname, sizeof(mapname));
-    if (mapname[0] == '\0')
-    {
-        // Map not loaded yet, HUD will be initialized in OnMapStart
-        return;
-    }
-
-    hudPosition currentPos = view_as<hudPosition>(getCurrentHud());
-    if (currentPos < HUD_POSITION_FAR_LEFT || currentPos > HUD_POSITION_SCORE_4)
-    {
-        currentPos = HUD_POSITION_MID_TOP;
-    }
-
-    SetupMessageHud(currentPos, HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEAM_SURVIVORS);
-
-    if (activator > 0 && IsClientInGame(activator))
-    {
-        PrintHintText(activator, "HUD enabled.");
-    }
-}
-
-public bool IsMeleeWeapon(int weapon)
-{
-    if (weapon <= 0 || !IsValidEntity(weapon))
-    {
-        return false;
-    }
-
-    char cls[64];
-    GetEntityClassname(weapon, cls, sizeof(cls));
-    return StrContains(cls, "melee", false) != -1 || StrEqual(cls, "weapon_chainsaw", false);
-}
-
-public void PersistThirdPersonMode(int client)
-{
-    if (g_hThirdPersonCookie == INVALID_HANDLE || IsFakeClient(client))
-    {
-        return;
-    }
-
-    char buffer[8];
-    IntToString(view_as<int>(g_ThirdPersonMode[client]), buffer, sizeof(buffer));
-    SetClientCookie(client, g_hThirdPersonCookie, buffer);
-}
-
-public void ApplyThirdPersonMode(int client)
-{
-    if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
-    {
-        return;
-    }
-
-    bool shouldThird = false;
-    switch (g_ThirdPersonMode[client])
-    {
-        case TP_MeleeOnly:
-        {
-            int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-            shouldThird = IsMeleeWeapon(weapon);
-        }
-        case TP_Always:
-        {
-            shouldThird = true;
-        }
-    }
-
-    if (shouldThird == g_ThirdPersonActive[client])
-    {
-        return;
-    }
-
-    g_ThirdPersonActive[client] = shouldThird;
-
-    if (shouldThird)
-    {
-        ClientCommand(client, "thirdpersonshoulder");
-    }
-    else
-    {
-        ClientCommand(client, "firstperson");
-    }
-}
-
-bool IsValidKeyString(const char[] key)
-{
-    // Validate that the key string only contains safe characters
-    // Valid keys are alphanumeric, mouse buttons, or common special keys
-    int len = strlen(key);
-    if (len == 0 || len > 31)
-    {
-        return false;
-    }
-    
-    // Check each character - allow alphanumeric, underscore, and digits
-    for (int i = 0; i < len; i++)
-    {
-        char c = key[i];
-        // Allow: a-z, A-Z, 0-9, underscore
-        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'))
-        {
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-public Action Timer_NotifyMenuKey(Handle timer, int userid)
-{
-    int client = GetClientOfUserId(userid);
-    if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
-    {
-        return Plugin_Stop;
-    }
-    
-    char defaultKey[32];
-    if (g_hDefaultMenuKey != null)
-    {
-        g_hDefaultMenuKey.GetString(defaultKey, sizeof(defaultKey));
-        if (defaultKey[0] != '\0')
-        {
-            PrintToChat(client, "\x04[Rage]\x01 Menu bound to \x03%s\x01 key. Hold to open, release to close.", defaultKey);
-            PrintToChat(client, "\x01Or press \x03X\x01 (voice menu) for quick access. Type \x03!rage_bind\x01 to change key.");
-        }
-    }
-    
-    return Plugin_Stop;
-}
