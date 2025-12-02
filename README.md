@@ -14,6 +14,8 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **Slick Controls** – Tap X (voice menu) for a quick Rage menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
 
+**Smart Menu Memory** – Your chosen class is saved between rounds, preselected when the menu opens, and announced at round start so you always know what you’re running
+
 **Custom Everything** – Play your own music, customize every ability, adjust difficulty, and tinker with 100+ settings
 
 **Built for Fun** – Less grind, more action. Every round feels like a blockbuster movie scene
@@ -24,7 +26,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 1. Join a server running Rage Edition
 2. The menu is automatically bound to the **V** key on first join—just hold V to open, release to close
 3. You can also press **X** (voice menu key) for quick access, or type `!rage_bind` to change the key
-4. Pick your class and learn your abilities from the menu
+4. Pick your class and learn your abilities from the menu—the menu remembers your last choice and will highlight it next time
 5. Type `!guide` in chat to open the full tutorial anytime
 
 **For Server Owners:**
@@ -163,6 +165,8 @@ All settings live in `cfg/sourcemod/rage_survivor_predicament.cfg`. The key ones
 **🎵 Music Player** – Type `!music` to pick your soundtrack, skip tracks, or mute it. Your preferences save between maps.
 
 **🎮 Third-Person Camera** – Toggle between always-on, melee-only, or off. Your choice sticks with you.
+
+**🧠 Class Memory & Alerts** – Your saved class is preselected in the menu every round, and you’ll get a quick reminder of your pick when the round begins.
 
 **🚶 AFK Mode** – Need a break? Mark yourself away from the menu and your team knows you'll be back.
 

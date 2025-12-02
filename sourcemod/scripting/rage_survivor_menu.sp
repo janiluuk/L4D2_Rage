@@ -243,25 +243,6 @@ public void OnClientDisconnect(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
 {
-    if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client) || IsFakeClient(client) || !g_bExtraMenuLoaded)
-    {
-        return Plugin_Continue;
-    }
-
-    bool holdingShift = (buttons & IN_SPEED) != 0;
-
-    if (holdingShift)
-    {
-        if (!g_bMenuHeld[client])
-        {
-            StartRageMenuHold(client);
-        }
-    }
-    else if (g_bMenuHeld[client])
-    {
-        StopRageMenuHold(client);
-    }
-
     return Plugin_Continue;
 }
 

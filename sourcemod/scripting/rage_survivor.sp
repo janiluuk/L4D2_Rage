@@ -601,7 +601,7 @@ public OnPluginStart( )
         RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Satellite Strike for Soldier)");
         RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
         RegConsoleCmd("skill_action_3", CmdSkillAction3, "Trigger your tertiary class action");
-        RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (look down + SHIFT by default)");
+        RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (SHIFT by default)");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
         g_hClassCookie = RegClientCookie("rage_class_choice", "Rage preferred class", CookieAccess_Public);
         RegisterAdminCommands();
@@ -1301,8 +1301,10 @@ public OnClientPutInServer(client)
         // Auto-bind skill action keys for convenience
         if (!IsFakeClient(client))
         {
-                ClientCommand(client, "bind mouse3 skill_action_1");  // Middle mouse button
-                ClientCommand(client, "bind shift +speed");  // Ensure shift is bound to walk/run modifier for deployment checks
+                ClientCommand(client, "bind mouse3 skill_action_1");
+                ClientCommand(client, "bind mouse4 skill_action_2");
+                ClientCommand(client, "bind mouse5 skill_action_3");
+                ClientCommand(client, "bind shift \"+speed; deployment_action\"");
         }
 }
 
@@ -1487,7 +1489,17 @@ public Action CmdClassMenu(int client, int args)
                 return Plugin_Handled;
         }
 
-        PrintToChat(client, "[Rage] Use the main Rage menu (sm_rage or hold V) to select your class.");
+        if (GetClientTeam(client) != 2)
+        {
+                PrintToChat(client, "[Rage] Class selection is only available for survivors.");
+                return Plugin_Handled;
+        }
+
+        if (!CreatePlayerClassMenu(client))
+        {
+                PrintToChat(client, "[Rage] Class menu is unavailable right now. Try again in a moment.");
+        }
+
         return Plugin_Handled;
 }
 
@@ -1837,12 +1849,15 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 		
 		if (GetClientTeam(client) == 2)
 		{
-			int userid = GetClientUserId(client);
-			CreateTimer(0.3, TimerLoadClient, client, TIMER_FLAG_NO_MAPCHANGE);
-			CreateTimer(0.1, TimerThink, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-			
+                        int userid = GetClientUserId(client);
+                        CreateTimer(0.3, TimerLoadClient, client, TIMER_FLAG_NO_MAPCHANGE);
+                        CreateTimer(0.1, TimerThink, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
                         if (LastClassConfirmed[client] != 0)
+                        {
                                 ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                                SetupClasses(client, LastClassConfirmed[client]);
+                        }
                         else
                                 CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
 
