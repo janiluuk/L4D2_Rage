@@ -538,7 +538,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         }
         case Menu_ViewRank:
         {
-            PrintHintText(client, "Ranking view is not available.");
+            FakeClientCommand(client, "sm_stats");
         }
         case Menu_VoteCustomMap:
         {
