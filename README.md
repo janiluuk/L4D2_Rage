@@ -12,7 +12,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **Survival Tools** – Self-revive when downed, crawl while incapacitated, struggle free from infected pins, and help your teammates even when you're down
 
-**Slick Controls** – Hold V (voice key) for a radial menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
+**Slick Controls** – Tap X (voice menu) for a quick Rage menu that lets you change classes, toggle settings, and trigger abilities—all with WASD navigation
 
 **Custom Everything** – Play your own music, customize every ability, adjust difficulty, and tinker with 100+ settings
 
@@ -22,7 +22,7 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. Press V (default voice key) to open the quick menu
+2. Press X (voice menu key) to open the quick menu
 3. Pick your class and learn your abilities from the menu
 4. Type `!guide` in chat to open the full tutorial anytime
 
@@ -30,7 +30,8 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 1. Drop the `sourcemod/` folder into your L4D2 server directory
 2. Edit `configs/rage_class_skills.cfg` to customize classes and abilities
 3. (Optional) Tweak settings in `cfg/sourcemod/talents.cfg` for cooldowns and limits
-4. Restart your server and you're good to go!
+4. Make sure the SourceMod **httpclient** extension is installed (ships with SM 1.12+); place `httpclient.ext.*` binaries in `addons/sourcemod/extensions/`
+5. Restart your server and you're good to go!
 
 **Pro tip:** Use Docker Compose if you want a one-click setup—just run `docker-compose up` and everything works out of the box.
 
@@ -77,7 +78,7 @@ Pure damage output. Reloads faster, hits harder, and can take down a Tank hand-t
 Your team's lifeline. Heals faster, drops supplies, and keeps everyone alive.
 - **Healing Grenades** – Throw a grenade that heals instead of hurts
 - **Healing Orb** – Summon glowing orbs that restore health to nearby players
-- **Cleanse Bile** – Remove boomer bile from teammates
+- **Cleanse Bile** – Press Skill Action 3 (shown in-game) or `!unvomit` while covered to clear boomer bile (120s cooldown)
 - **Deploy Supplies** – Drop medkits and defibs for your team
 - **Bonus:** Speed boost while healing, better revival times
 

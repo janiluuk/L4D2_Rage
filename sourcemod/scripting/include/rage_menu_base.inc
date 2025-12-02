@@ -43,7 +43,6 @@ public void __pl_rage_menu_base_SetNTVOptional()
         MarkNativeAsOptional("ExtraMenu_AddEntry");
         MarkNativeAsOptional("ExtraMenu_NewPage");
         MarkNativeAsOptional("ExtraMenu_Display");
-        MarkNativeAsOptional("ExtraMenu_Close");
 }
 #endif
 
