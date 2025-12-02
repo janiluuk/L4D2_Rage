@@ -1639,9 +1639,10 @@ public Action CmdDeploymentAction(int client, int args)
         if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
         {
                 char className[32] = "your class";
-                if (classType >= 0 && classType < MAXCLASSES)
+                int classIndex = view_as<int>(classType);
+                if (classIndex >= 0 && classIndex < MAXCLASSES)
                 {
-                        strcopy(className, sizeof(className), MENU_OPTIONS[classType]);
+                        strcopy(className, sizeof(className), MENU_OPTIONS[classIndex]);
                 }
                 PrintHintText(client, "No deployment action is bound for %s.", className);
                 return Plugin_Handled;

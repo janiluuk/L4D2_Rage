@@ -579,28 +579,24 @@ int Native_SetClientValue(Handle plugin, int numParams)
         IntToString(menu_id, sKey, sizeof(sKey));
 
 #if VERIFY_INDEXES
-        if( g_AllMenus.ContainsKey(sKey) )
-#endif
+        if( !g_AllMenus.ContainsKey(sKey) )
         {
-                MenuData data;
-                g_AllMenus.GetArray(sKey, data, sizeof(data));
+                return false;
+        }
+#endif
 
-                int length = data.RowsData.Length;
-                if( row < 0 || row >= length )
-                {
-                        return false;
-                }
+        MenuData data;
+        g_AllMenus.GetArray(sKey, data, sizeof(data));
 
-                data.MenuVals[client].Set(row, value);
-                g_AllMenus.SetArray(sKey, data, sizeof(data));
-                return true;
+        int length = data.RowsData.Length;
+        if( row < 0 || row >= length )
+        {
+                return false;
         }
 
-#if VERIFY_INDEXES
-        return false;
-#endif
-
-        return false;
+        data.MenuVals[client].Set(row, value);
+        g_AllMenus.SetArray(sKey, data, sizeof(data));
+        return true;
 }
 
 int Native_CloseMenu(Handle plugin, int numParams)
