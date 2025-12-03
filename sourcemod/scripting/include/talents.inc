@@ -1,20 +1,5 @@
-#if defined _TALENTS_INC
-        #endinput
-#endif
-#define _TALENTS_INC
-
 // What formatting string to use when printing to the chatbox
-#define PRINT_PREFIX    "\x04[RAGE]\x01"
-
-#include <sourcemod>
-#include <sdktools>
-#include <sdkhooks>
-#include <left4dhooks>
-#include <clientprefs>
-#include <rage/const>
-#include <rage/debug>
-//#include <rage/classes>
-#include <rage/hud>
+#define PRINT_PREFIX 	"\x04[DLR]\x01" 
 
 // top menu
 new Handle:hTopMenu = INVALID_HANDLE;
@@ -27,8 +12,6 @@ new Handle:g_hfwdOnPlayerClassChange;
 new g_iSkillCounter = -1;
 new Handle:g_hSkillArray = INVALID_HANDLE;
 new Handle:g_hSkillTypeArray = INVALID_HANDLE;
-Handle g_hClassCookie = INVALID_HANDLE;
-char g_ClassDescriptions[MAXCLASSES][128];
 
 //Menu Handlers
 new Handle:g_hSkillMenu = INVALID_HANDLE;
@@ -161,12 +144,9 @@ stock int b_attackerTarget[MAXPLAYERS+1];
 // Player Related Variables
 
 new LastClassConfirmed[MAXPLAYERS+1];
-int g_iQueuedClass[MAXPLAYERS+1];
 new bool:g_bInSaferoom[MAXPLAYERS+1];
-new bool:g_bClassSelectionThirdPerson[MAXPLAYERS+1];
 new Float:g_SpawnPos[MAXPLAYERS+1][3];
 new bool:RoundStarted =false;
-new bool:LeftSafeAreaMessageShown = false;
 new bool:disableInfected = false;
 stock int g_iPlayerSkill[MAXPLAYERS+1];
 stock PlayerInfo ClientData[MAXPLAYERS+1];
@@ -174,6 +154,10 @@ stock bool:g_iPlayerSpawn;
 stock bool:ClassHint = false;
 Handle g_ReadyTimer[MAXPLAYERS+1] = {null, ...};
 new RndSession;
+
+// Parachute
+bool g_bParachute[MAXPLAYERS+1];
+int g_iVelocity = -1, g_iParaEntRef[MAXPLAYERS+1] = {INVALID_ENT_REFERENCE, ...};
 
 // CLASS RELATED STUFF
 
@@ -185,9 +169,6 @@ new Handle:MAX_SABOTEUR;
 new Handle:MAX_COMMANDO;
 new Handle:MAX_ENGINEER;
 new Handle:MAX_BRAWLER;
-
-// Class selection settings
-new Handle:CLASS_PREVIEW_DURATION;
 
 // Everyone
 new Handle:NONE_HEALTH;
@@ -202,15 +183,10 @@ new Handle:BRAWLER_HEALTH;
 // Health
 new Handle:REVIVE_DURATION;
 new Handle:HEAL_DURATION;
-new Handle:HEALTH_MODIFIERS_ENABLED;
 new Handle:REVIVE_HEALTH;
 new Handle:PILLS_HEALTH_BUFFER;
 new Handle:ADRENALINE_DURATION;
 new Handle:ADRENALINE_HEALTH_BUFFER;
-
-new Handle:ENGINEER_MAX_BUILDS;
-new Handle:ENGINEER_MAX_BUILD_RANGE;
-new Handle:MINIMUM_DROP_INTERVAL;
 
 // Soldier
 new Handle:SOLDIER_ATTACK_RATE;
@@ -219,12 +195,10 @@ new Handle:SOLDIER_DAMAGE_REDUCE_RATIO;
 new Handle:SOLDIER_SPEED;
 new Handle:SOLDIER_SHOVE_PENALTY;
 new Handle:SOLDIER_MAX_AIRSTRIKES;
-new Handle:MINIMUM_AIRSTRIKE_INTERVAL;
 
 // Athlete
 new Handle:ATHLETE_SPEED;
 new Handle:ATHLETE_JUMP_VEL;
-new Handle:ATHLETE_PARACHUTE_ENABLED;
 
 // Medic
 new Handle:MEDIC_HEAL_DIST;
@@ -242,7 +216,6 @@ new Handle:SABOTEUR_BOMB_RADIUS;
 new Handle:SABOTEUR_MAX_BOMBS;
 new Handle:SABOTEUR_BOMB_TYPES;
 new Handle:SABOTEUR_BOMB_DAMAGE_SURV;
-new Handle:SABOTEUR_ACTIVE_BOMB_COLOR;
 new Handle:SABOTEUR_BOMB_DAMAGE_INF;
 new Handle:SABOTEUR_BOMB_POWER;
 new Handle:SABOTEUR_ENABLE_NIGHT_VISION;
@@ -260,13 +233,30 @@ new Handle:COMMANDO_DAMAGE_SMG;
 new Handle:COMMANDO_ENABLE_STUMBLE_BLOCK;
 new Handle:COMMANDO_ENABLE_STOMPING;
 new Handle:COMMANDO_STOMPING_SLOWDOWN;
+
+// Engineer
+new Handle:ENGINEER_MAX_BUILDS;
+new Handle:ENGINEER_MAX_BUILD_RANGE;
+
+// Saboteur, Engineer, Medic
+new Handle:SABOTEUR_ACTIVE_BOMB_COLOR;
+new Handle:MINIMUM_DROP_INTERVAL;
 new Handle:SPECIAL_SKILL_LIMIT;
-#include <rage/timers>
-#include <rage/effects>
-#include <rage/menus>
-#include <rage/perks>
-#include <rage/admin_commands>
-#include <rage/class_commands>
-#include <rage/commands>
+new Handle:MINIMUM_AIRSTRIKE_INTERVAL;
 
+ConVar healthModEnabled;
+ConVar parachuteEnabled;
 
+#include <sourcemod>
+#include <sdktools>
+#include <sdkhooks>
+#include <left4dhooks.inc>
+#include <dlr/const>
+#include <dlr/debug>
+#include <dlr/timers>
+#include <dlr/commands>
+#include <dlr/perks>
+//#include <dlr/classes>
+#include <dlr/effects>
+#include <dlr/hud>
+#include <dlr/menus>

@@ -1,8 +1,3 @@
-
-#include <sourcemod>
-#include <sdktools>
-#include <sdkhooks>
-
 public Action Command_InstaSpecial(int client, int args) {
 	if(args < 1) {
 		Menu menu = new Menu(Insta_PlayerHandler);
@@ -52,17 +47,17 @@ public Action Command_InstaSpecial(int client, int args) {
 			int target = target_list[i];
 			if(GetClientTeam(target) == 2) {
 				if(SpawnSpecialForTarget(specialType, target)) {
-					LogAction(client, target, "\"%L\" spawned Insta-%s(TM) nearby \"%L\"", client, arg2, target);
+					LogAction(client, target, "\"%L\" spawned Insta-%s™ nearby \"%L\"", client, arg2, target);
 					successes++;
 				} else {
-					ReplyToCommand(client, "[Rage] Could not spawn %s near %s", arg2, target_name);
+					ReplyToCommand(client, "[DLR] Could not spawn %s near %s", arg2, target_name);
 				}
 			} else {
 				ReplyToTargetError(client, target_count);
 			}
 		}
 		if(successes > 0)
-			ShowActivityEx(client, "[Rage] ", "spawned Insta-%s(TM) near %s", arg2, target_name);
+			ShowActivityEx(client, "[DLR] ", "spawned Insta-%s™ near %s", arg2, target_name);
 	}
 
 
@@ -118,17 +113,17 @@ public Action Command_InstaSpecialFace(int client, int args) {
 			int target = target_list[i];
 			if(GetClientTeam(target) == 2) {
 				if(SpawnSpecialForTarget(specialType, target, view_as<int>(Special_OnTarget))) {
-					LogAction(client, target, "\"%L\" spawned Insta-%s(TM) at player \"%L\"", client, arg2, target);
+					LogAction(client, target, "\"%L\" spawned Insta-%s™ at player \"%L\"", client, arg2, target);
 					successes++;
 				} else {
-					ReplyToCommand(client, "[Rage] Could not spawn %s on %s", arg2, target_name);
+					ReplyToCommand(client, "[DLR] Could not spawn %s on %s", arg2, target_name);
 				}
 			}else{
 				ReplyToTargetError(client, target_count);
 			}
 		}
 		if(successes > 0)
-			ShowActivityEx(client, "[Rage] ", "spawned Insta-%s(TM) on %s", arg2, target_name);
+			ShowActivityEx(client, "[DLR] ", "spawned Insta-%s™ on %s", arg2, target_name);
 	}
 	return Plugin_Handled;
 }
@@ -186,7 +181,7 @@ public Action Command_CrescendoPerk(int client, int args) {
 		ActivateAutoPunish(lastCrescendoUser);
 		ReplyToCommand(client, "Activated auto punish on %N", lastCrescendoUser);
 		LogAction(client, lastCrescendoUser, "\"%L\" autopunished crescendo rusher \"%L\"", client, lastCrescendoUser);
-		ShowActivityEx(client, "[Rage] ", "activated autopunish for crescendo activator %N",lastCrescendoUser);
+		ShowActivityEx(client, "[DLR] ", "activated autopunish for crescendo activator %N",lastCrescendoUser);
 	}else{
 		ReplyToCommand(client, "No player could be found to autopunish.");
 	}
@@ -223,7 +218,7 @@ public Action Command_ResetUser(int client, int args) {
 			}
 			ResetClient(target_list[i], true);
 		}
-		ShowActivityEx(client, "[Rage] ", "reset perk effects for %s.",target_name);
+		ShowActivityEx(client, "[DLR] ", "reset perk effects for %s.",target_name);
 	}
 	return Plugin_Handled;
 }
@@ -266,7 +261,7 @@ public Action Command_ApplyUser(int client, int args) {
 					return Plugin_Handled;
 				}
 			} 
-			ReplyToCommand(client, "[Rage] Unknown class: '%s'", arg2);
+			ReplyToCommand(client, "[DLR] Unknown class: '%s'", arg2);
 		} else if(args == 1) {
 			SetupClassMenu(client, GetClientUserId(target_list[0]));
 		}
@@ -343,7 +338,7 @@ public Action Command_ApplyUserSilent(int client, int args) {
 					return Plugin_Handled;
 				}
 			} 
-			ReplyToCommand(client, "[Rage] Unknown class: '%s'", arg2);
+			ReplyToCommand(client, "[DLR] Unknown class: '%s'", arg2);
 		}
 		SetupClassMenu(client, GetClientUserId(target_list[0]));
 	}

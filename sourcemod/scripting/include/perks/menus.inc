@@ -17,7 +17,7 @@ public int Insta_PlayerHandler(Menu menu, MenuAction action, int client, int par
 
 void ShowInstaSpecialChooser(int activator, int userid, int instaMode) {
 	Menu spMenu = new Menu(Insta_SpecialHandler);
-	spMenu.SetTitle("Choose a Insta-Special(TM)");
+	spMenu.SetTitle("Choose a Insta-Special™");
 	static char data[16];
 	for(int i = 1; i <= 8; i++) {
 		Format(data, sizeof(data), "%d|%d|%d", userid, instaMode, i);
@@ -45,15 +45,15 @@ public int Insta_SpecialHandler(Menu menu, MenuAction action, int client, int pa
 		SpecialType special = view_as<SpecialType>(specialInt);
 		if(inFace) {
 			if(SpawnSpecialForTarget(special, target, view_as<int>(Special_OnTarget))) {
-				LogAction(client, target, "\"%L\" spawned Insta-%s(TM) on \"%L\"", client, SPECIAL_NAMES[specialInt-1], target);
-				ShowActivityEx(client, "[Rage] ", "spawned Insta-%s(TM) on %N", SPECIAL_NAMES[specialInt-1], target);
+				LogAction(client, target, "\"%L\" spawned Insta-%s™ on \"%L\"", client, SPECIAL_NAMES[specialInt-1], target);
+				ShowActivityEx(client, "[DLR] ", "spawned Insta-%s™ on %N", SPECIAL_NAMES[specialInt-1], target);
 			} else {
 				ReplyToCommand(client, "Could not spawn special.");
 			}
 		} else {
 			if(SpawnSpecialForTarget(special, target)) {
-				LogAction(client, target, "\"%L\" spawned Insta-%s(TM) near \"%L\"", client, SPECIAL_NAMES[specialInt-1], target);
-				ShowActivityEx(client, "[Rage] ", "spawned Insta-%s(TM) near %N", SPECIAL_NAMES[specialInt-1], target);
+				LogAction(client, target, "\"%L\" spawned Insta-%s™ near \"%L\"", client, SPECIAL_NAMES[specialInt-1], target);
+				ShowActivityEx(client, "[DLR] ", "spawned Insta-%s™ near %N", SPECIAL_NAMES[specialInt-1], target);
 			} else {
 				ReplyToCommand(client, "Could not spawn special.");
 			}
@@ -85,7 +85,7 @@ public int ChoosePlayerHandler(Menu menu, MenuAction action, int param1, int par
 		int victim = GetClientOfUserId(userid);
 
 		if(victim == 0) {
-			ReplyToCommand(param1, "[Rage] Could not acquire player");
+			ReplyToCommand(param1, "[DLR] Could not acquire player");
 			return 0;
 		}
 		
@@ -103,7 +103,7 @@ public int ChoosePlayerHandlerForCombos(Menu menu, MenuAction action, int client
 		int victim = GetClientOfUserId(userid);
 
 		if(victim == 0) {
-			ReplyToCommand(victim, "[Rage] Could not acquire player");
+			ReplyToCommand(victim, "[DLR] Could not acquire player");
 			return 0;
 		}
 		
@@ -124,7 +124,7 @@ public int ChooseComboHandler(Menu menu, MenuAction action, int client, int para
 		int comboID = StringToInt(str[1]);
 
 		if(victim == 0) {
-			ReplyToCommand(client, "[Rage] Could not acquire player");
+			ReplyToCommand(client, "[DLR] Could not acquire player");
 			return 0;
 		}
 		
@@ -149,7 +149,7 @@ public int ChooseCategoryHandler(Menu menu, MenuAction action, int param1, int p
 		int userid = StringToInt(str[0]);
 		int victim = GetClientOfUserId(userid);
 		if(victim == 0) {
-			ReplyToCommand(param1, "Rage/ChooseCategoryHandler: Could not acquire player");
+			ReplyToCommand(param1, "DLR/ChooseCategoryHandler: Could not acquire player");
 			return 0;
 		}
 		
@@ -178,7 +178,7 @@ public int ChooseClassHandler(Menu menu, MenuAction action, int param1, int para
 		int userid = StringToInt(str[0]);
 		int victim = GetClientOfUserId(userid);
 		if(victim == 0) {
-			ReplyToCommand(param1, "Rage/ChooseClassHandler: Could not acquire player");
+			ReplyToCommand(param1, "DLR/ChooseClassHandler: Could not acquire player");
 			return 0;
 		}
 		
@@ -201,7 +201,7 @@ public int ChooseModeMenuHandler(Menu menu, MenuAction action, int param1, int p
 	if (action == MenuAction_Cancel) {
 		if(param2 == MenuCancel_ExitBack) {
 			if(iMenuPlayerID[param1] == 0) {
-				ReplyToCommand(param1, "Rage/ChooseModeMenuHandler: Could not acquire player");
+				ReplyToCommand(param1, "DLR/ChooseModeMenuHandler: Could not acquire player");
 			}
 			SetupCategoryMenu(param1, iMenuPlayerID[param1]);
 		}
@@ -213,7 +213,7 @@ public int ChooseModeMenuHandler(Menu menu, MenuAction action, int param1, int p
 		int userid = StringToInt(str[0]);
 		int client = GetClientOfUserId(userid);
 		if(client == 0) {
-			ReplyToCommand(param1, "[Rage] Could not acquire player");
+			ReplyToCommand(param1, "[DLR] Could not acquire player");
 			return 0;
 		}
 
@@ -260,7 +260,7 @@ public int ChooseClumsySlotHandler(Menu menu, MenuAction action, int param1, int
 		int client = GetClientOfUserId(userid);
 		int slot = StringToInt(str[1]);
 		if(client == 0) {
-			ReplyToCommand(param1, "[Rage] Could not acquire player");
+			ReplyToCommand(param1, "[DLR] Could not acquire player");
 			return 0;
 		}else if(slot == -1) {
 			for(int i = 0; i <= 4; i++) {
@@ -272,7 +272,7 @@ public int ChooseClumsySlotHandler(Menu menu, MenuAction action, int param1, int
 			ThrowItemToPlayer(client, param1, slot);
 		}
 		LogAction(param1, client, "\"%L\" activated perk \"Throw It all\" slot=%d for \"%L\"", param1, slot, client);
-		ShowActivityEx(param1, "[Rage] ", "activated perk \"Throw It All\" for %N. ", client);
+		ShowActivityEx(param1, "[DLR] ", "activated perk \"Throw It All\" for %N. ", client);
 
 		ShowThrowItAllMenu(param1, userid);
 	} else if (action == MenuAction_End)	
@@ -292,7 +292,7 @@ public int ChoosePerkModiferHandler(Menu menu, MenuAction action, int param1, in
 		int modifiers = StringToInt(str[2]);
 
 		if(client == 0) {
-			ReplyToCommand(param1, "[Rage] Could not acquire player");
+			ReplyToCommand(param1, "[DLR] Could not acquire player");
 			return 0;
 		}
 
@@ -330,7 +330,7 @@ public int ChoosePerkFlagHandler(Menu menu, MenuAction action, int param1, int p
 		bool isDone = StringToInt(str[5]) == 1; // 0 = cont, 1 = done
 
 		if(client == 0) {
-			ReplyToCommand(param1, "[Rage] Could not acquire player");
+			ReplyToCommand(param1, "[DLR] Could not acquire player");
 			return 0;
 		}
 
@@ -423,7 +423,7 @@ void ShowPerkCombosMenu(int client, int victimUserID) {
 	static PerkCombo combo;
 
 	if(combos.Length == 0) {
-		ReplyToCommand(client, "[Rage] No perk combos available");
+		ReplyToCommand(client, "[DLR] No perk combos available");
 		return;
 	} 
 
@@ -551,7 +551,7 @@ void ShowSelectFlagMenu(int activator, int victimUserID, int modifiers, Perk per
 				perk.flagNames.GetString(i, name, sizeof(name));
 				// If flag is enabled, show indication (On)
 				if(prevFlags > 0 && prevFlags & a)
-					Format(name, sizeof(name), "%s [x]", name);
+					Format(name, sizeof(name), "%s ✓", name);
 				int newFlags = prevFlags ^ a; //Toggle the flag instead of setting like below, as it's toggleable here
 				Format(info, sizeof(info), "%d|%d|%d|%d|%d|0", victimUserID, perk.id, modifiers, newFlags, promptIndex);
 				flagMenu.AddItem(info, name);
@@ -592,7 +592,7 @@ void ShowThrowItAllMenu(int client, int userid) {
 
 	int victim = GetClientOfUserId(userid);
 	if(victim == 0) {
-		ReplyToCommand(client, "[Rage] Could not acquire player");
+		ReplyToCommand(client, "[DLR] Could not acquire player");
 		return;
 	}
 	

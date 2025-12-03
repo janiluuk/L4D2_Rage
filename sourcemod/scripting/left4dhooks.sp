@@ -145,6 +145,11 @@ float g_fProf;
 #define NATIVE_TOO_EARLY					"\n==========\nNative '%s' should not be used before OnMapStart, please report to 3rd party plugin author.\n=========="
 #define COMPILE_FROM_MAIN					true
 
+// ====================================================================================================
+// AMMO DEFINITIONS (for internal use)
+// ====================================================================================================
+#define USE_CVAR -1
+
 
 
 // Tank animations
