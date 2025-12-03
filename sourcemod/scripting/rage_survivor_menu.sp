@@ -7,12 +7,10 @@
 #include <clientprefs>
 #include <rage_menu_base>
 #include <rage_survivor_guide>
-#include <l4d2hud>
-#include <rage/hud>
-#include "rage_survivor_menu_hud.inc"
-#include "rage_survivor_menu_kits.inc"
-#include "rage_survivor_menu_keybinds.inc"
-#include "rage_survivor_menu_thirdperson.inc"
+#include <jutils>
+#include <rage_survivor_menu_kits>
+#include <rage_survivor_menu_keybinds>
+#include <rage_survivor_menu_thirdperson>
 
 #define GAMEMODE_OPTION_COUNT 11
 #define CLASS_OPTION_COUNT 8
@@ -113,6 +111,9 @@ int g_iGuideOptionIndexInfected = -1;
 bool g_bGuideNativeAvailable = false;
 bool g_bExtraMenuLoaded = false;
 bool g_bMenuHeld[MAXPLAYERS + 1];
+int g_iLastButtons[MAXPLAYERS + 1];
+int g_iLastSelectedOption[MAXPLAYERS + 1] = {-1, ...};
+int g_iLastSelectedMenuId[MAXPLAYERS + 1] = {-1, ...};
 ArrayList g_hMenuOptionsSurvivor = null;
 ArrayList g_hMenuOptionsInfected = null;
 
@@ -133,7 +134,6 @@ enum RageMenuOption
     Menu_VoteGameMode,
     Menu_ThirdPerson,
     Menu_MultiEquip,
-    Menu_HudToggle,
     Menu_MusicToggle,
     Menu_MusicVolume,
     Menu_SpawnItems,
@@ -210,9 +210,6 @@ public void OnPluginStart()
         }
     }
 
-    // Note: HUD initialization is delayed until OnMapStart to avoid entity creation before map is running
-    g_bHudEnabled = true;
-
     RefreshGuideLibraryStatus();
 }
 
@@ -223,12 +220,14 @@ public void OnAllPluginsLoaded()
 
 public void OnMapStart()
 {
-    Hud_OnMapStart();
 }
 
 public void OnClientPutInServer(int client)
 {
     g_bMenuHeld[client] = false;
+    g_iLastButtons[client] = 0;
+    g_iLastSelectedOption[client] = -1;
+    g_iLastSelectedMenuId[client] = -1;
     ThirdPerson_OnClientPutInServer(client);
     Kits_OnClientPutInServer(client);
     SDKHook(client, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
@@ -243,6 +242,60 @@ public void OnClientDisconnect(int client)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
 {
+    if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    // Removed redundant SHIFT button detection - console commands (+rage_menu) handle this now
+    // Menu opening/closing is handled via +rage_menu and -rage_menu console commands
+    
+    // Check for USE (E) button to execute action when menu is open
+    if (g_bMenuHeld[client])
+    {
+        bool pressingUse = (buttons & IN_USE) != 0;
+        bool wasPressingUse = (g_iLastButtons[client] & IN_USE) != 0;
+        
+        if (pressingUse && !wasPressingUse)
+        {
+            // USE button just pressed - trigger the last selected action if it's an action type
+            int menu_id = g_iLastSelectedMenuId[client];
+            int option = g_iLastSelectedOption[client];
+            
+            if (menu_id >= 0 && option >= 0)
+            {
+                ArrayList map = null;
+                if (menu_id == g_iMenuIDSurvivor)
+                {
+                    map = g_hMenuOptionsSurvivor;
+                }
+                else if (menu_id == g_iMenuIDInfected)
+                {
+                    map = g_hMenuOptionsInfected;
+                }
+                
+                if (map != null && option < map.Length)
+                {
+                    RageMenuOption menuOption = view_as<RageMenuOption>(map.Get(option));
+                    
+                    // Check if this is an action that should be triggered by E
+                    if (menuOption == Menu_DeployAction)
+                    {
+                        // Close menu and execute action
+                        ExtraMenu_Close(client);
+                        g_bMenuHeld[client] = false;
+                        
+                        // Execute the deployment action - it will handle its own feedback/menus
+                        FakeClientCommand(client, "deployment_action");
+                        
+                        // Don't show generic message - let the deployment action show its own menu/feedback
+                    }
+                }
+            }
+        }
+    }
+    
+    g_iLastButtons[client] = buttons;
     return Plugin_Continue;
 }
 
@@ -426,6 +479,10 @@ void StopRageMenuHold(int client)
 
 public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
 {
+    // Store the last selected option for E button detection
+    g_iLastSelectedOption[client] = option;
+    g_iLastSelectedMenuId[client] = menu_id;
+    
     ArrayList map = null;
     int guideIndex = -1;
 
@@ -493,7 +550,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     }
     else if (menuOption == Menu_SetAway)
     {
-        PrintHintText(client, "Away mode is not available here.");
+        FakeClientCommand(client, "sm_afk");
         return;
     }
     else if (menuOption == Menu_SelectTeam)
@@ -522,7 +579,14 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     }
     else if (menuOption == Menu_DeployAction)
     {
+        // Close menu and execute deployment action
+        ExtraMenu_Close(client);
+        g_bMenuHeld[client] = false;
+        
+        // Execute the deployment action - it will handle its own feedback/menus
         FakeClientCommand(client, "deployment_action");
+        
+        // Don't show generic message - let the deployment action show its own menu/feedback
         return;
     }
     else if (menuOption == Menu_ViewRank)
@@ -532,7 +596,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     }
     else if (menuOption == Menu_VoteCustomMap)
     {
-        PrintHintText(client, "Custom map voting is not configured.");
+        FakeClientCommand(client, "sm_chmap");
         return;
     }
     else if (menuOption == Menu_VoteGameMode)
@@ -551,17 +615,24 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         ThirdPersonMode newMode = view_as<ThirdPersonMode>(value);
         ThirdPerson_SetMode(client, newMode);
         PrintHintText(client, "Camera mode set to %s.", (newMode == TP_Always) ? "Always" : (newMode == TP_MeleeOnly) ? "Melee only" : "Off");
+        
+        // Update menu to show the new active mode immediately
+        if (g_bMenuHeld[client])
+        {
+            int menuId = (GetClientTeam(client) == 2) ? g_iMenuIDSurvivor : g_iMenuIDInfected;
+            ArrayList optionMap = (GetClientTeam(client) == 2) ? g_hMenuOptionsSurvivor : g_hMenuOptionsInfected;
+            if (menuId > 0 && optionMap != null)
+            {
+                SyncMenuSelection(client, menuId, optionMap, Menu_ThirdPerson, view_as<int>(newMode));
+                // Redisplay the menu to show updated value
+                ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);
+            }
+        }
         return;
     }
     else if (menuOption == Menu_MultiEquip)
     {
         PrintHintText(client, "Multiple equipment mode is not configured.");
-        return;
-    }
-    else if (menuOption == Menu_HudToggle)
-    {
-        bool enableHud = value != 0;
-        Hud_SetEnabled(enableHud, client);
         return;
     }
     else if (menuOption == Menu_MusicToggle)
@@ -721,7 +792,7 @@ public void AddClassOptions(int menu_id)
     ExtraMenu_AddOptions(menu_id, options);
 }
 
-int GetSavedClassIndex(int client)
+public int GetSavedClassIndex(int client)
 {
     if (client <= 0 || client > MaxClients || g_hClassCookie == INVALID_HANDLE || !IsClientInGame(client))
     {
@@ -746,7 +817,7 @@ int GetSavedClassIndex(int client)
     return classIndex;
 }
 
-int ClassIdentifierToIndex(const char[] ident)
+public int ClassIdentifierToIndex(const char[] ident)
 {
     for (int i = 1; i < CLASS_OPTION_COUNT; i++)
     {
@@ -829,30 +900,45 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "1. Get Kit", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_GetKit));
-    ExtraMenu_AddOptions(menu_id, "Medic kit|Rambo kit|Counter-terrorist kit|Ninja kit");
-
-    ExtraMenu_AddEntry(menu_id, "2. Set yourself away", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_SetAway));
-    ExtraMenu_AddEntry(menu_id, "3. Select team", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_SelectTeam));
+    ExtraMenu_AddEntry(menu_id, "1. Deploy class ability", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_DeployAction));
 
     if (includeChangeClass)
     {
-        ExtraMenu_AddEntry(menu_id, "4. Change class: _OPT_", MENU_SELECT_LIST);
+        ExtraMenu_AddEntry(menu_id, "2. Choose class: _OPT_", MENU_SELECT_LIST);
         optionMap.Push(view_as<int>(Menu_ChangeClass));
         AddClassOptions(menu_id);
     }
 
-    ExtraMenu_AddEntry(menu_id, "5. Deploy class ability", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_DeployAction));
+    ExtraMenu_AddEntry(menu_id, "3. 3rd person mode: _OPT_", MENU_SELECT_LIST);
+    optionMap.Push(view_as<int>(Menu_ThirdPerson));
+    ExtraMenu_AddOptions(menu_id, "Off|Melee Only|Always");
 
-    ExtraMenu_AddEntry(menu_id, "6. See your ranking", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_ViewRank));
-    ExtraMenu_AddEntry(menu_id, "7. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
+    int guideIndex = optionMap.Length;
+    ExtraMenu_AddEntry(menu_id, "4. Guide", MENU_SELECT_ONLY, true);
+    optionMap.Push(view_as<int>(Menu_Guide));
+
+    ExtraMenu_AddEntry(menu_id, "5. Set yourself away", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_SetAway));
+    ExtraMenu_AddEntry(menu_id, "6. Vote for map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
     optionMap.Push(view_as<int>(Menu_VoteCustomMap));
-    ExtraMenu_AddEntry(menu_id, "8. Vote for gamemode", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "7. Switch team", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_SelectTeam));
+    ExtraMenu_NewPage(menu_id);
+
+    ExtraMenu_AddEntry(menu_id, "GAME MENU (continued):", MENU_ENTRY);
+    if (!buttons_nums)
+    {
+        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
+    }
+
+    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
+    ExtraMenu_AddEntry(menu_id, "1. Get Kit", MENU_SELECT_LIST);
+    optionMap.Push(view_as<int>(Menu_GetKit));
+    ExtraMenu_AddOptions(menu_id, "Medic kit|Rambo kit|Counter-terrorist kit|Ninja kit");
+    ExtraMenu_AddEntry(menu_id, "2. See your ranking", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_ViewRank));
+    ExtraMenu_AddEntry(menu_id, "3. Vote for gamemode", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_VoteGameMode));
     AddGameModeOptions(menu_id);
     ExtraMenu_NewPage(menu_id);
@@ -864,17 +950,12 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "1. 3rd person mode: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_ThirdPerson));
-    ExtraMenu_AddOptions(menu_id, "Off|Melee Only|Always");
-    ExtraMenu_AddEntry(menu_id, "2. Multiple Equipment Mode: _OPT_", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "1. Multiple Equipment Mode: _OPT_", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_MultiEquip));
     ExtraMenu_AddOptions(menu_id, "Off|Single Tap|Double tap");
-    ExtraMenu_AddEntry(menu_id, "3. HUD: _OPT_", MENU_SELECT_ONOFF, false, g_bHudEnabled ? 1 : 0);
-    optionMap.Push(view_as<int>(Menu_HudToggle));
-    ExtraMenu_AddEntry(menu_id, "4. Music player: _OPT_", MENU_SELECT_ONOFF);
+    ExtraMenu_AddEntry(menu_id, "3. Music player: _OPT_", MENU_SELECT_ONOFF);
     optionMap.Push(view_as<int>(Menu_MusicToggle));
-    ExtraMenu_AddEntry(menu_id, "5. Music Volume: _OPT_", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "4. Music Volume: _OPT_", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_MusicVolume));
     ExtraMenu_AddOptions(menu_id, "----------|#---------|##--------|###-------|####------|#####-----|######----|#######---|########--|#########-|##########");
 
@@ -914,10 +995,6 @@ void BuildSingleMenu(bool includeChangeClass)
     ExtraMenu_AddEntry(menu_id, "6. Game speed: _OPT_", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_GameSpeed));
     ExtraMenu_AddOptions(menu_id, "----------|#---------|##--------|###-------|####------|#####-----|######----|#######---|########--|#########-|##########");
-
-    int guideIndex = optionMap.Length;
-    ExtraMenu_AddEntry(menu_id, "Open Rage tutorial guide", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_Guide));
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
 
     if (includeChangeClass)
@@ -954,7 +1031,7 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 }
 
-void SyncMenuSelections(int client, int menuId, ArrayList optionMap)
+public void SyncMenuSelections(int client, int menuId, ArrayList optionMap)
 {
     if (optionMap == null)
     {
@@ -962,11 +1039,10 @@ void SyncMenuSelections(int client, int menuId, ArrayList optionMap)
     }
 
     SyncMenuSelection(client, menuId, optionMap, Menu_ThirdPerson, view_as<int>(g_ThirdPersonMode[client]));
-    SyncMenuSelection(client, menuId, optionMap, Menu_HudToggle, g_bHudEnabled ? 1 : 0);
     SyncMenuSelection(client, menuId, optionMap, Menu_ChangeClass, GetSavedClassIndex(client));
 }
 
-void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value)
+public void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value)
 {
     int index = optionMap.FindValue(view_as<int>(option));
     if (index != -1)
@@ -986,6 +1062,13 @@ public bool DisplayRageMenu(int client, bool showHint)
     {
         PrintToChat(client, "[Rage] You do not have access to this menu.");
         return false;
+    }
+
+    // Check if survivor player has selected a class - if not, show class selection menu
+    if (GetClientTeam(client) == 2 && GetSavedClassIndex(client) == 0)
+    {
+        FakeClientCommand(client, "sm_class");
+        return true;
     }
 
     int menuId = (GetClientTeam(client) == 2) ? g_iMenuIDSurvivor : g_iMenuIDInfected;

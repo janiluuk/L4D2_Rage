@@ -9,7 +9,7 @@ Handle g_hMenuKeyCookie = INVALID_HANDLE;
 void Keybinds_OnPluginStart()
 {
     g_hMenuKeyCookie = RegClientCookie("rage_menu_key_bound", "Rage menu key auto-bind status", CookieAccess_Private);
-    g_hDefaultMenuKey = CreateConVar("rage_menu_default_key", "v", "Default key to bind the Rage menu to. Set to empty string to disable auto-binding.", FCVAR_NONE);
+    g_hDefaultMenuKey = CreateConVar("rage_menu_default_key", "v", "Default key to bind the Rage menu to. Set to empty string to disable auto-binding. Can also use 'shift' for SHIFT key.", FCVAR_NONE);
 }
 
 void Keybinds_OnClientCookiesCached(int client)
@@ -39,8 +39,26 @@ void Keybinds_OnClientCookiesCached(int client)
     // Only bind if a default key is configured and valid
     if (defaultKey[0] != '\0' && Keybinds_IsValidKeyString(defaultKey))
     {
+        // Handle special key names
+        char bindKey[32];
+        if (StrEqual(defaultKey, "shift", false))
+        {
+            // Shift key uses +speed in Source engine
+            strcopy(bindKey, sizeof(bindKey), "+speed");
+        }
+        else
+        {
+            strcopy(bindKey, sizeof(bindKey), defaultKey);
+        }
+        
         // Execute bind command for the client
-        ClientCommand(client, "bind %s +rage_menu", defaultKey);
+        ClientCommand(client, "bind %s +rage_menu", bindKey);
+        
+        // For shift key, also need to bind -speed to close menu
+        if (StrEqual(defaultKey, "shift", false))
+        {
+            ClientCommand(client, "bind -speed -rage_menu");
+        }
 
         // Mark as bound in cookie
         SetClientCookie(client, g_hMenuKeyCookie, "1");
@@ -56,6 +74,12 @@ bool Keybinds_IsValidKeyString(const char[] key)
     if (len == 0 || len > 31)
     {
         return false;
+    }
+
+    // Special case: "shift" is valid
+    if (StrEqual(key, "shift", false))
+    {
+        return true;
     }
 
     for (int i = 0; i < len; i++)

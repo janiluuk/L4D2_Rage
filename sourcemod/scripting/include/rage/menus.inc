@@ -15,6 +15,8 @@ bool g_bNB;
 // Class menu
 ///////////////////////////////////////////////////////////////////////////////////
 
+forward void ShowClassSkillBindings(int client, ClassTypes classType);
+
 stock void ShowClassHud(int client, bool skillReady, const char[] readyText = "")
 {
         if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
@@ -92,6 +94,7 @@ public bool ApplyClassSelection(int client, int classIndex)
 
         PrintToChat(client, "%sSelected %s. You can use the Rage menu to change again; mid-round changes take effect next round.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
         ShowClassHud(client, false);
+        ShowClassSkillBindings(client, view_as<ClassTypes>(classIndex));
         return true;
 }
 

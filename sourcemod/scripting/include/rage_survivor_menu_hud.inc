@@ -3,7 +3,7 @@
 #endif
 #define _RAGE_SURVIVOR_MENU_HUD_INC_
 
-bool g_bHudEnabled = true;
+bool g_bHudEnabled = false;
 
 void Hud_OnMapStart()
 {

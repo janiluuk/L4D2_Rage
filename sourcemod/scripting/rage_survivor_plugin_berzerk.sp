@@ -433,7 +433,9 @@ public OnPluginStart()
 	g_cvarEnableMusicShield  = CreateConVar("l4d2_berserk_mode_esthetic_shield", "1", "Should the plugin avoid playing the music if it is anoying? (On finale escapes, tanks on play, etc)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarAdrenCheckEnable = CreateConVar("l4d2_berserk_mode_adren_safeguard", "1", "Should we activate the Adrenaline Safe Guard for sound? (Prevents glitches)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarAdrenCheckTimer = CreateConVar("l4d2_berserk_mode_adren_safeguard_time", "20", "How long should the Adrenaline Safe Guard wait to check and fix sound?");
-	g_cvarAllowZoomKey = CreateConVar("l4d2_berserk_mode_bind_zoom_key", "0", "Allow the +ZOOM (Mouse wheel) to be the default berserker key?", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	// NOTE: This should be set to 0 (disabled) when using the skill action system.
+	// Berserk is now triggered via skill_action_1 command, not direct button detection.
+	g_cvarAllowZoomKey = CreateConVar("l4d2_berserk_mode_bind_zoom_key", "0", "Allow the +ZOOM (Mouse wheel) to be the default berserker key? (DISABLED by default - use skill_action_1 instead)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarYell = CreateConVar("l4d2_berserk_mode_yell", "1", "Allow the berserker mode 'Yell' feature. (Shove enemies at berserker start", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarYellPower = CreateConVar("l4d2_berserk_mode_yell_power", "250", "Power of the shove of the Berserker mode 'Yell' feature", FCVAR_NOTIFY);
 	g_cvarYellRadius = CreateConVar("l4d2_berserk_mode_yell_radius", "350", "Radius that the yell shoves enemies", FCVAR_NOTIFY);

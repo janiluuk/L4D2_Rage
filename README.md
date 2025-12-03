@@ -24,16 +24,17 @@ Transform Left 4 Dead 2 into an action-packed versus and co-op experience! Pick 
 
 **For Players:**
 1. Join a server running Rage Edition
-2. The menu is automatically bound to the **V** key on first join—just hold V to open, release to close
-3. You can also press **X** (voice menu key) for quick access, or type `!rage_bind` to change the key
-4. Pick your class and learn your abilities from the menu—the menu remembers your last choice and will highlight it next time
-5. Type `!guide` in chat to open the full tutorial anytime
+2. The menu is automatically bound to the **V** key on first join (or **SHIFT** if configured by server)—just hold to open, release to close
+3. Skill actions are automatically bound to mouse buttons: **mouse3** (middle), **mouse4**, and **mouse5**
+4. You can also press **X** (voice menu key) for quick access, or type `!rage_bind` to change the key
+5. Pick your class and learn your abilities from the menu—the menu remembers your last choice and will highlight it next time
+6. Type `!guide` in chat to open the full tutorial anytime
 
 **For Server Owners:**
 1. Drop the `sourcemod/` folder into your L4D2 server directory
 2. Edit `configs/rage_class_skills.cfg` to customize classes and abilities
 3. (Optional) Tweak settings in `cfg/sourcemod/talents.cfg` for cooldowns and limits
-4. (Optional) Change the default menu bind key in `cfg/sourcemod/rage_survivor_menu.cfg` (default is "v")
+4. (Optional) Change the default menu bind key in `cfg/sourcemod/rage_survivor_menu.cfg` - set `rage_menu_default_key` to "v" (default), "shift", or any other key
 5. Make sure the SourceMod **httpclient** extension is installed (ships with SM 1.12+); place `httpclient.ext.*` binaries in `addons/sourcemod/extensions/`
 6. Restart your server and you're good to go!
 
@@ -45,97 +46,164 @@ Every class has special powers! Here's how to trigger them:
 
 | What it does | Default controls | Quick tip |
 | ------------ | ---------------- | --------- |
-| **Main ability** | Middle mouse button | Your class's signature move |
-| **Second ability** | Use + Fire together | Combo power |
-| **Third ability** | Crouch + Use + Fire | Extra trick up your sleeve |
-| **Deploy stuff** | Look down + Hold Shift | Drop turrets, supplies, or mines |
+| **Skill Action 1** | Middle mouse button (mouse3) - **auto-bound** | Your class's signature move |
+| **Skill Action 2** | Mouse4 (side button) - **auto-bound** OR Use + Fire together | Secondary ability |
+| **Skill Action 3** | Mouse5 (side button) - **auto-bound** OR Crouch + Use + Fire t   ogether | Tertiary ability |
+| **Deploy Action** | Look down + CROUCH + SHOVE (button combo, no key) | Drop turrets, supplies, or mines |
 
-**Too complicated?** The Rage menu is automatically bound to **V** on first join—just hold it to open! You can also press X (voice menu) to access it instantly.
+**Automatic Bindings:**
+- **Menu**: Automatically bound to **V** key (or **SHIFT** if server configured) on first join
+- **Skill Actions**: Automatically bound to **mouse3**, **mouse4**, and **mouse5** when you join or respawn
+- You can also press **X** (voice menu key) to access the menu instantly
 
-**Want to change the key?** Type `!rage_bind` in chat for instructions, or add this to your autoexec.cfg:
+**Want to change keys?**
+- **Menu key**: Type `!rage_bind` in chat for instructions, or add this to your autoexec.cfg:
+  ```
+  bind <key> +rage_menu  // Hold to open menu, release to close
+  ```
+- **Skill action keys**: Manually rebind in console or autoexec.cfg:
+  ```
+  bind mouse3 skill_action_1
+  bind mouse4 skill_action_2
+  bind mouse5 skill_action_3
+  ```
+- **Alternative**: Use button combinations (Use+Fire, Crouch+Use+Fire) instead of mouse buttons
+- **Configuration**: Edit `configs/rage_skill_actions.cfg` to customize the display labels shown in-game
+
+### Skills & Deployment Quick Reference
+
+Every class has up to 3 skill actions and 1 deployment action. All skill actions can be rebound in `configs/rage_skill_actions.cfg`.
+
+| Class | Skill Action 1 | Skill Action 2 | Skill Action 3 | Deployment Action |
+| ----- | -------------- | -------------- | -------------- | ----------------- |
+| **Soldier** | Satellite Strike | Homing Missile (Type 1) | Decoy Missile (Type 2) | Engineer Supplies Menu |
+| **Athlete** | Anti-gravity Grenades | None | None | Medic Supplies Menu |
+| **Medic** | Healing Grenades | Healing Orb | UnVomit (Cleanse Bile) | Medic Supplies Menu |
+| **Saboteur** | Dead Ringer Cloak | None | None | Saboteur Mines Menu |
+| **Commando** | Berzerk Rage | None | None | Engineer Supplies Menu |
+| **Engineer** | Experimental Grenades | Multiturret | None | Engineer Supplies Menu |
+| **Brawler** | UnVomit (Cleanse Bile) | None | None | Medic Supplies Menu |
+
+**Default Key Bindings:**
+- **Menu**: **V** key (or **SHIFT** if server configured) - automatically bound on first join
+- **Skill Action 1**: **mouse3** (middle mouse button) - automatically bound to `skill_action_1` command
+- **Skill Action 2**: **mouse4** (mouse side button) - automatically bound to `skill_action_2` command, OR use **Use + Fire** button combo
+- **Skill Action 3**: **mouse5** (mouse side button) - automatically bound to `skill_action_3` command, OR use **Crouch + Use + Fire** button combo
+- **Deployment Action**: **Look down + CROUCH + SHOVE** (button combination, no automatic key binding)
+
+**Note:** All mouse button bindings are automatically set when you join the server or respawn. You can also manually bind keys in console:
 ```
-bind <key> +rage_menu  // Hold to open menu, release to close
+bind mouse3 skill_action_1
+bind mouse4 skill_action_2  
+bind mouse5 skill_action_3
 ```
-Try keys like G, K, or mouse side buttons (mouse4/mouse5) for quick access.
-
-You can also rebind abilities in `configs/rage_skill_actions.cfg` or use console commands like `skill_action_1`, `skill_action_2`, etc.
-
-### Special skill quick reference
-
-Most classes have a unique special mapped to **Skill Action 1** (default: middle mouse button). The Brawler is passive-only and relies on sheer health:
-
-| Class | Special skill | Default button |
-| ----- | ------------- | --------------- |
-| Soldier | Satellite Strike | Skill Action 1 (Middle Mouse) |
-| Athlete/Ninja | Anti-gravity Grenades | Skill Action 1 (Middle Mouse) |
-| Commando/Trooper | Berzerk Rage | Skill Action 1 (Middle Mouse) |
-| Medic | Healing Grenades | Skill Action 1 (Middle Mouse) |
-| Engineer | Experimental Grenades | Skill Action 1 (Middle Mouse) |
-| Saboteur | Dead Ringer Cloak | Skill Action 1 (Middle Mouse) |
-| Brawler | None (extra health passive) | N/A |
-
-### Deployables quick reference
-
-| Class | What you can deploy | Default deploy button |
-| ----- | ------------------- | --------------------- |
-| Soldier | Nothing to deploy | N/A |
-| Athlete/Ninja | Nothing to deploy | N/A |
-| Commando/Trooper | Nothing to deploy | N/A |
-| Medic | Medkits, defibs, and supplies | Deploy Action (Look down + Hold Shift) |
-| Engineer | Ammo supplies (deploy) and automated turrets (Secondary Action) | Deploy Action (Look down + Hold Shift) |
-| Saboteur | Motion mines (various types) | Deploy Action (Look down + Hold Shift) |
-| Brawler | Nothing to deploy | N/A |
+Or use the button combinations above if you prefer not to use mouse buttons.
 
 ## Meet Your Squad 💪
 
 ### 🎖️ Soldier (Soldierboy)
 The frontline tank who takes hits and keeps moving. Fast on his feet, tough as nails, and lethal with melee weapons.
+
+**Active Skills:**
 - **Satellite Strike** – Call down devastation from orbit on outdoor areas
 - **Homing Missile** – Fire a heat-seeking rocket at your target
 - **Decoy Missile** – Launch a dummy to distract infected
+
+**Passive Perks:**
+- **Increased Health** – 300 HP (2x default)
+- **Movement Speed** – 15% faster than normal
+- **Faster Melee Attacks** – Swing melee weapons 2x faster
+- **Faster Weapon Attacks** – Shoot weapons 50% faster
+- **Enhanced Armor** – Armor reduces damage by 25% more effectively
 - **Night Vision** – See in the dark like it's daytime
-- **Bonus:** Extra health and armor to survive the chaos
 
 ### 🥷 Ninja (Athlete)
 Speed demon built for parkour and aerial combat. Double jump, wall run, and float over danger.
+
+**Active Skills:**
 - **Ninja Kick** – Sprint + Jump to flying-kick enemies into oblivion
 - **Parachute** – Hold Use mid-air to glide down safely
 - **Anti-gravity Grenades** – Throw grenades that mess with physics
-- **Bonus:** Lightning-fast movement and supreme agility
+
+**Passive Perks:**
+- **Movement Speed** – 20% faster than normal (fastest class)
+- **High Jump** – Jump much higher than normal
+- **Double Jump** – Perform a second jump mid-air for extra mobility
+- **Bunnyhop** – Chain jumps together for sustained speed
+- **Long Jump** – Extended jump distance
 
 ### ⚔️ Trooper (Commando)
 Pure damage output. Reloads faster, hits harder, and can take down a Tank hand-to-hand.
+
+**Active Skills:**
 - **Berserk Mode** – Build rage and unleash a devastating rampage
 - **Tank Knockdown** – Melee a Tank to stagger it
-- **Bonus:** Massive health pool for sustained combat
+
+**Passive Perks:**
+- **Increased Health** – 300 HP (2x default)
+- **Faster Reload** – Reload 50% faster than normal
+- **Weapon Damage Bonuses** – Increased damage per weapon type:
+  - Pistol: +25 damage
+  - Grenade: +20 damage
+  - Sniper/Hunting Rifle: +15 damage
+  - Rifle: +10 damage
+  - SMG: +7 damage
+  - Shotgun: +5 damage
+  - Default: +5 damage
+- **Tank Immunity** – Immune to Tank knockdowns
+- **Stomping** – Can stomp downed infected to finish them
 
 ### ⚕️ Medic
 Your team's lifeline. Heals faster, drops supplies, and keeps everyone alive.
+
+**Active Skills:**
 - **Healing Grenades** – Throw a grenade that heals instead of hurts
 - **Healing Orb** – Summon glowing orbs that restore health to nearby players
 - **Cleanse Bile** – Press Skill Action 3 (shown in-game) or `!unvomit` while covered to clear boomer bile (120s cooldown)
-- **Deploy Supplies** – Drop medkits and defibs for your team
-- **Bonus:** Speed boost while healing, better revival times
+
+**Passive Perks:**
+- **Healing Aura** – Heals nearby survivors for 10 HP every 2 seconds when crouching (256 unit range)
+- **Speed Boost** – 70% faster movement while healing (crouching)
+- **Faster Revive** – Revive teammates 50% faster
+- **Faster Healing** – Heal with medkits 50% faster
 
 ### 🔧 Engineer
 The builder who fortifies positions and rains experimental hell on zombies.
+
+**Active Skills:**
 - **Experimental Grenades** – 20 wild options: Black Hole vortexes, Tesla lightning, Airstrike markers, healing clouds, and more
 - **Deploy Turrets** – Place auto-firing turrets with 20+ ammo types (regular bullets, explosive rounds, lasers, you name it)
 - **Ammo Supplies** – Drop infinite ammo packs for your squad
 - **Barricades** – Block doors and windows
-- **Bonus:** Turrets can be carried around and redeployed
+
+**Passive Perks:**
+- **Portable Turrets** – Turrets can be carried around and redeployed
+- Standard health (150 HP)
 
 ### 🕵️ Saboteur
 The stealth specialist who sneaks, scouts, and plants deadly traps.
+
+**Active Skills:**
 - **Dead Ringer Cloak** – Go invisible and drop a fake corpse to fool infected
 - **Extended Sight** – Reveal special infected positions for 20 seconds (every 2 minutes)
 - **Deploy Mines** – Plant 20 different mine types with unique effects
-- **Bonus:** Faster crouch movement with invisibility, reduced survivor damage but increased infected damage
+
+**Passive Perks:**
+- **Invisibility** – Become invisible after crouching for 5 seconds
+- **Faster Crouch Movement** – Move faster while crouching and cloaked
+- **Night Vision** – Optional night vision capability
+- **Damage Profile** – Reduced damage to survivors, but increased damage to infected
+- Standard health (150 HP)
 
 ### 🥊 Brawler *(Experimental)*
 Heavy-duty tank class with massive health for soaking damage. Still being tested!
-- **Passive Tankiness** – No active special skill; you simply soak damage better than everyone else
-- **Bonus:** Huge health pool to take punishment for your team
+
+**Active Skills:**
+- **UnVomit (Cleanse Bile)** – Cleanse boomer bile from yourself
+
+**Passive Perks:**
+- **Massive Health Pool** – 600 HP (4x default health!)
+- Designed to soak damage for the team
 
 ## Survival Mechanics (Predicaments System)
 

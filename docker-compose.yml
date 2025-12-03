@@ -15,8 +15,8 @@ services:
       - "27015:27015/udp"
       - "27015:27015/tcp"
     volumes:
-      - ./sourcemod:/home/steam/left4dead2/left4dead2/addons/sourcemod
-      - ./music:/home/steam/left4dead2/left4dead2/sound/custom/rage
+      - ./l4d2/addons:/home/steam/left4dead2/left4dead2/addons
+      - ./custom/music:/home/steam/left4dead2/left4dead2/sound/custom
     working_dir: /home/steam/left4dead2
     command: >-
       bash -lc "

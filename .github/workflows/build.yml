@@ -56,25 +56,21 @@ jobs:
           fi
           includes="-i $GITHUB_WORKSPACE/sourcemod/scripting/include -i $GITHUB_WORKSPACE/sm/addons/sourcemod/scripting/include"
 
-          package_plugins_dir="$GITHUB_WORKSPACE/package/addons/sourcemod/plugins"
-          repo_plugins_dir="$GITHUB_WORKSPACE/sourcemod/plugins"
+          plugins_dir="$GITHUB_WORKSPACE/plugins"
 
-          mkdir -p "$package_plugins_dir" "$repo_plugins_dir"
+          mkdir -p "$plugins_dir"
 
           # Ensure previous outputs do not linger between runs
-          rm -f "$package_plugins_dir"/rage*.smx "$repo_plugins_dir"/rage*.smx
+          rm -f "$plugins_dir"/rage*.smx
 
           shopt -s nullglob
           for sp in sourcemod/scripting/rage*.sp; do
             output_name="$(basename "${sp%.sp}.smx")"
-            "$spcomp" $includes -v0 "$sp" -o "$package_plugins_dir/$output_name"
-            cp "$package_plugins_dir/$output_name" "$repo_plugins_dir/$output_name"
+            "$spcomp" $includes -v0 "$sp" -o "$plugins_dir/$output_name"
           done
 
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: l4d2_dlr-sm1.11.0-git6453-${{ matrix.os_short }}-${{ env.GITHUB_SHA_SHORT }}
-          path: |
-            package
-            sourcemod/plugins
+          name: l4d2_dlr-sm1.12.0-git7219-${{ matrix.os_short }}-${{ env.GITHUB_SHA_SHORT }}
+          path: plugins

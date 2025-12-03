@@ -19,8 +19,9 @@ static void TryShowAirstrike(float origin[3])
 
 static bool PressedSpecialSkillButton(int client, int buttons)
 {
-	bool pressed = (buttons & IN_ZOOM) != 0;
-	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0;
+	// Check for mouse3 via IN_ZOOM (which is mouse wheel/middle button) or IN_ATTACK3
+	bool pressed = (buttons & IN_ZOOM) != 0 || (buttons & IN_ATTACK3) != 0;
+	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0 || (ClientData[client].LastButtons & IN_ATTACK3) != 0;
 	return pressed && !wasPressed;
 }
 
@@ -36,12 +37,26 @@ static bool PressedSecondarySkillButton(int client, int buttons)
 
 static bool PressedPlantModifier(int client, int buttons)
 {
-	bool pressed = (buttons & IN_SPEED) != 0;
-	bool wasPressed = (ClientData[client].LastButtons & IN_SPEED) != 0;
-	return pressed && !wasPressed;
+	// Deployment requires CROUCH+SHOVE (IN_ATTACK2) specifically
+	bool shovePressed = (buttons & IN_ATTACK2) != 0;
+	bool crouchPressed = (buttons & IN_DUCK) != 0;
+	bool wasShovePressed = (ClientData[client].LastButtons & IN_ATTACK2) != 0;
+	bool wasCrouchPressed = (ClientData[client].LastButtons & IN_DUCK) != 0;
+	
+	// Require both CROUCH and SHOVE to be pressed together
+	if (shovePressed && crouchPressed)
+	{
+		// Trigger on initial press when both buttons are pressed (at least one wasn't pressed before)
+		if (!wasShovePressed || !wasCrouchPressed)
+		{
+			return true;
+		}
+	}
+	
+	return false;
 }
 
-static bool IsLookingDown(int client, float minPitch = 30.0)
+static bool IsLookingDown(int client, float minPitch = 45.0)
 {
 	float ang[3];
 	GetClientEyeAngles(client, ang);
@@ -71,25 +86,18 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 	decl Float:pos[3];
 	GetClientAbsOrigin(client, pos);
 	int iDropTime = RoundToFloor(fCanDropTime);
-	bool pressedSpecial = PressedSpecialSkillButton(client, buttons);
-	bool pressedSecondary = PressedSecondarySkillButton(client, buttons);
+	// Removed redundant button detection for skill actions - console commands handle this now
 	bool pressedPlant = PressedPlantModifier(client, buttons);
 	int entityFlags = GetEntityFlags(client);
 	bool onGround = (entityFlags & FL_ONGROUND) != 0;
-	bool holdingShift = (buttons & IN_SPEED) != 0;
+	// Deployment requires CROUCH+SHOVE (IN_ATTACK2) to be held
+	bool holdingDeploy = (buttons & IN_ATTACK2) != 0 && (buttons & IN_DUCK) != 0;
 	bool lookingDown = IsLookingDown(client);
 
 	ClassTypes classType = ClientData[client].ChosenClass;
 
-	if (pressedSpecial)
-	{
-		TryTriggerClassSkillAction(client, classType, ClassSkill_Special);
-	}
-
-	if (pressedSecondary)
-	{
-		TryTriggerClassSkillAction(client, classType, ClassSkill_Secondary);
-	}
+	// Skill actions are now handled via console commands (+skill_action_1/2/3)
+	// No need for redundant button detection here
 
 	switch (classType)
 	{
@@ -171,7 +179,11 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 		}
 	}
 
-	HandleDeployInput(client, classType, holdingShift, pressedPlant, lookingDown, onGround, CanDrop, iDropTime);
+	// Only check deployment if both buttons are being held
+	if (holdingDeploy)
+	{
+		HandleDeployInput(client, classType, holdingDeploy, pressedPlant, lookingDown, onGround, CanDrop, iDropTime);
+	}
 
 	ClientData[client].LastButtons = buttons;
 	return Plugin_Continue;

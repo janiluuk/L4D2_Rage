@@ -283,7 +283,7 @@ void ConfigureDefaultClassSkills()
 {
         ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Satellite");
         ApplyActionDefinition(athlete, ClassSkill_Special, "command:Grenades:15");
-        ApplyActionDefinition(medic, ClassSkill_Special, "skill:Grenades");
+        ApplyActionDefinition(medic, ClassSkill_Special, "command:Grenades:11");
         ApplyActionDefinition(medic, ClassSkill_Secondary, "skill:HealingOrb");
         ApplyActionDefinition(medic, ClassSkill_Tertiary, "skill:UnVomit");
         ApplyActionDefinition(medic, ClassSkill_Deploy, "builtin:medic_supply");
@@ -409,6 +409,7 @@ bool TriggerSkillAction(int client, ClassTypes classType, ClassSkillInput input)
 		if (g_ClassActionSkillName[classType][input][0] != '\0')
 		{
 			PrintToServer("[Rage] Unable to find registered skill \"%s\" for class %s (%s input).", g_ClassActionSkillName[classType][input], g_ClassIdentifiers[classType], g_InputIdentifiers[input]);
+			PrintHintText(client, "Skill \"%s\" is not available.", g_ClassActionSkillName[classType][input]);
 		}
 		return false;
 	}
@@ -421,7 +422,7 @@ bool TriggerSkillAction(int client, ClassTypes classType, ClassSkillInput input)
 	return true;
 }
 
-bool ExecuteBuiltinAction(int client, BuiltinAction action)
+bool ExecuteBuiltinAction(int client, BuiltinAction action, ClassTypes classType = NONE)
 {
 	switch (action)
 	{
@@ -431,6 +432,14 @@ bool ExecuteBuiltinAction(int client, BuiltinAction action)
 		}
 		case Builtin_EngineerSupplies:
 		{
+			// For Engineer, show turret selection menu by triggering Multiturret skill
+			if (classType == engineer)
+			{
+				// Trigger the secondary skill (Multiturret) which opens the turret menu
+				// This will call OnSpecialSkillUsed which opens BuildMachineGunsMainMenu
+				return TriggerSkillAction(client, engineer, ClassSkill_Secondary);
+			}
+			// For other classes (Soldier, Commando), show the supply menu
 			return CreatePlayerEngineerMenu(client);
 		}
 		case Builtin_SaboteurMines:
@@ -463,7 +472,7 @@ bool ExecuteClassAction(int client, ClassTypes classType, ClassSkillInput input)
 		}
 		case ActionMode_Builtin:
 		{
-			return ExecuteBuiltinAction(client, g_ClassActionBuiltin[classType][input]);
+			return ExecuteBuiltinAction(client, g_ClassActionBuiltin[classType][input], classType);
 		}
 	}
 
@@ -476,7 +485,18 @@ void GetActionCooldownMessage(ClassTypes classType, ClassSkillInput input, char[
 	{
 		case soldier:
 		{
-			strcopy(buffer, maxlen, "Wait %i seconds to order new airstrike.");
+			if (input == ClassSkill_Special)
+			{
+				strcopy(buffer, maxlen, "Wait %i seconds to order new airstrike.");
+			}
+			else if (input == ClassSkill_Secondary || input == ClassSkill_Tertiary)
+			{
+				strcopy(buffer, maxlen, "Wait %i seconds to fire another missile.");
+			}
+			else
+			{
+				strcopy(buffer, maxlen, "Wait %i seconds to use that ability again.");
+			}
 			return;
 		}
 		case medic:
@@ -526,6 +546,7 @@ bool TryTriggerClassSkillAction(int client, ClassTypes classType, ClassSkillInpu
 	char message[128];
 	GetActionCooldownMessage(classType, input, message, sizeof(message));
 
+	// Check if skill can be used and show hints if not
 	if (!canUseSpecialSkill(client, message))
 	{
 		return false;
@@ -534,57 +555,82 @@ bool TryTriggerClassSkillAction(int client, ClassTypes classType, ClassSkillInpu
 	return ExecuteClassAction(client, classType, input);
 }
 
-void HandleDeployInput(int client, ClassTypes classType, bool holdingShift, bool pressedPlant, bool lookingDown, bool onGround, bool canDrop, int elapsed)
+void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, bool pressedPlant, bool lookingDown, bool onGround, bool canDrop, int elapsed)
 {
-	if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None || !holdingShift)
+	// Check if deployment is configured for this class
+	if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
 	{
 		return;
 	}
 
-	if (IsPlayerInSaferoom(client) || IsInEndingSaferoom(client))
+	// Require CROUCH+SHOVE to be held
+	if (!holdingDeploy)
 	{
-		if (pressedPlant)
+		return;
+	}
+
+	// If looking down and pressed CROUCH+SHOVE, trigger deployment menu
+	if (lookingDown && pressedPlant)
+	{
+		if (IsPlayerInSaferoom(client) || IsInEndingSaferoom(client))
 		{
 			PrintHintText(client, "Cannot deploy here");
+			return;
 		}
-		return;
-	}
 
-	if (!pressedPlant)
-	{
-		return;
-	}
-
-	if (!onGround)
-	{
-		PrintHintText(client, "You must stand on solid ground to deploy");
-		return;
-	}
-
-	if (!lookingDown)
-	{
-		PrintHintText(client, "Look down to deploy");
-		return;
-	}
-
-	if (!canDrop)
-	{
-		int wait = ClientData[client].SpecialDropInterval - elapsed;
-		if (wait < 0)
+		if (!onGround)
 		{
-			wait = 0;
+			PrintHintText(client, "You must stand on solid ground to deploy");
+			return;
 		}
-		PrintHintText(client, "Wait %i seconds to deploy again", wait);
+
+		// For builtin actions (menus), allow them even if cooldown hasn't passed
+		// as the menu will handle its own restrictions
+		if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
+		{
+			ExecuteClassAction(client, classType, ClassSkill_Deploy);
+			return;
+		}
+
+		// For other actions, check cooldown and limits
+		if (!canDrop)
+		{
+			int wait = ClientData[client].SpecialDropInterval - elapsed;
+			if (wait < 0)
+			{
+				wait = 0;
+			}
+			PrintHintText(client, "Wait %i seconds to deploy again", wait);
+			return;
+		}
+
+		if (ClientData[client].SpecialLimit > 0 && ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit)
+		{
+			PrintHintText(client, "You're out of supplies (Max %d)", ClientData[client].SpecialLimit);
+			return;
+		}
+
+		ExecuteClassAction(client, classType, ClassSkill_Deploy);
 		return;
 	}
-
-	if (ClientData[client].SpecialLimit > 0 && ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit)
+	
+	// If looking down but not pressed yet, show hint
+	if (lookingDown && holdingDeploy)
 	{
-		PrintHintText(client, "You're out of supplies (Max %d)", ClientData[client].SpecialLimit);
-		return;
+		int buttons = GetClientButtons(client);
+		bool shovePressed = (buttons & IN_ATTACK2) != 0;
+		bool crouchPressed = (buttons & IN_DUCK) != 0;
+		
+		// If looking down but deployment combo isn't complete, show hint
+		if (shovePressed && !crouchPressed)
+		{
+			PrintHintText(client, "Press CROUCH+SHOVE to deploy");
+		}
+		else if (crouchPressed && !shovePressed)
+		{
+			PrintHintText(client, "Press CROUCH+SHOVE to deploy");
+		}
 	}
-
-	ExecuteClassAction(client, classType, ClassSkill_Deploy);
 }
 
 /**
@@ -599,8 +645,14 @@ public OnPluginStart( )
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows class descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
         RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Satellite Strike for Soldier)");
+        RegConsoleCmd("+skill_action_1", CmdSkillAction1, "Trigger your primary class action (press version)");
+        RegConsoleCmd("-skill_action_1", CmdSkillAction1Release, "Release version (does nothing)");
         RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
+        RegConsoleCmd("+skill_action_2", CmdSkillAction2, "Trigger your secondary class action (press version)");
+        RegConsoleCmd("-skill_action_2", CmdSkillAction2Release, "Release version (does nothing)");
         RegConsoleCmd("skill_action_3", CmdSkillAction3, "Trigger your tertiary class action");
+        RegConsoleCmd("+skill_action_3", CmdSkillAction3, "Trigger your tertiary class action (press version)");
+        RegConsoleCmd("-skill_action_3", CmdSkillAction3Release, "Release version (does nothing)");
         RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (SHIFT by default)");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
         g_hClassCookie = RegClientCookie("rage_class_choice", "Rage preferred class", CookieAccess_Public);
@@ -1301,10 +1353,10 @@ public OnClientPutInServer(client)
         // Auto-bind skill action keys for convenience
         if (!IsFakeClient(client))
         {
-                ClientCommand(client, "bind mouse3 skill_action_1");
-                ClientCommand(client, "bind mouse4 skill_action_2");
-                ClientCommand(client, "bind mouse5 skill_action_3");
-                ClientCommand(client, "bind z \"+speed; deployment_action\"");
+                ClientCommand(client, "bind mouse3 +skill_action_1");
+                ClientCommand(client, "bind mouse4 +skill_action_2");
+                ClientCommand(client, "bind mouse5 +skill_action_3");
+                // Deployment now uses mouse3 (middle mouse button) instead of Z
         }
 }
 
@@ -1610,6 +1662,13 @@ bool TryExecuteSkillInput(int client, ClassSkillInput input)
 
         if (!TryTriggerClassSkillAction(client, classType, input))
         {
+                // Don't show generic message - canUseSpecialSkill already shows specific hints
+                // Only show this if the action mode is None (no action bound)
+                if (g_ClassActionMode[classType][input] != ActionMode_None)
+                {
+                        // Skill exists but can't be used - canUseSpecialSkill already showed the reason
+                        return false;
+                }
                 PrintHintText(client, "No action is bound to that input for %s.", MENU_OPTIONS[classType]);
                 return false;
         }
@@ -1619,19 +1678,52 @@ bool TryExecuteSkillInput(int client, ClassSkillInput input)
 
 public Action CmdSkillAction1(int client, int args)
 {
+        if (client < 1 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+        
         TryExecuteSkillInput(client, ClassSkill_Special);
         return Plugin_Handled;
 }
 
 public Action CmdSkillAction2(int client, int args)
 {
+        if (client < 1 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+        
         TryExecuteSkillInput(client, ClassSkill_Secondary);
         return Plugin_Handled;
 }
 
 public Action CmdSkillAction3(int client, int args)
 {
+        if (client < 1 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+        
         TryExecuteSkillInput(client, ClassSkill_Tertiary);
+        return Plugin_Handled;
+}
+
+public Action CmdSkillAction1Release(int client, int args)
+{
+        // Release version - do nothing, skill already triggered on press
+        return Plugin_Handled;
+}
+
+public Action CmdSkillAction2Release(int client, int args)
+{
+        // Release version - do nothing, skill already triggered on press
+        return Plugin_Handled;
+}
+
+public Action CmdSkillAction3Release(int client, int args)
+{
+        // Release version - do nothing, skill already triggered on press
         return Plugin_Handled;
 }
 
@@ -1649,51 +1741,21 @@ public Action CmdDeploymentAction(int client, int args)
                 return Plugin_Handled;
         }
 
-        // Check if deployment action is configured for this class
+        // Check if deployment is configured
         if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
         {
-                char className[32] = "your class";
-                int classIndex = view_as<int>(classType);
-                if (classIndex >= 0 && classIndex < MAXCLASSES)
-                {
-                        strcopy(className, sizeof(className), MENU_OPTIONS[classIndex]);
-                }
-                PrintHintText(client, "No deployment action is bound for %s.", className);
+                PrintHintText(client, "No deployment action configured for %s.", MENU_OPTIONS[classType]);
                 return Plugin_Handled;
         }
 
-        // Check if looking down
-        float angles[3];
-        GetClientEyeAngles(client, angles);
-        bool lookingDown = (angles[0] > DEPLOY_LOOK_DOWN_ANGLE);
-
-        if (!lookingDown)
+        // For builtin actions (menus), skip cooldown check - let the menu handle its own restrictions
+        if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
         {
-                PrintHintText(client, "Look down to deploy");
+                ExecuteClassAction(client, classType, ClassSkill_Deploy);
                 return Plugin_Handled;
         }
 
-        // Check if on ground
-        int flags = GetEntityFlags(client);
-        bool onGround = (flags & FL_ONGROUND) != 0;
-
-        if (!onGround)
-        {
-                PrintHintText(client, "You must stand on solid ground to deploy");
-                return Plugin_Handled;
-        }
-
-        // Check if holding z (IN_SPEED button)
-        int buttons = GetClientButtons(client);
-        bool holdingDeploy = (buttons & IN_SPEED) != 0;
-
-        if (!holdingDeploy)
-        {
-                PrintHintText(client, "Hold Z while looking down to deploy");
-                return Plugin_Handled;
-        }
-
-        // Now execute the deployment action
+        // For other actions, check cooldown and limits normally
         TryExecuteSkillInput(client, ClassSkill_Deploy);
         return Plugin_Handled;
 }
@@ -1736,13 +1798,11 @@ bool canUseSpecialSkill(client, char[] pendingMessage, bool ignorePinned = false
 		PrintHintText(client, "You're too screwed to use special skills");
 		return false;
 	}
-	else if (CanDrop == false )
+		else if (CanDrop == false )
 	{
-
 		Format(pendMsg, sizeof(pendMsg), pendingMessage, (ClientData[client].SpecialDropInterval-iDropTime));
-		if (fCanDropTime > 5.0) {		
-			PrintHintText(client, pendMsg );
-		}
+		// Always show cooldown message when skill can't be used
+		PrintHintText(client, pendMsg);
 		return false;
 	} else if (ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit) {
 		int limit = ClientData[client].SpecialLimit;
@@ -1863,6 +1923,12 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 
                         CreateTimer(2.0, TimerAnnounceSelectedClassHint, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
                         ShowAthleteAbilityHint(client);
+                        
+                        // Re-bind skill action keys on spawn to ensure they work
+                        if (!IsFakeClient(client))
+                        {
+                                CreateTimer(1.0, TimerBindSkillActions, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+                        }
                 }
 
                 g_iPlayerSpawn = true;
@@ -1886,6 +1952,156 @@ void ShowSelectedClassHint(int client)
         PrintHintText(client, "You are playing as %s. Use your skill binds to activate abilities.", MENU_OPTIONS[classType]);
 }
 
+void ShowClassSkillBindings(int client, ClassTypes classType)
+{
+        if (client <= 0 || client > MaxClients || !IsClientInGame(client) || GetClientTeam(client) != 2 || classType == NONE)
+        {
+                return;
+        }
+
+        char hintText[512];
+        char binding[64];
+        char skillName[64];
+        int partCount = 0;
+
+        // Check Special skill (Primary)
+        if (g_ClassActionMode[classType][ClassSkill_Special] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Special, binding, sizeof(binding));
+                
+                if (g_ClassActionMode[classType][ClassSkill_Special] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Special][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Special]);
+                }
+                else if (g_ClassActionMode[classType][ClassSkill_Special] == ActionMode_Builtin)
+                {
+                        // Builtin actions don't have skill names, skip them
+                        skillName[0] = '\0';
+                }
+                else
+                {
+                        skillName[0] = '\0';
+                }
+                
+                if (skillName[0] != '\0')
+                {
+                        if (partCount > 0)
+                        {
+                                StrCat(hintText, sizeof(hintText), ", ");
+                        }
+                        Format(hintText, sizeof(hintText), "%s%s for %s", hintText, binding, skillName);
+                        partCount++;
+                }
+        }
+
+        // Check Secondary skill
+        if (g_ClassActionMode[classType][ClassSkill_Secondary] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Secondary, binding, sizeof(binding));
+                
+                if (g_ClassActionMode[classType][ClassSkill_Secondary] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Secondary][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Secondary]);
+                }
+                else
+                {
+                        skillName[0] = '\0';
+                }
+                
+                if (skillName[0] != '\0')
+                {
+                        if (partCount > 0)
+                        {
+                                StrCat(hintText, sizeof(hintText), ", ");
+                        }
+                        Format(hintText, sizeof(hintText), "%s%s for %s", hintText, binding, skillName);
+                        partCount++;
+                }
+        }
+
+        // Check Tertiary skill
+        if (g_ClassActionMode[classType][ClassSkill_Tertiary] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Tertiary, binding, sizeof(binding));
+                
+                if (g_ClassActionMode[classType][ClassSkill_Tertiary] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Tertiary][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Tertiary]);
+                }
+                else
+                {
+                        skillName[0] = '\0';
+                }
+                
+                if (skillName[0] != '\0')
+                {
+                        if (partCount > 0)
+                        {
+                                StrCat(hintText, sizeof(hintText), ", ");
+                        }
+                        Format(hintText, sizeof(hintText), "%s%s for %s", hintText, binding, skillName);
+                        partCount++;
+                }
+        }
+
+        // Check Deployment action
+        if (g_ClassActionMode[classType][ClassSkill_Deploy] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Deploy, binding, sizeof(binding));
+                
+                // Get deployment action name
+                if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
+                {
+                        switch (g_ClassActionBuiltin[classType][ClassSkill_Deploy])
+                        {
+                                case Builtin_MedicSupplies:
+                                {
+                                        strcopy(skillName, sizeof(skillName), "Medic Supplies Menu");
+                                }
+                                case Builtin_EngineerSupplies:
+                                {
+                                        if (classType == engineer)
+                                        {
+                                                strcopy(skillName, sizeof(skillName), "Turret Selection Menu");
+                                        }
+                                        else
+                                        {
+                                                strcopy(skillName, sizeof(skillName), "Engineer Supplies Menu");
+                                        }
+                                }
+                                case Builtin_SaboteurMines:
+                                {
+                                        strcopy(skillName, sizeof(skillName), "Saboteur Mines Menu");
+                                }
+                                default:
+                                {
+                                        strcopy(skillName, sizeof(skillName), "Deploy");
+                                }
+                        }
+                }
+                else if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Deploy][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Deploy]);
+                }
+                else
+                {
+                        strcopy(skillName, sizeof(skillName), "Deploy");
+                }
+                
+                if (partCount > 0)
+                {
+                        StrCat(hintText, sizeof(hintText), ", ");
+                }
+                Format(hintText, sizeof(hintText), "%s%s to deploy %s", hintText, binding, skillName);
+                partCount++;
+        }
+
+        if (hintText[0] != '\0')
+        {
+                PrintHintText(client, "%s", hintText);
+        }
+}
+
 public Action TimerAnnounceSelectedClassHint(Handle timer, any userid)
 {
         int client = GetClientOfUserId(userid);
@@ -1895,6 +2111,22 @@ public Action TimerAnnounceSelectedClassHint(Handle timer, any userid)
         }
 
         ShowSelectedClassHint(client);
+        return Plugin_Stop;
+}
+
+public Action TimerBindSkillActions(Handle timer, any userid)
+{
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
+        {
+                return Plugin_Stop;
+        }
+        
+        // Bind skill action keys
+        ClientCommand(client, "bind mouse3 +skill_action_1");
+        ClientCommand(client, "bind mouse4 +skill_action_2");
+        ClientCommand(client, "bind mouse5 +skill_action_3");
+        
         return Plugin_Stop;
 }
 
@@ -3326,7 +3558,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
         new flags = GetEntityFlags(client);
 
-        bool pressedSpecial = (buttons & IN_ATTACK3) != 0 && (ClientData[client].LastButtons & IN_ATTACK3) == 0;
+        // Removed redundant IN_ATTACK3 skill action detection - console commands handle this now
 
         if (!(buttons & IN_DUCK) || !(flags & FL_ONGROUND)) {
                 ClientData[client].HideStartTime= GetGameTime();
@@ -3347,10 +3579,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
                 }
         }
 
-        if (pressedSpecial)
-        {
-                TryExecuteSkillInput(client, ClassSkill_Special);
-        }
+        // Skill actions are now handled via console commands - no need for duplicate detection here
         ClientData[client].LastButtons = buttons;
 
         return Plugin_Continue;
