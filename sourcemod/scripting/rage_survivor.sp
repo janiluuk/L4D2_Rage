@@ -896,9 +896,7 @@ public RebuildCache()
 		{
 			g_iSoldierCount++;
 			g_iSoldierIndex[g_iSoldierCount] = i;
-			#if DEBUG
-			PrintToChatAll("\x03-registering \x01%N as Soldier",i);
-			#endif			
+			PrintDebugAll("\x03-registering \x01%N as Soldier",i);
 		}
 	}
 }
@@ -2595,9 +2593,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 
 	if (!IsValidEntity(weapon))
 	return;
-	#if DEBUG
 	PrintDebugAll("\x03Client \x01%i\x03; start of reload detected",client );
-	#endif
 	float flGameTime = GetGameTime();
 	float flNextTime_calc;
 	decl String:bNetCl[64];
@@ -2605,9 +2601,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 	float flStartTime_calc;
 	GetEntityNetClass(weapon, bNetCl, sizeof(bNetCl));
 	GetEntityNetClass(weapon,stClass,32);
-	#if DEBUG
 	PrintDebugAll("\x03-class of gun: \x01%s",stClass );
-	#endif
 
 	if (StrContains(bNetCl, "shotgun", false) == -1)
 	{
@@ -2615,7 +2609,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		new Handle:hPack = CreateDataPack();
 		WritePackCell(hPack, client);
 		float flNextPrimaryAttack = GetEntDataFloat(weapon, g_iNextPrimaryAttack);		
-		#if DEBUG
 		PrintDebugAll("\x03- pre, gametime \x01%f\x03, retrieved nextattack\x01 %i %f\x03, retrieved time idle \x01%i %f",
 		flGameTime,
 		g_iNextPrimaryAttack,
@@ -2623,7 +2616,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		g_iTimeWeaponIdle,
 		GetEntDataFloat(weapon,g_iTimeWeaponIdle)
 		);
-		#endif
 
 		new Float:fReloadRatio = g_flReloadRate;
 		flNextTime_calc = (flNextPrimaryAttack - flGameTime) * fReloadRatio;
@@ -2640,7 +2632,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		SetEntDataFloat(weapon, g_iTimeWeaponIdle, flNextTime_calc, true);
 		SetEntDataFloat(weapon, g_iNextPrimaryAttack, flNextTime_calc, true);
 		SetEntDataFloat(client, g_iNextAttack, flNextTime_calc, true);
-		#if DEBUG
 		PrintDebugAll("\x03- post, calculated nextattack \x01%f\x03, gametime \x01%f\x03, retrieved nextattack\x01 %i %f\x03, retrieved time idle \x01%i %f",
 		flNextTime_calc,
 		flGameTime,
@@ -2659,10 +2650,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 
 		if (StrContains(bNetCl, "CShotgun_SPAS", false) != -1)
 		{
-
-			#if DEBUG
-				PrintDebugAll("Shotgun Class: %s", stClass);
-			#endif
+			PrintDebugAll("Shotgun Class: %s", stClass);
 			WritePackFloat(hPack, g_flShotgunSpasS);
 			WritePackFloat(hPack, g_flShotgunSpasI);
 			WritePackFloat(hPack, g_flShotgunSpasE);
@@ -2687,9 +2675,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 			CreateTimer(0.1, CommandoPumpShotReload, hPack);
 		}
 		else {
-		#if DEBUG
 			PrintDebugAll("\x03 did not find: \x01%s",stClass );
-		#endif
 			CloseHandle(hPack);
 
 		}
@@ -2741,9 +2727,7 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 	new Float:insert = ReadPackFloat(hOldPack);
 	new Float:end = ReadPackFloat(hOldPack);
 	CloseHandle(hOldPack);
-	#if DEBUG
-		PrintDebugAll("Starting reload");
-	#endif
+	PrintDebugAll("Starting reload");
 
 	if (client <= 0
 		|| weapon <= 0
@@ -2756,10 +2740,7 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 	SetEntDataFloat(weapon,	g_reloadInsertDuration,	insert * fReloadRatio,	true);
 	SetEntDataFloat(weapon,	g_reloadEndDuration, end * fReloadRatio,	true);
 	SetEntDataFloat(weapon, g_iPlaybackRate, 1.0 / fReloadRatio, true);
-	
-	#if DEBUG
-		PrintDebugAll("\x03-spas shotgun detected, ratio \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i", fReloadRatio, g_reloadStartDuration, g_reloadInsertDuration, g_reloadEndDuration);
-	#endif
+	PrintDebugAll("\x03-spas shotgun detected, ratio \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i", fReloadRatio, g_reloadStartDuration, g_reloadInsertDuration, g_reloadEndDuration);
 
 	new Handle:hPack = CreateDataPack();
 	WritePackCell(hPack, weapon);
@@ -2797,9 +2778,7 @@ public Action:CommandoShotCalculate(Handle:timer, Handle:hPack)
 		KillTimer(timer);
 		return Plugin_Stop;
 	}
-	#if DEBUG
 	PrintDebugAll("Shotgun finished reloading");
-	#endif
 
 	if (GetEntData(weapon, g_iReloadState) == 0 || GetEntData(weapon, g_iReloadState) == 2 )
 	{
@@ -3191,24 +3170,18 @@ void DT_OnGameFrame()
 		if (flNextSecondaryAttack > flGameTime)
 		{
 			//----RSDEBUG----
-			#if DEBUG
 			PrintDebugAll("\x03DT client \x01%i\x03; melee attack inferred",client );
-			#endif
 			continue;
 		}
 
 		if (g_iEntityIndex[client] == iActiveWeapon && g_fNextAttackTime[client] < flNextPrimaryAttack)
 		{
-			#if DEBUG
 			PrintDebugAll("\x03DT after adjusted shot\n-pre, client \x01%i\x03; entid \x01%i\x03; enginetime\x01 %f\x03; NextTime_orig \x01 %f\x03; interval \x01%f",client,iActiveWeapon,flGameTime,flNextPrimaryAttack, flNextPrimaryAttack-flGameTime );
-			#endif
 
 			flNextTime_calc = ( flNextPrimaryAttack - flGameTime ) * g_flAttackRate + flGameTime;
 			g_fNextAttackTime[client] = flNextTime_calc;
 			SetEntDataFloat(iActiveWeapon, g_iNextPrimaryAttack, flNextTime_calc, true);
-			#if DEBUG
 			PrintDebugAll("\x03-post, NextTime_calc \x01 %f\x03; new interval \x01%f",GetEntDataFloat(iActiveWeapon,g_iNextPrimaryAttack), GetEntDataFloat(iActiveWeapon,g_iNextPrimaryAttack)-flGameTime );
-			#endif
 			continue;
 		}
 		
@@ -3326,9 +3299,7 @@ int MA_OnGameFrame()
 
 			//and finally adjust the value in the gun
 			SetEntDataFloat(iEntid, g_iNextPrimaryAttack, flNextTime_calc, true);
-			#if DEBUG
-			PrintDebugAll("\x03-melee attack, original: \x01 %f\x03; new \x01%f",flNextPrimaryAttack, GetEntDataFloat(iEntid,g_iNextPrimaryAttack - flGameTime);
-			#endif
+			PrintDebugAll("\x03-melee attack, original: \x01 %f\x03; new \x01%f",flNextPrimaryAttack, GetEntDataFloat(iEntid,g_iNextPrimaryAttack) - flGameTime);
 			continue;
 		}
 

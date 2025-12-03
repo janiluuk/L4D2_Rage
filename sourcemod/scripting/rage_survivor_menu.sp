@@ -11,6 +11,7 @@
 #include <rage_survivor_menu_kits>
 #include <rage_survivor_menu_keybinds>
 #include <rage_survivor_menu_thirdperson>
+#include <rage_survivor_menu_multiequip>
 
 #define GAMEMODE_OPTION_COUNT 11
 #define CLASS_OPTION_COUNT 8
@@ -193,6 +194,7 @@ public void OnPluginStart()
     }
 
     ThirdPerson_OnPluginStart();
+    MultiEquip_OnPluginStart();
     Keybinds_OnPluginStart();
     Kits_OnPluginStart();
     AutoExecConfig(true, "rage_survivor_menu");
@@ -229,6 +231,7 @@ public void OnClientPutInServer(int client)
     g_iLastSelectedOption[client] = -1;
     g_iLastSelectedMenuId[client] = -1;
     ThirdPerson_OnClientPutInServer(client);
+    MultiEquip_OnClientPutInServer(client);
     Kits_OnClientPutInServer(client);
     SDKHook(client, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
 }
@@ -237,6 +240,7 @@ public void OnClientDisconnect(int client)
 {
     g_bMenuHeld[client] = false;
     ThirdPerson_OnClientDisconnect(client);
+    MultiEquip_OnClientDisconnect(client);
     Kits_OnClientDisconnect(client);
 }
 
@@ -302,6 +306,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 public void OnClientCookiesCached(int client)
 {
     ThirdPerson_OnCookiesCached(client);
+    MultiEquip_OnCookiesCached(client);
     Keybinds_OnClientCookiesCached(client);
 }
 
@@ -632,7 +637,51 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     }
     else if (menuOption == Menu_MultiEquip)
     {
-        PrintHintText(client, "Multiple equipment mode is not configured.");
+        if (value < 0 || value > 2)
+        {
+            PrintHintText(client, "Invalid equipment mode selection.");
+            return;
+        }
+
+        MultiEquipMode newMode = view_as<MultiEquipMode>(value);
+        MultiEquip_SetMode(client, newMode);
+
+        // Show hint text with tap count information
+        char modeName[32];
+        int tapCount = 0;
+        switch (newMode)
+        {
+            case ME_Off:
+            {
+                strcopy(modeName, sizeof(modeName), "Off");
+                PrintHintText(client, "Multiple equipment mode: %s (normal pickup)", modeName);
+            }
+            case ME_SingleTap:
+            {
+                strcopy(modeName, sizeof(modeName), "Single Tap");
+                tapCount = 1;
+                PrintHintText(client, "Multiple equipment mode: %s - Tap USE %d time to switch equipment slot", modeName, tapCount);
+            }
+            case ME_DoubleTap:
+            {
+                strcopy(modeName, sizeof(modeName), "Double Tap");
+                tapCount = 2;
+                PrintHintText(client, "Multiple equipment mode: %s - Tap USE %d times to switch equipment slot", modeName, tapCount);
+            }
+        }
+
+        // Update menu to show the new active mode immediately
+        if (g_bMenuHeld[client])
+        {
+            int menuId = (GetClientTeam(client) == 2) ? g_iMenuIDSurvivor : g_iMenuIDInfected;
+            ArrayList optionMap = (GetClientTeam(client) == 2) ? g_hMenuOptionsSurvivor : g_hMenuOptionsInfected;
+            if (menuId > 0 && optionMap != null)
+            {
+                SyncMenuSelection(client, menuId, optionMap, Menu_MultiEquip, view_as<int>(newMode));
+                // Redisplay the menu to show updated value
+                ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);
+            }
+        }
         return;
     }
     else if (menuOption == Menu_MusicToggle)
@@ -1040,6 +1089,7 @@ public void SyncMenuSelections(int client, int menuId, ArrayList optionMap)
 
     SyncMenuSelection(client, menuId, optionMap, Menu_ThirdPerson, view_as<int>(g_ThirdPersonMode[client]));
     SyncMenuSelection(client, menuId, optionMap, Menu_ChangeClass, GetSavedClassIndex(client));
+    SyncMenuSelection(client, menuId, optionMap, Menu_MultiEquip, view_as<int>(MultiEquip_GetMode(client)));
 }
 
 public void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value)
