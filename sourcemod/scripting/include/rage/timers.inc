@@ -285,7 +285,28 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 
 	if (btns & IN_DUCK)
 	{
+		// Enhanced medic glow effect on the medic themselves
 		CreateParticle(client, MEDIC_GLOW, true, 1.0);
+		
+		// Add pulsing healing aura effect around medic
+		decl Float:medicPos[3], Float:medicEyePos[3];
+		GetClientAbsOrigin(client, medicPos);
+		GetClientEyePosition(client, medicEyePos);
+		medicPos[2] += 40.0; // Raise effect slightly above ground
+		
+		// Create healing aura ring effect
+		if (g_BeamSprite != -1 && g_HaloSprite != -1)
+		{
+			decl greenColorAura[4];
+			greenColorAura[0] = 0;
+			greenColorAura[1] = 255;
+			greenColorAura[2] = 100;
+			greenColorAura[3] = 200;
+			
+			float healRadius = GetConVarFloat(MEDIC_HEAL_DIST);
+			TE_SetupBeamRingPoint(medicPos, healRadius - 10.0, healRadius, g_BeamSprite, g_HaloSprite, 0, 15, 0.5, 5.0, 2.0, greenColorAura, 10, 0);
+			TE_SendToAll();
+		}
 
 		decl Float:pos[3];
 		decl String:sMessage[256];	
@@ -295,11 +316,31 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 		{
 			if (IsValidEntity(i) && IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && i != client)
 			{
-				decl Float:tpos[3];
+				decl Float:tpos[3], Float:targetEyePos[3];
 				GetClientAbsOrigin(i, tpos);
+				GetClientEyePosition(i, targetEyePos);
 				
 				if (GetVectorDistance(pos, tpos) <= GetConVarFloat(MEDIC_HEAL_DIST))
 				{
+					// Enhanced visual effects: healing beam between medic and target
+					if (g_BeamSprite != -1)
+					{
+						decl greenBeamColor[4];
+						greenBeamColor[0] = 100;
+						greenBeamColor[1] = 255;
+						greenBeamColor[2] = 150;
+						greenBeamColor[3] = 255;
+						
+						// Create healing beam from medic to target
+						medicEyePos[2] -= 20.0; // Lower beam start point
+						targetEyePos[2] -= 20.0; // Lower beam end point
+						TE_SetupBeamPoints(medicEyePos, targetEyePos, g_BeamSprite, 0, 0, 0, 0.3, 3.0, 3.0, 1, 0.0, greenBeamColor, 0);
+						TE_SendToAll();
+						
+						// Add healing particles at target location using CreateParticle
+						CreateParticle(i, MEDIC_GLOW, true, 0.5);
+					}
+					
 					// pre-heal set values
 					new MaxHealth = GetEntProp(i, Prop_Send, "m_iMaxHealth");
 					new TempHealth = GetClientTempHealth(i);
@@ -313,12 +354,34 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 					// post-heal set values
 					new newHp = GetClientHealth(i);
 					new totalHp = newHp + TempHealth;
-					GlowPlayer(i, "Green", FX:FxEnvRain);
+					
+					// Enhanced glow effect with pulsing
+					GlowPlayer(i, "Green", FX:FxPulseFast);
+					
+					// Add healing sparkle effect with beam ring
+					if (g_BeamSprite != -1 && g_HaloSprite != -1)
+					{
+						decl Float:sparklePos[3];
+						sparklePos[0] = tpos[0];
+						sparklePos[1] = tpos[1];
+						sparklePos[2] = tpos[2] + 30.0;
+						
+						decl sparkleColor[4];
+						sparkleColor[0] = 150;
+						sparkleColor[1] = 255;
+						sparkleColor[2] = 200;
+						sparkleColor[3] = 255;
+						
+						// Create healing pulse ring around healed player
+						TE_SetupBeamRingPoint(sparklePos, 5.0, 50.0, g_BeamSprite, g_HaloSprite, 0, 10, 0.3, 2.0, 1.0, sparkleColor, 10, 0);
+						TE_SendToAll();
+					}
+					
 					new Handle:hPack = CreateDataPack();
 					WritePackCell(hPack, i);
 					WritePackCell(hPack, totalHp);
 
-					CreateTimer(1.0, GlowTimer, hPack, TIMER_FLAG_NO_MAPCHANGE ); 	
+					CreateTimer(1.0, GlowTimer, hPack, TIMER_FLAG_NO_MAPCHANGE); 	
 					
 					if (totalHp > MaxHealth)
 					{

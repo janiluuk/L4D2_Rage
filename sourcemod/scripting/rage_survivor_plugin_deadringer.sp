@@ -15,6 +15,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <rage/skills>
+#include <rage/validation>
 //#include <sendproxy>
 //https://forums.alliedmods.net/showpost.php?p=2210301&postcount=270
 //#include <sceneprocessor>
@@ -1686,19 +1687,9 @@ bool IsSurvivor(int client)
 	return false;
 }
 
-bool IsValidClient(int client, bool replaycheck = true)
-//IsValidClient(client)
-{
-	if (!IsValidEntity(client)) return false;
-	if (client <= 0 || client > MaxClients) return false;
-	if (!IsClientInGame(client)) return false;
-	//if (GetEntProp(client, Prop_Send, "m_bIsCoaching")) return false;
-	if (replaycheck)
-	{
-		if (IsClientSourceTV(client) || IsClientReplay(client)) return false;
-	}
-	return true;
-}
+// IsValidClient now provided by rage/validation.inc
+// Note: The shared version doesn't check replay/SourceTV by default
+// If replay checking is needed, add explicit checks where required
 // Below functions taken and modified from infected_release plugin.
 /*void ExecuteCheatCommand(client, const char[] cmd_Str)
 {

@@ -5,6 +5,7 @@
 #include <sdkhooks>
 #include <rage/skills>
 #include <rage/validation>
+#include <rage/effects>
 
 #define PLUGIN_VERSION	"0.2"
 #define CVAR_FLAGS		FCVAR_NONE
@@ -291,18 +292,5 @@ public Action DeleteParticles(Handle timer, any particle)
 	return Plugin_Continue;
 }
 
-public void PrecacheParticle(char[] particlename)
-{
-	/* Precache particle */
-	int particle = CreateEntityByName("info_particle_system");
-	if(IsValidEdict(particle))
-	{
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(0.01, DeleteParticles, particle);
-	}
-}
+// PrecacheParticle now provided by rage/effects.inc
 

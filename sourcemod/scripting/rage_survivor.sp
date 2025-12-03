@@ -8,15 +8,13 @@
 *
 */
 
-#define PLUGIN_NAME "Talents Plugin 2025D anniversary edition"
+#define PLUGIN_NAME "Rage Plugin 2025D anniversary edition"
 #define PLUGIN_VERSION "1.82b"
 #define PLUGIN_IDENTIFIER "rage_survivor"
 #pragma semicolon 1
-#define DEBUG 0
-#define DEBUG_LOG 1
-#define DEBUG_TRACE 0
+// DEBUG, DEBUG_LOG, DEBUG_TRACE now handled by rage/debug.inc - use PrintDebug() instead
 #define DEPLOY_LOOK_DOWN_ANGLE 45.0  // Minimum pitch angle (degrees) required to look down for deployment
-stock int DEBUG_MODE = 0;
+stock int DEBUG_MODE = 0; // Kept for backward compatibility, but use getDebugMode() from rage/debug.inc
 
 public Plugin myinfo =
 {
@@ -35,6 +33,7 @@ public Plugin myinfo =
 #include <jutils>
 #include <l4d2>
 #include <rage/skill_actions>
+#include <rage/debug>
 
 #if !defined MAX_SKILL_NAME_LENGTH
         #define MAX_SKILL_NAME_LENGTH 32
@@ -403,6 +402,12 @@ int GetClassSkillId(ClassTypes classType, ClassSkillInput input)
 
 bool TriggerSkillAction(int client, ClassTypes classType, ClassSkillInput input)
 {
+	// Validate client before proceeding
+	if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+	{
+		return false;
+	}
+
 	int id = GetClassSkillId(classType, input);
 	if (id == -1)
 	{
@@ -410,6 +415,10 @@ bool TriggerSkillAction(int client, ClassTypes classType, ClassSkillInput input)
 		{
 			PrintToServer("[Rage] Unable to find registered skill \"%s\" for class %s (%s input).", g_ClassActionSkillName[classType][input], g_ClassIdentifiers[classType], g_InputIdentifiers[input]);
 			PrintHintText(client, "Skill \"%s\" is not available.", g_ClassActionSkillName[classType][input]);
+		}
+		else
+		{
+			PrintHintText(client, "Skill action is not properly configured for %s.", g_InputIdentifiers[input]);
 		}
 		return false;
 	}
@@ -435,6 +444,12 @@ bool ExecuteBuiltinAction(int client, BuiltinAction action, ClassTypes classType
 			// For Engineer, show turret selection menu by triggering Multiturret skill
 			if (classType == engineer)
 			{
+				// Check if secondary skill is available before triggering
+				if (g_ClassActionMode[engineer][ClassSkill_Secondary] == ActionMode_None)
+				{
+					PrintHintText(client, "Turret skill is not available for Engineer.");
+					return false;
+				}
 				// Trigger the secondary skill (Multiturret) which opens the turret menu
 				// This will call OnSpecialSkillUsed which opens BuildMachineGunsMainMenu
 				return TriggerSkillAction(client, engineer, ClassSkill_Secondary);
@@ -462,6 +477,13 @@ bool ExecuteClassAction(int client, ClassTypes classType, ClassSkillInput input)
 		case ActionMode_Command:
 		{
 			if (g_ClassActionCommandPlugin[classType][input][0] == '\0')
+			{
+				PrintHintText(client, "Command action is not configured for this input.");
+				return false;
+			}
+
+			// Validate client before calling command
+			if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
 			{
 				return false;
 			}
@@ -882,10 +904,26 @@ public RebuildCache()
 }
 
 public void GetPlayerSkillReadyHint(client) {
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return;
+        }
 
-        int classId = view_as<int>(ClientData[client].ChosenClass);
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                return;
+        }
+
+        int classId = view_as<int>(classType);
+        // Always show class in HUD, and show skill ready status if applicable
         if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed && classId > 0 && classId < sizeof(SpecialReadyTips)) {
                 ShowClassHud(client, true, SpecialReadyTips[classId]);
+        }
+        else
+        {
+                // Show class even when skill is not ready
+                ShowClassHud(client, false);
         }
 }
 
@@ -1776,6 +1814,12 @@ public void useSpecialSkill(int client, int type)
 
 bool canUseSpecialSkill(client, char[] pendingMessage, bool ignorePinned = false)
 {	
+	// Validate client first
+	if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+	{
+		return false;
+	}
+
 	new Float:fCanDropTime = (GetGameTime() - ClientData[client].LastDropTime);
 	if (ClientData[client].LastDropTime == 0) {
 		fCanDropTime+=ClientData[client].SpecialDropInterval;
@@ -1790,21 +1834,21 @@ bool canUseSpecialSkill(client, char[] pendingMessage, bool ignorePinned = false
 		PrintHintText(client, "Cannot deploy here");
 		return false;
 	}
-	if (FindAttacker(client) > 0 || IsIncapacitated(client)) {
-		PrintHintText(client, "You're too screwed to use special skills");
-		return false;
-	}
+	
+	// Check if player is pinned or incapacitated (removed duplicate check)
 	if ((FindAttacker(client) > 0 || IsIncapacitated(client)) && ignorePinned == false) {
 		PrintHintText(client, "You're too screwed to use special skills");
 		return false;
 	}
-		else if (CanDrop == false )
+	
+	if (CanDrop == false)
 	{
 		Format(pendMsg, sizeof(pendMsg), pendingMessage, (ClientData[client].SpecialDropInterval-iDropTime));
 		// Always show cooldown message when skill can't be used
 		PrintHintText(client, pendMsg);
 		return false;
-	} else if (ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit) {
+	} 
+	else if (ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit) {
 		int limit = ClientData[client].SpecialLimit;
 		if (limit > 0) {
 			Format(outOfMsg, sizeof(outOfMsg), "You're out of supplies! (Max %d / round)", ClientData[client].SpecialLimit);
@@ -1950,6 +1994,41 @@ void ShowSelectedClassHint(int client)
         }
 
         PrintHintText(client, "You are playing as %s. Use your skill binds to activate abilities.", MENU_OPTIONS[classType]);
+}
+
+void ShowClassSelectionInfo(int client, ClassTypes classType)
+{
+        if (client <= 0 || client > MaxClients || !IsClientInGame(client) || GetClientTeam(client) != 2 || classType == NONE)
+        {
+                return;
+        }
+
+        // Show class description first
+        char classDesc[128];
+        strcopy(classDesc, sizeof(classDesc), g_DefaultClassDescriptions[classType]);
+        
+        PrintHintText(client, "%s: %s", MENU_OPTIONS[classType], classDesc);
+        
+        // Then show skill bindings after a short delay
+        CreateTimer(0.5, Timer_ShowClassSkillBindings, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action Timer_ShowClassSkillBindings(Handle timer, any userid)
+{
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return Plugin_Stop;
+        }
+        
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                return Plugin_Stop;
+        }
+        
+        ShowClassSkillBindings(client, classType);
+        return Plugin_Stop;
 }
 
 void ShowClassSkillBindings(int client, ClassTypes classType)

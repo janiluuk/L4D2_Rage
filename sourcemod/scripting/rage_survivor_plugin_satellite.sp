@@ -8,6 +8,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <l4d2_simple_combat>
+#include <rage/effects>
 #define PLUGIN_VERSION "1.3"
 
 #define MODE_JUDGEMENT	1
@@ -981,20 +982,7 @@ public Action:DeleteParticles(Handle:timer, any:particle)
 	}
 }
 
-public PrecacheParticle(String:particlename[])
-{
-	/* Precache particle */
-	new particle = CreateEntityByName("info_particle_system");
-	if (IsValidEdict(particle))
-	{
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(0.01, DeleteParticles, particle);
-	}  
-}
+// PrecacheParticle now provided by rage/effects.inc
 
 /******************************************************
 *	Display hint functions

@@ -43,7 +43,7 @@
 
 #define PLUGIN_VERSION 		"1.6.8"
 #define PLUGIN_SKILL_NAME "Berzerk"
-#define DEBUG 0
+// DEBUG now handled by rage/debug.inc - use PrintDebug() instead
 int g_iClassID = -1;
 bool g_bRageAvailable = false;
 
@@ -51,6 +51,8 @@ bool g_bRageAvailable = false;
 #include <sourcemod>
 #include <sdktools>
 #include <rage/skills>
+#include <rage/effects>
+#include <rage/debug>
 #pragma semicolon 1
 
 //Definitions
@@ -63,17 +65,8 @@ bool g_bRageAvailable = false;
 #define GETVERSION "1.6.8" //Plugin version
 
 //**********************DEBUGGING OPTIONS AND OUTPUTS*******************************
-#define RSDEBUG 0 //Faster swinging, reloading and shooting debug information.
-#define BYDEBUG 0 //Berserker Yell debug information.
-#define LBDEBUG 0 //Lethal bite debug information
-#define FSDEBUG 0 //Fire shield debug information
-#define NRDEBUG 0 //Nasty Revenge debug information
-#define CTDEBUG 0 //Stats and counts debug information
-#define EVTDEBUG 0 //Events information
-#define ZKDEBUG 0 //Berserker debug information
-#define CKDEBUG 0 //Safe timers and checkers debug information
-#define BOODEBUG 0 //Boomer debug
-#define CODEBUG 0 //Common Infected debug - Reason: Sometimes the event wont fire??
+// All debug flags removed - use PrintDebug() from rage/debug.inc instead
+// Debug output controlled via getDebugMode() at runtime
 //***********************************************************************************
 
 //Berserker Yell feature sound file paths.
@@ -4966,26 +4959,8 @@ public Action:timerEndEffect(Handle:timer, any:client)
 	return Plugin_Continue;
 }
 
-stock PrecacheParticle(String:ParticleName[])
-{
-	new Particle = CreateEntityByName("info_particle_system");
-	if(IsValidEntity(Particle) && IsValidEdict(Particle))
-	{
-		DispatchKeyValue(Particle, "effect_name", ParticleName);
-		DispatchSpawn(Particle);
-		ActivateEntity(Particle);
-		AcceptEntityInput(Particle, "start");
-		CreateTimer(0.3, timerRemovePrecacheParticle, Particle, TIMER_FLAG_NO_MAPCHANGE);
-	}
-}
-
-public Action:timerRemovePrecacheParticle(Handle:timer, any:Particle)
-{
-	if(IsValidEntity(Particle) && IsValidEdict(Particle))
-	{
-		AcceptEntityInput(Particle, "Kill");
-	}
-}
+// PrecacheParticle now provided by rage/effects.inc
+// TimerRemovePrecacheParticle handled by rage/effects.inc as TimerRemovePrecacheParticle
 stock ToggleBlackScreen(client)
 {
 	if(client <= 0

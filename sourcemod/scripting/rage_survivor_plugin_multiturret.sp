@@ -8,6 +8,8 @@
 #include <rage/skills>
 #include <rage/skill_actions>
 #include <rage/common>
+#include <rage/effects>
+#include <rage/validation>
 #define PLUGIN_NAME "[Rage Plugin] Portable turret & gatling guns."
 #define PLUGIN_VERSION "4.5"
 
@@ -1776,22 +1778,7 @@ stock void HurtTarget(int attacker, float fDamage, int DMG_TYPE = DMG_GENERIC, i
 	}
 } 																													
 
-stock bool IsValidClient(int client)
-{
-	return client > 0 && client <= MaxClients && IsClientInGame(client) && !IsClientInKickQueue(client);
-}
-
-stock bool IsPlayerGhost (int client)
-{
-    if (GetEntData(client, FindSendPropInfo("CTerrorPlayer", "m_isGhost"), 1))
-        return true;
-    return false;
-}
-
-stock bool IsClientValidAdmin(int client)
-{	
-	if(!IsClientConnected(client) || !IsClientInGame(client) || !IsValidClient(client) || IsFakeClient(client))
-		return false;
+// IsValidClient, IsPlayerGhost, IsClientValidAdmin now provided by rage/validation.inc
 	
 	return true;
 }

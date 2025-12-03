@@ -1,6 +1,7 @@
 #pragma semicolon 1
 #include <sourcemod>
 #include <sdktools>
+#include <rage/validation>
 
 #define PLUGIN_VERSION "0.4"
 #define BASE_INCAP_SPEED 85.0
@@ -2024,15 +2025,8 @@ void RemoveHindrance(int client, bool bFromStruggle = false)
 	}
 }
 
-stock bool IsValidClient(int client)
-{
-	return (client > 0 && client <= MaxClients && IsClientInGame(client));
-}
-
-stock bool IsSurvivor(int client)
-{
-	return (IsValidClient(client) && GetClientTeam(client) == 2);
-}
+// IsValidClient and IsSurvivor now provided by rage/validation.inc
+// Use IsValidClient() and IsValidSurvivor() from the shared include
 
 stock bool IsValidEnt(int entity)
 {

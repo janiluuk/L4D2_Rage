@@ -16,6 +16,7 @@ bool g_bNB;
 ///////////////////////////////////////////////////////////////////////////////////
 
 forward void ShowClassSkillBindings(int client, ClassTypes classType);
+forward void ShowClassSelectionInfo(int client, ClassTypes classType);
 
 stock void ShowClassHud(int client, bool skillReady, const char[] readyText = "")
 {
@@ -24,8 +25,14 @@ stock void ShowClassHud(int client, bool skillReady, const char[] readyText = ""
                 return;
         }
 
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                return;
+        }
+
         char className[32];
-        Format(className, sizeof(className), "%s", MENU_OPTIONS[ClientData[client].ChosenClass]);
+        Format(className, sizeof(className), "%s", MENU_OPTIONS[classType]);
 
         if (skillReady)
         {
@@ -94,7 +101,9 @@ public bool ApplyClassSelection(int client, int classIndex)
 
         PrintToChat(client, "%sSelected %s. You can use the Rage menu to change again; mid-round changes take effect next round.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
         ShowClassHud(client, false);
-        ShowClassSkillBindings(client, view_as<ClassTypes>(classIndex));
+        
+        // Show comprehensive class information with description and skill bindings
+        ShowClassSelectionInfo(client, view_as<ClassTypes>(classIndex));
         return true;
 }
 
@@ -201,6 +210,10 @@ public void PanelHandler_SelectClass(Handle menu, MenuAction action, int client,
                                         PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01",client,MENU_OPTIONS[OldClass],MENU_OPTIONS[param]);
                                 }
                                 PrintToChat(client, "%sClass selected. Use the Rage menu to change it again.", PRINT_PREFIX);
+                                
+                                // Show comprehensive class information with description and skill bindings
+                                ShowClassHud(client, false);
+                                ShowClassSelectionInfo(client, newClass);
                         }
                 }
                 case MenuAction_Cancel:

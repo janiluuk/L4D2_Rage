@@ -18,7 +18,7 @@
 
 #define PLUGIN_VERSION 		"1.44"
 #define PLUGIN_SKILL_NAME "Grenades"
-#define DEBUG 0
+// DEBUG now handled by rage/debug.inc - use PrintDebug() instead
 
 /*======================================================================================
 	Plugin Info:
