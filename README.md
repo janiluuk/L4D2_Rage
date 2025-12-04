@@ -20,7 +20,7 @@ This is what happens when players get tired of vanilla and decide to turn everyt
 
 **You're Never Helpless** – Downed? Revive yourself. Grabbed? Struggle free. Hanging off a ledge? Pull yourself up. This mod believes in second chances and giving you tools to save yourself when things go sideways.
 
-**Controls That Make Sense** – Hold V (or SHIFT) to open the menu. Mouse buttons for abilities. WASD to navigate. It's intuitive, it auto-binds, and it just works. No memorizing 50 keybinds.
+**Controls That Make Sense** – Hold SHIFT (or V) to open the menu. Mouse buttons for abilities. WASD to navigate. It's intuitive, it auto-binds, and it just works. No memorizing 50 keybinds.
 
 **It Remembers You** – Your class choice? Saved. Your music preference? Saved. Your camera mode? Saved. We remember what you like so you don't have to set it up every round.
 
@@ -32,7 +32,7 @@ This is what happens when players get tired of vanilla and decide to turn everyt
 
 **Just Playing?** Here's all you need:
 1. Join a server running Rage Edition
-2. Hold **V** (or **SHIFT** if the server set it up) to open the menu
+2. Hold **SHIFT** (or **V** if the server set it up) to open the menu
 3. Pick a class—the menu will highlight your last choice
 4. Your abilities auto-bind to **mouse3**, **mouse4**, and **mouse5**
 5. Press **X** (voice menu) for quick menu access anytime
@@ -49,6 +49,10 @@ That's it. Seriously. Everything else you'll figure out by playing.
 
 **Want it even easier?** Use Docker Compose—just run `docker-compose up` and everything works. No configuration, no headaches, just fun.
 
+**Building from Source?** See the [Building & Testing](#building--testing) section below for complete instructions.
+
+**Building from Source?** See the [For Developers & Modders](#for-developers--modders-build-your-own) section below for build instructions.
+
 ---
 
 ## How Abilities Work (The Simple Version)
@@ -60,7 +64,7 @@ Every class has special powers. Here's how you use them:
 | **Skill Action 1** | Middle mouse button (mouse3) - **auto-bound** | Your class's main ability |
 | **Skill Action 2** | Mouse4 (side button) - **auto-bound** OR Use + Fire together | Your secondary ability |
 | **Skill Action 3** | Mouse5 (side button) - **auto-bound** OR Crouch + Use + Fire together | Your tertiary ability |
-| **Deploy Action** | Look down + CROUCH + SHOVE (button combo) | Drop turrets, supplies, or mines |
+| **Deploy Action** | Hold **CTRL** (Left CTRL) | Drop turrets, supplies, or mines (menu opens) |
 
 **The buttons auto-bind when you join.** No setup needed. But if you want to change them, type `!rage_bind` for instructions or add this to your autoexec.cfg:
 ```
@@ -296,11 +300,87 @@ Rage Edition is fully modular! Each class ability lives in its own plugin file, 
 - Swap out effects or create custom class packs
 - Use the Rage API to hook into class systems
 
-Check `sourcemod/scripting/` for clean, documented examples. The architecture:
-- **RageCore** – Class and perk system
-- **Skill plugins** – Individual abilities (airstrike, berserk, grenades, turrets, etc.)
-- **rage_class_skills.cfg** – Define which skills each class gets
-- **Include files** – Shared utilities and APIs in `sourcemod/scripting/include/rage/`
+### Building & Testing
+
+**Quick Build** – Run everything in one command:
+```bash
+./build.sh
+```
+
+This will:
+1. ✅ Compile all plugins (`scripts/compile_plugins.sh`)
+2. ✅ Run all tests (`tests/run_tests.sh`)
+3. ✅ Optionally deploy to server (`scripts/deploy_plugins.sh` with `--deploy` flag)
+
+**Build Options:**
+```bash
+# Standard build (compile + tests)
+./build.sh
+
+# Build without tests (faster compilation)
+./build.sh --no-tests
+
+# Build and deploy to server
+./build.sh --deploy
+
+# Show all options
+./build.sh --help
+```
+
+**Individual Scripts:**
+- `./scripts/compile_plugins.sh` – Compile plugins only
+- `./tests/run_tests.sh` – Run all test suites
+- `./tests/test_integration_detailed.sh` – Detailed integration tests
+- `./tests/test_performance.sh` – Performance analysis
+- `./tests/test_bugs.sh` – Bug detection
+- `./tests/test_coverage.sh` – Coverage analysis
+- `./scripts/deploy_plugins.sh` – Deploy to server (requires `.env`)
+
+**Environment Setup for Deployment:**
+1. Copy `.env.example` to `.env`
+2. Fill in your RCON credentials:
+   ```bash
+   RCON_HOST=your.server.com
+   RCON_PORT=27022
+   RCON_PASSWORD=your_password
+   ```
+3. Run `./build.sh --deploy` to compile, test, and deploy
+
+**Test Coverage:**
+- ✅ 30+ basic tests (compilation, configuration, code quality)
+- ✅ 40+ integration tests (classes, skills, menus, equipment)
+- ✅ Performance tests (timer leaks, entity leaks, memory usage)
+- ✅ Bug detection (common SourceMod issues)
+- ✅ Coverage analysis (identifies untested areas)
+
+All tests run automatically during build unless disabled with `--no-tests`.
+
+### Code Architecture
+
+The codebase is organized for modularity and maintainability:
+
+**Core System:**
+- **RageCore** (`include/RageCore.inc`) – Class and perk system foundation
+- **rage_survivor.sp** – Main plugin that manages classes and skill registration
+- **rage_class_skills.cfg** – Configuration file defining which skills each class gets
+
+**Skill Plugins** (`rage_survivor_plugin_*.sp`):
+- Individual abilities as separate plugins (airstrike, berserk, grenades, turrets, etc.)
+- Each plugin registers with the Rage system via `RegisterRageSkill`
+- Plugins can be enabled/disabled independently
+
+**Shared Utilities** (`include/rage/`):
+- `rage/effects.inc` – Particle effects, explosions, visual effects
+- `rage/validation.inc` – Client and entity validation functions
+- `rage/debug.inc` – Unified debug system (replaces per-plugin debug flags)
+- `rage/timers.inc` – Timer callbacks and management
+- `rage/skills.inc` – Skill registration API and callbacks
+- `rage/menus.inc` – Menu system integration
+- `rage/const.inc` – Shared constants and enums
+
+**Plugin Naming:** All plugins use the `[RAGE]` prefix for consistency and easy identification.
+
+**Testing:** The comprehensive test suite ensures code quality, catches bugs early, and verifies integration between systems. Run `./tests/run_tests.sh` anytime to verify everything works.
 
 Want to build something? The code is ready for you. We believe in open source and community contributions.
 
