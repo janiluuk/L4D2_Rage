@@ -4,6 +4,7 @@
 
 #include <sourcemod>
 #include <rage/validation>
+#include <rage/skills>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -27,18 +28,8 @@ int g_rageFadeStep[MAXPLAYERS+1] = {0, ...}; // Current fade step for each clien
 char g_rageGameName[64] = "";
 int g_rageHasAbility[MAXPLAYERS+1] = {-1, ...};
 const int CLASS_SABOTEUR = 4;
-/****************************************************/
-#tryinclude <RageCore>
-#if !defined _RageCore_included
-	// Optional native from Rage Survivor
-	native void OnSpecialSkillSuccess(int client, char[] skillName);
-	native void OnSpecialSkillFail(int client, char[] skillName, char[] reason);
-	native void GetPlayerSkillName(int client, char[] skillName, int size);
-	native int FindSkillIdByName(char[] skillName);
-	native int RegisterRageSkill(char[] skillName, int type);
-	#define Rage_PLUGIN_NAME	"rage_survivor"
-#endif
-/****************************************************/
+int g_iClassID = -1;
+bool g_bRageAvailable = false;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -49,12 +40,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	}
 
 	RegPluginLibrary("extended_sight");
-	MarkNativeAsOptional("OnSpecialSkillFail");	
-	MarkNativeAsOptional("OnSpecialSkillSuccess");		
-	MarkNativeAsOptional("OnPlayerClassChange");
-	MarkNativeAsOptional("GetPlayerSkillName");	
-	MarkNativeAsOptional("RegisterRageSkill");
-	MarkNativeAsOptional("Rage_OnPluginState");	
+	RageSkills_MarkNativesOptional();
 	return APLRes_Success;
 
 }
@@ -95,6 +81,46 @@ public void OnPluginStart()
 	HookConVarChange(g_rageCvarGlow, Changed_PluginCvarGlow);
 }
 
+public void OnAllPluginsLoaded()
+{
+    RageSkills_Refresh(PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+    RageSkills_OnLibraryAdded(name, PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if (StrEqual(name, RAGE_PLUGIN_NAME, false))
+    {
+        g_iClassID = -1;
+    }
+
+    RageSkills_OnLibraryRemoved(name, g_bRageAvailable);
+}
+
+public void Rage_OnPluginState(char[] plugin, int state)
+{
+    if (!StrEqual(plugin, RAGE_PLUGIN_NAME, false))
+        return;
+
+    if (state == 1)
+    {
+        g_bRageAvailable = true;
+        if (g_iClassID == -1)
+        {
+            g_iClassID = RegisterRageSkill(PLUGIN_SKILL_NAME, 0);
+        }
+    }
+    else if (state == 0)
+    {
+        g_bRageAvailable = false;
+        g_iClassID = -1;
+    }
+}
+
 
 public void OnPluginEnd() {
         DisableGlow();
@@ -122,6 +148,39 @@ public void OnMapStart()
 
 
 
+public int OnSpecialSkillUsed(int client, int skill, int type)
+{
+        if (g_rageHasAbility[client] <= 0)
+        {
+                OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "not_saboteur");
+                return 0;
+        }
+
+        if (g_rageActive[client])
+        {
+                PrintHintText(client, "Extended sight already active");
+                OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "active");
+                return 1;
+        }
+
+        float now = GetGameTime();
+        float cooldown = GetConVarFloat(g_rageCvarCooldown);
+        if (now < g_rageNextUse[client])
+        {
+                int remain = RoundToCeil(g_rageNextUse[client] - now);
+                PrintHintText(client, "Extended sight ready in %d seconds", remain);
+                OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "cooldown");
+                return 1;
+        }
+
+        g_rageNextUse[client] = now + cooldown;
+        AddExtendedSight(GetConVarFloat(g_rageCvarDuration), client);
+        PrintHintText(client, "✓ Extended sight activated!");
+        OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
+
+        return 1;
+}
+
 public Action Command_ExtendedSight(int client, int args)
 {
         if (g_rageHasAbility[client] <= 0) return Plugin_Handled;
@@ -145,6 +204,7 @@ public Action Command_ExtendedSight(int client, int args)
 
         g_rageNextUse[client] = now + cooldown;
         AddExtendedSight(GetConVarFloat(g_rageCvarDuration), client);
+        PrintHintText(client, "✓ Extended sight activated!");
         OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
 
         return Plugin_Handled;

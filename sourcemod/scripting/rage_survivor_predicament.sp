@@ -86,7 +86,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public Plugin myinfo =
 {
-        name = "Rage Survivor Predicament",
+        name = "[RAGE] Predicament Helper",
         author = "yani, cravenge, panxiaohai",
         description = "Lets Players Help Themselves When In Predicaments.",
         version = PLUGIN_VERSION,

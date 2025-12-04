@@ -11,7 +11,7 @@ This repository contains SourceMod plugins for the L4D2 Rage project. Use these 
 ## File organization
 - Place shared helpers in `sourcemod/scripting/include/` and keep plugin entry points in `sourcemod/scripting/*.sp`. When adding a new helper, add it to the include directory and keep menu plugins slim by invoking those helpers.
 - If you add new assets (music, configs), store them under the matching top-level folder already used in the project.
-
+- Use ./compile_plugins.sh script to try compiling all 
 ## Testing
 - For SourcePawn changes, compile with `./spcomp64 <plugin>.sp` from `sourcemod/scripting/` when SourceMod includes are available. Note any missing dependencies in the testing section if compilation cannot be run in the current environment.
 

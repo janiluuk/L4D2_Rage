@@ -4,9 +4,11 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <RageCore>
+#include <rage/skills>
 
 #define PLUGIN_VERSION "0.1"
 #define PLUGIN_NAME "Missile"
+#define PLUGIN_SKILL_NAME "Missile"
 #define MISSILE_MODEL "models/weapons/w_missile_closed.mdl"
 
 #define MISSILE_SPEED_DEFAULT 950.0
@@ -16,7 +18,7 @@
 
 public Plugin myinfo =
 {
-    name = "Missile skill plugin",
+    name = "[RAGE] Missile",
     author = "Yani, adapted from L4D2_Missile",
     description = "Adds soldier-controlled homing and dummy missiles.",
     version = PLUGIN_VERSION,
@@ -34,10 +36,13 @@ float g_fHomingRange = HOMING_RANGE_DEFAULT;
 bool g_bHomingMissile[MAX_ENTITY_LIMIT];
 Handle g_hHomingTimer[MAX_ENTITY_LIMIT];
 int g_iMissileOwner[MAX_ENTITY_LIMIT];
+int g_iClassID = -1;
+bool g_bRageAvailable = false;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
     CreateNative("RageMissile_ShowCount", Native_ShowMissileCount);
+    RageSkills_MarkNativesOptional();
     return APLRes_Success;
 }
 
@@ -52,6 +57,91 @@ public void OnPluginStart()
     g_hHomingRange.AddChangeHook(OnMissileSettingsChanged);
 
     UpdateSettings();
+}
+
+public void OnAllPluginsLoaded()
+{
+    RageSkills_Refresh(PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+    RageSkills_OnLibraryAdded(name, PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if (StrEqual(name, RAGE_PLUGIN_NAME, false))
+    {
+        g_iClassID = -1;
+    }
+
+    RageSkills_OnLibraryRemoved(name, g_bRageAvailable);
+}
+
+public void Rage_OnPluginState(char[] plugin, int state)
+{
+    if (!StrEqual(plugin, RAGE_PLUGIN_NAME, false))
+        return;
+
+    if (state == 1)
+    {
+        g_bRageAvailable = true;
+        if (g_iClassID == -1)
+        {
+            g_iClassID = RegisterRageSkill(PLUGIN_SKILL_NAME, 0);
+        }
+    }
+    else if (state == 0)
+    {
+        g_bRageAvailable = false;
+        g_iClassID = -1;
+    }
+}
+
+public int OnSpecialSkillUsed(int client, int skill, int type)
+{
+    if (!g_bRageAvailable)
+    {
+        return 0;
+    }
+
+    char skillName[32];
+    GetPlayerSkillName(client, skillName, sizeof(skillName));
+    if (!StrEqual(skillName, PLUGIN_SKILL_NAME, false))
+    {
+        return 0;
+    }
+
+    if (!IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2)
+    {
+        OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "invalid_client");
+        return 1;
+    }
+
+    // type 0 or 1 = dummy missile, type 2 = homing missile
+    // Default to dummy if type is 0 or 1, homing if type is 2
+    bool homing = (type == 2);
+    int missile = LaunchMissile(client, homing);
+
+    if (missile == -1)
+    {
+        OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "failed_to_launch");
+        return 1;
+    }
+
+    if (homing)
+    {
+        PrintHintText(client, "✓ Homing missile launched!");
+        OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
+    }
+    else
+    {
+        PrintHintText(client, "✓ Dummy missile launched!");
+        OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
+    }
+
+    return 1;
 }
 
 public void OnMapStart()
@@ -100,23 +190,26 @@ public int OnCustomCommand(char[] name, int client, int entity, int type)
         return -1;
     }
 
-    bool homing = (type == 1);
+    bool homing = (type == 2);  // type 1 = dummy missile, type 2 = homing missile
     int missile = LaunchMissile(client, homing);
 
     if (missile == -1)
     {
+        OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "failed_to_launch");
         return -1;
     }
 
     if (homing)
     {
-        PrintHintText(client, "Homing missile");
+        PrintHintText(client, "✓ Homing missile launched!");
+        OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
     }
     else
     {
-        PrintHintText(client, "Dummy missile");
+        PrintHintText(client, "✓ Dummy missile launched!");
+        OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
     }
-
+    
     return 1;
 }
 

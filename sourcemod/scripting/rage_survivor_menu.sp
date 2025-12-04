@@ -117,6 +117,8 @@ int g_iLastSelectedOption[MAXPLAYERS + 1] = {-1, ...};
 int g_iLastSelectedMenuId[MAXPLAYERS + 1] = {-1, ...};
 ArrayList g_hMenuOptionsSurvivor = null;
 ArrayList g_hMenuOptionsInfected = null;
+int g_iAdminMenuOptionIndexSurvivor = -1;  // Index of admin menu option in survivor menu
+int g_iAdminMenuOptionIndexInfected = -1;   // Index of admin menu option in infected menu
 
 Handle g_hClassCookie = INVALID_HANDLE;
 
@@ -137,17 +139,7 @@ enum RageMenuOption
     Menu_MultiEquip,
     Menu_MusicToggle,
     Menu_MusicVolume,
-    Menu_SpawnItems,
-    Menu_Reload,
-    Menu_ManageSkills,
-    Menu_ManagePerks,
-    Menu_ApplyEffect,
-    Menu_DebugMode,
-    Menu_HaltGame,
-    Menu_InfectedSpawn,
-    Menu_GodMode,
-    Menu_RemoveWeapons,
-    Menu_GameSpeed,
+    Menu_AdminMenu,  // Link to admin menu (only shown for admins)
     Menu_Guide
 };
 
@@ -532,10 +524,17 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         return;
     }
 
-    bool adminSelection = (menuOption >= Menu_SpawnItems && menuOption <= Menu_GameSpeed);
-    if (adminSelection && !CheckCommandAccess(client, "sm_rage_admin", ADMFLAG_ROOT))
+    // Check admin access for admin menu
+    if (menuOption == Menu_AdminMenu)
     {
-        PrintHintText(client, "Admin-only option.");
+        if (!CheckCommandAccess(client, "sm_adm", ADMFLAG_ROOT))
+        {
+            PrintHintText(client, "Admin-only option.");
+            return;
+        }
+        
+        // Open admin menu via command
+        FakeClientCommand(client, "sm_adm");
         return;
     }
 
@@ -714,61 +713,6 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
 
         FakeClientCommand(client, "sm_music_volume %d", vol);
         PrintHintText(client, "Music volume set to %d%%", vol * 10);
-        return;
-    }
-    else if (menuOption == Menu_SpawnItems)
-    {
-        PrintHintText(client, "Item spawning is not available.");
-        return;
-    }
-    else if (menuOption == Menu_Reload)
-    {
-        PrintHintText(client, "Reload options are not available.");
-        return;
-    }
-    else if (menuOption == Menu_ManageSkills)
-    {
-        PrintHintText(client, "Manage skills menu is not available.");
-        return;
-    }
-    else if (menuOption == Menu_ManagePerks)
-    {
-        PrintHintText(client, "Perk management is not available.");
-        return;
-    }
-    else if (menuOption == Menu_ApplyEffect)
-    {
-        PrintHintText(client, "Apply-effect option is not available.");
-        return;
-    }
-    else if (menuOption == Menu_DebugMode)
-    {
-        PrintHintText(client, "Debug mode toggle is not wired here.");
-        return;
-    }
-    else if (menuOption == Menu_HaltGame)
-    {
-        PrintHintText(client, "Halt game is not available.");
-        return;
-    }
-    else if (menuOption == Menu_InfectedSpawn)
-    {
-        PrintHintText(client, "Infected spawn toggle is not available.");
-        return;
-    }
-    else if (menuOption == Menu_GodMode)
-    {
-        PrintHintText(client, "God mode toggle is not available.");
-        return;
-    }
-    else if (menuOption == Menu_RemoveWeapons)
-    {
-        PrintHintText(client, "Remove weapons option is not available.");
-        return;
-    }
-    else if (menuOption == Menu_GameSpeed)
-    {
-        PrintHintText(client, "Game speed control is not available.");
         return;
     }
     else if (menuOption == Menu_Guide)
@@ -1009,42 +953,22 @@ void BuildSingleMenu(bool includeChangeClass)
     ExtraMenu_AddOptions(menu_id, "----------|#---------|##--------|###-------|####------|#####-----|######----|#######---|########--|#########-|##########");
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-
-    ExtraMenu_NewPage(menu_id);
-
-    ExtraMenu_AddEntry(menu_id, "ADMIN MENU:", MENU_ENTRY);
-
-    ExtraMenu_AddEntry(menu_id, "1. Spawn Items: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_SpawnItems));
-    ExtraMenu_AddOptions(menu_id, "New cabinet|New weapon|Special Infected|Special tank");
-    ExtraMenu_AddEntry(menu_id, "2. Reload _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_Reload));
-    ExtraMenu_AddOptions(menu_id, "Map|Rage Plugins|All plugins|Restart server");
-    ExtraMenu_AddEntry(menu_id, "3. Manage skills", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_ManageSkills));
-    ExtraMenu_AddEntry(menu_id, "4. Manage perks", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_ManagePerks));
-    ExtraMenu_AddEntry(menu_id, "5. Apply effect on player", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_ApplyEffect));
-
-    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "DEBUG COMMANDS:", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "1. Debug mode: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_DebugMode));
-    ExtraMenu_AddOptions(menu_id, "Off|Log to file|Log to chat|Tracelog to chat");
-    ExtraMenu_AddEntry(menu_id, "2. Halt game: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_HaltGame));
-    ExtraMenu_AddOptions(menu_id, "Off|Only survivors|All");
-    ExtraMenu_AddEntry(menu_id, "3. Infected spawn: _OPT_", MENU_SELECT_ONOFF, false, 1);
-    optionMap.Push(view_as<int>(Menu_InfectedSpawn));
-    ExtraMenu_AddEntry(menu_id, "4. God mode: _OPT_", MENU_SELECT_ONOFF, false, 1);
-    optionMap.Push(view_as<int>(Menu_GodMode));
-    ExtraMenu_AddEntry(menu_id, "5. Remove weapons from map", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_RemoveWeapons));
-    ExtraMenu_AddEntry(menu_id, "6. Game speed: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_GameSpeed));
-    ExtraMenu_AddOptions(menu_id, "----------|#---------|##--------|###-------|####------|#####-----|######----|#######---|########--|#########-|##########");
-    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
+    
+    // Admin menu link (only shown for admins, checked at display time)
+    // Store the index so we can hide it for non-admins
+    int adminMenuIndex = optionMap.Length;
+    ExtraMenu_AddEntry(menu_id, "Admin Menu", MENU_SELECT_ONLY, true);
+    optionMap.Push(view_as<int>(Menu_AdminMenu));
+    
+    // Store admin menu option index for this menu
+    if (includeChangeClass)
+    {
+        g_iAdminMenuOptionIndexSurvivor = adminMenuIndex;
+    }
+    else
+    {
+        g_iAdminMenuOptionIndexInfected = adminMenuIndex;
+    }
 
     if (includeChangeClass)
     {

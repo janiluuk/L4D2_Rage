@@ -20,7 +20,7 @@
 #define MAX_REQUEST_BODY 2048
 
 public Plugin myinfo = {
-    name = "rage_survivor_ai",
+    name = "[RAGE] AI Chat",
     author = "original authors, integrated by Rage",
     description = "AI chat for L4D2 (requires httpclient extension)",
     version = "1.0.0",

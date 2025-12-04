@@ -1,4 +1,4 @@
-#define PLUGIN_NAME "[Rage] Dead Ringer Plugin"
+#define PLUGIN_NAME "[RAGE] Dead Ringer"
 #define PLUGIN_AUTHOR "Yani & Shadowysn"
 #define PLUGIN_DESC "Activate a dead ringer distraction and cloak the user."
 #define PLUGIN_VERSION "1.0"
@@ -337,7 +337,7 @@ public int OnSpecialSkillUsed(int iClient, int skill, int type)
 	}
 	if (StrEqual(szSkillName,PLUGIN_SKILL_NAME))
 	{
-		PrintToChat(iClient, "You activated \x04CLOAK!\x01");
+		PrintHintText(iClient, "✓ Cloak activated!");
 		TriggerDeadRinger(iClient, true, false, false, false);
 		BeginDeadRingerFromDamage(iClient, iClient, iClient, 1.0, 0, -1);
 	
@@ -1680,12 +1680,7 @@ bool canTriggerDR(int client)
 	return true;
 }
 
-bool IsSurvivor(int client)
-{
-	if (!IsValidClient(client)) return false;
-	if (GetClientTeam(client) == SURVIVORTEAM || GetClientTeam(client) == SURVIVORTEAM_PASSING) return true;
-	return false;
-}
+// IsSurvivor is now provided by rage/validation.inc - removed duplicate implementation
 
 // IsValidClient now provided by rage/validation.inc
 // Note: The shared version doesn't check replay/SourceTV by default

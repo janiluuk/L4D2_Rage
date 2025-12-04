@@ -3,6 +3,19 @@
 #endif
 #define _rage_debug_included
 
+// Default implementation - returns 0 (debug disabled)
+// Plugins can override this by defining: public int getDebugMode() { ... }
+// The stock keyword ensures this is only included if not already defined
+// Note: rage_survivor.sp provides its own implementation, so this is for other plugins
+#if !defined RAGE_SURVIVOR_PLUGIN
+stock int getDebugMode()
+{
+	// Default: debug disabled
+	// Plugins can override this by defining their own getDebugMode() function
+	return 0;
+}
+#endif
+
 stock void PrintDebug(int client, const char[] format, any ...)
 {
 	if (getDebugMode() >= 1) {

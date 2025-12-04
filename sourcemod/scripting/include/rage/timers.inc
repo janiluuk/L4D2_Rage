@@ -4,6 +4,11 @@
 #define _rage_timers_included
 
 #include <l4d2_airstrike>
+#include <rage/effects>
+
+// Plugin-specific code is wrapped in #if defined RAGE_SURVIVOR_PLUGIN blocks
+// Basic timer callbacks are always available, but code that depends on rage_survivor.sp
+// symbols will only compile when RAGE_SURVIVOR_PLUGIN is defined
 
 #if !defined _f18airstrike_included
 native void F18_ShowAirstrike(float origin[3], float direction);
@@ -17,6 +22,7 @@ static void TryShowAirstrike(float origin[3])
         }
 }
 
+#if defined RAGE_SURVIVOR_PLUGIN
 static bool PressedSpecialSkillButton(int client, int buttons)
 {
 	// Check for mouse3 via IN_ZOOM (which is mouse wheel/middle button) or IN_ATTACK3
@@ -179,17 +185,24 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 		}
 	}
 
-	// Only check deployment if both buttons are being held
-	if (holdingDeploy)
+	// Check deployment when holding CTRL (IN_DUCK) - no longer requires SHOVE or looking down
+	bool holdingCTRL = (buttons & IN_DUCK) != 0;
+	if (holdingCTRL)
 	{
-		HandleDeployInput(client, classType, holdingDeploy, pressedPlant, lookingDown, onGround, CanDrop, iDropTime);
+		HandleDeployInput(client, classType, holdingCTRL, pressedPlant, lookingDown, onGround, CanDrop, iDropTime);
+	}
+	else
+	{
+		// CTRL released - close deployment menu
+		HandleDeployInput(client, classType, false, false, lookingDown, onGround, CanDrop, iDropTime);
 	}
 
 	ClientData[client].LastButtons = buttons;
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
-
+#if defined RAGE_SURVIVOR_PLUGIN
 public Action:TimerLoadClient(Handle:hTimer, any:client)
 {
 	if (!client ||  !IsValidEntity(client) || !IsClientInGame(client)) 
@@ -406,7 +419,9 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 	
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
+#if defined RAGE_SURVIVOR_PLUGIN
 public Action:TimerAirstrike(Handle timer, Handle:hPack)
 {
 	new Float:pos[3];
@@ -525,7 +540,9 @@ public Action:TimerCheckBombSensors(Handle:hTimer, Handle:hPack)
 	}
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
+#if defined RAGE_SURVIVOR_PLUGIN
 /**
  * @note Validates if the current client is valid to run the plugin.
  *
@@ -541,8 +558,9 @@ stock bool IsTank(int client)
 	
 	return false;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
-
+// Basic timer callbacks - always available (used by rage/effects.inc)
 public Action:TimerRemovePrecacheParticle(Handle:timer, any:Particle)
 {
 	if (IsValidEdict(Particle))
@@ -605,27 +623,19 @@ public Action:TimerActivateBombParticle(Handle:timer, any:entity)
 
 }
 
-public Action:TimerStopAndRemoveParticle(Handle:timer, any:entity)
-{
-	if (entity > 0 && IsValidEntity(entity))
-	{
-		if (BombActive == true) {
-			CreateTimer(3.0, TimerStopAndRemoveParticle, entity, TIMER_FLAG_NO_MAPCHANGE);			
-		} else {
-			AcceptEntityInput(entity, "Kill");
-		}
-	}		
-}
-
+// Basic timer callbacks - always available (used by rage/effects.inc)
 public Action:TimerStopAndRemoveBombParticle(Handle:timer, Handle:pack)
 {
 	ResetPack(pack);
 	int entity = ReadPackCell(pack);
+	#if defined RAGE_SURVIVOR_PLUGIN
 	int index = ReadPackCell(pack);
 	int mine = ReadPackCell(pack);	
+	#endif
 	CloseHandle(pack);
 	if (entity > 0 && IsValidEntity(entity)) 
 	{
+		#if defined RAGE_SURVIVOR_PLUGIN
 		if (BombActive == false) {
 			AcceptEntityInput(entity, "Kill");
 		} else {
@@ -649,6 +659,23 @@ public Action:TimerStopAndRemoveBombParticle(Handle:timer, Handle:pack)
 			WritePackCell(hPack, mine);
 
 			CreateTimer(15.0, TimerDeleteBombs, hPack, TIMER_FLAG_NO_MAPCHANGE);			
+		}
+		#else
+		// Fallback: just kill the entity if plugin-specific code not available
+		AcceptEntityInput(entity, "Kill");
+		#endif
+	}
+}
+
+#if defined RAGE_SURVIVOR_PLUGIN
+public Action:TimerStopAndRemoveParticle(Handle:timer, any:entity)
+{
+	if (entity > 0 && IsValidEntity(entity))
+	{
+		if (BombActive == true) {
+			CreateTimer(3.0, TimerStopAndRemoveParticle, entity, TIMER_FLAG_NO_MAPCHANGE);			
+		} else {
+			AcceptEntityInput(entity, "Kill");
 		}
 	}
 }
@@ -691,6 +718,7 @@ public Action:TimerDeleteBombs(Handle:timer, Handle:pack)
 	} 
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
 public Action Timer_Parachute( Handle timer, any iEntity)
 {

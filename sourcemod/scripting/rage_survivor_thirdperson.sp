@@ -21,7 +21,7 @@ Handle g_hTimerReset[MAXPLAYERS+1], g_hTimerGun;
 
 public Plugin myinfo =
 {
-    name = "[L4D2] Survivor Thirdperson",
+    name = "[RAGE] Third Person",
     author = "SilverShot",
     description = "Creates a command for survivors to use thirdperson view.",
     version = PLUGIN_VERSION,

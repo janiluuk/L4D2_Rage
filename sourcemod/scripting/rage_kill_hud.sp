@@ -10,7 +10,7 @@
 
 public Plugin myinfo =
 {
-	name = "[L4D2] CS Kill Hud",
+	name = "[RAGE] Kill HUD",
 	author = "Miuwiki, Harry",
 	description = "HUD with cs kill info list.",
 	version = PLUGIN_VERSION,

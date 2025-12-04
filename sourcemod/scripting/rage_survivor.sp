@@ -8,9 +8,10 @@
 *
 */
 
-#define PLUGIN_NAME "Rage Plugin 2025D anniversary edition"
+#define PLUGIN_NAME "[RAGE] Survivor Classes"
 #define PLUGIN_VERSION "1.82b"
 #define PLUGIN_IDENTIFIER "rage_survivor"
+#define RAGE_SURVIVOR_PLUGIN  // Enable plugin-specific features in rage/timers.inc
 #pragma semicolon 1
 // DEBUG, DEBUG_LOG, DEBUG_TRACE now handled by rage/debug.inc - use PrintDebug() instead
 #define DEPLOY_LOOK_DOWN_ANGLE 45.0  // Minimum pitch angle (degrees) required to look down for deployment
@@ -29,11 +30,44 @@ public Plugin myinfo =
 #include <sdktools>
 #include <clientprefs>
 #include <l4d2hud>
-#include <talents>
 #include <jutils>
 #include <l4d2>
+#tryinclude <LMCCore>
+#tryinclude <LMCL4D2SetTransmit>
 #include <rage/skill_actions>
 #include <rage/debug>
+#include <rage_menu_base>
+
+// Global variables - MUST be declared before <talents> which includes <rage/menus>
+// Using hardcoded sizes since constants are defined later
+char g_ClassDescriptions[8][128];  // MAXCLASSES = 8, CLASS_DESCRIPTION_LENGTH = 128
+int g_iQueuedClass[MAXPLAYERS+1];
+bool g_bClassSelectionThirdPerson[MAXPLAYERS+1];
+Handle g_hClassCookie;
+ConVar CLASS_PREVIEW_DURATION;
+ConVar ATHLETE_PARACHUTE_ENABLED;
+ConVar HEALTH_MODIFIERS_ENABLED;
+bool LeftSafeAreaMessageShown;
+// Note: g_BeamSprite and g_HaloSprite are declared as stock in rage/effects.inc
+// We initialize them in OnMapStart() but don't redeclare them here to avoid duplicates
+
+#include <talents>
+
+#include <rage/admin_commands>
+#include <rage/class_commands>
+
+// Define LMC availability flag
+#if defined _LMCCore_included
+	#define LMC_AVAILABLE 1
+#else
+	#define LMC_AVAILABLE 0
+#endif
+
+#if defined _LMCL4D2SetTransmit_included
+	#define LMC_SETTRANSMIT_AVAILABLE 1
+#else
+	#define LMC_SETTRANSMIT_AVAILABLE 0
+#endif
 
 #if !defined MAX_SKILL_NAME_LENGTH
         #define MAX_SKILL_NAME_LENGTH 32
@@ -108,6 +142,8 @@ const int CLASS_COMMAND_PLUGIN_LEN = 32;
 char g_ClassActionCommandPlugin[MAXCLASSES][ClassSkill_Count][CLASS_COMMAND_PLUGIN_LEN];
 int g_ClassActionCommandType[MAXCLASSES][ClassSkill_Count];
 int g_ClassActionCommandEntity[MAXCLASSES][ClassSkill_Count];
+
+// Variables moved earlier - see declarations above before includes
 
 
 SkillActionSlot GetSkillActionSlotForInput(ClassSkillInput input)
@@ -437,6 +473,7 @@ bool ExecuteBuiltinAction(int client, BuiltinAction action, ClassTypes classType
 	{
 		case Builtin_MedicSupplies:
 		{
+			PrintHintText(client, "✓ Deployment menu opened!");
 			return CreatePlayerMedicMenu(client);
 		}
 		case Builtin_EngineerSupplies:
@@ -452,13 +489,16 @@ bool ExecuteBuiltinAction(int client, BuiltinAction action, ClassTypes classType
 				}
 				// Trigger the secondary skill (Multiturret) which opens the turret menu
 				// This will call OnSpecialSkillUsed which opens BuildMachineGunsMainMenu
+				PrintHintText(client, "✓ Turret menu opened!");
 				return TriggerSkillAction(client, engineer, ClassSkill_Secondary);
 			}
 			// For other classes (Soldier, Commando), show the supply menu
+			PrintHintText(client, "✓ Supply menu opened!");
 			return CreatePlayerEngineerMenu(client);
 		}
 		case Builtin_SaboteurMines:
 		{
+			PrintHintText(client, "✓ Mines menu opened!");
 			return CreatePlayerSaboteurMenu(client);
 		}
 	}
@@ -472,7 +512,16 @@ bool ExecuteClassAction(int client, ClassTypes classType, ClassSkillInput input)
 	{
 		case ActionMode_Skill:
 		{
-			return TriggerSkillAction(client, classType, input);
+			// Show activation hint before triggering (skill-specific notifications come from OnSpecialSkillSuccess)
+			char skillName[32];
+			strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][input]);
+			if (skillName[0] != '\0')
+			{
+				PrintHintText(client, "✓ Activating %s...", skillName);
+			}
+			bool result = TriggerSkillAction(client, classType, input);
+			// Note: Skill success/failure notifications are handled by OnSpecialSkillSuccess/OnSpecialSkillFail
+			return result;
 		}
 		case ActionMode_Command:
 		{
@@ -489,12 +538,16 @@ bool ExecuteClassAction(int client, ClassTypes classType, ClassSkillInput input)
 			}
 
 			useCustomCommand(g_ClassActionCommandPlugin[classType][input], client, g_ClassActionCommandEntity[classType][input], g_ClassActionCommandType[classType][input]);
+			// Notify player that command skill was activated
+			PrintHintText(client, "✓ %s activated!", g_ClassActionCommandPlugin[classType][input]);
 			ClientData[client].LastDropTime = GetGameTime();
 			return true;
 		}
 		case ActionMode_Builtin:
 		{
-			return ExecuteBuiltinAction(client, g_ClassActionBuiltin[classType][input], classType);
+			bool result = ExecuteBuiltinAction(client, g_ClassActionBuiltin[classType][input], classType);
+			// Builtin actions (menus) don't need activation notifications as they show menus
+			return result;
 		}
 	}
 
@@ -577,23 +630,40 @@ bool TryTriggerClassSkillAction(int client, ClassTypes classType, ClassSkillInpu
 	return ExecuteClassAction(client, classType, input);
 }
 
+// Track deployment menu state per client
+static bool g_bDeployMenuOpen[MAXPLAYERS+1] = {false, ...};
+
 void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, bool pressedPlant, bool lookingDown, bool onGround, bool canDrop, int elapsed)
 {
 	// Check if deployment is configured for this class
 	if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
 	{
+		// Close menu if it was open
+		if (g_bDeployMenuOpen[client])
+		{
+			ExtraMenu_Close(client);
+			g_bDeployMenuOpen[client] = false;
+		}
 		return;
 	}
 
-	// Require CROUCH+SHOVE to be held
-	if (!holdingDeploy)
+	// Show deployment menu when holding CTRL (IN_DUCK)
+	if (holdingDeploy)
 	{
-		return;
-	}
-
-	// If looking down and pressed CROUCH+SHOVE, trigger deployment menu
-	if (lookingDown && pressedPlant)
-	{
+		// Only show menu if not already open
+		if (!g_bDeployMenuOpen[client])
+		{
+			// For builtin actions (menus), show them immediately
+			if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
+			{
+				if (ExecuteClassAction(client, classType, ClassSkill_Deploy))
+				{
+					g_bDeployMenuOpen[client] = true;
+				}
+			}
+			else
+			{
+				// For other actions, check restrictions first
 		if (IsPlayerInSaferoom(client) || IsInEndingSaferoom(client))
 		{
 			PrintHintText(client, "Cannot deploy here");
@@ -606,15 +676,6 @@ void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, boo
 			return;
 		}
 
-		// For builtin actions (menus), allow them even if cooldown hasn't passed
-		// as the menu will handle its own restrictions
-		if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
-		{
-			ExecuteClassAction(client, classType, ClassSkill_Deploy);
-			return;
-		}
-
-		// For other actions, check cooldown and limits
 		if (!canDrop)
 		{
 			int wait = ClientData[client].SpecialDropInterval - elapsed;
@@ -632,25 +693,20 @@ void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, boo
 			return;
 		}
 
-		ExecuteClassAction(client, classType, ClassSkill_Deploy);
-		return;
-	}
-	
-	// If looking down but not pressed yet, show hint
-	if (lookingDown && holdingDeploy)
-	{
-		int buttons = GetClientButtons(client);
-		bool shovePressed = (buttons & IN_ATTACK2) != 0;
-		bool crouchPressed = (buttons & IN_DUCK) != 0;
-		
-		// If looking down but deployment combo isn't complete, show hint
-		if (shovePressed && !crouchPressed)
-		{
-			PrintHintText(client, "Press CROUCH+SHOVE to deploy");
+				if (ExecuteClassAction(client, classType, ClassSkill_Deploy))
+				{
+					g_bDeployMenuOpen[client] = true;
+				}
+			}
 		}
-		else if (crouchPressed && !shovePressed)
+	}
+	else
+	{
+		// CTRL released - close deploymen menu if it was open
+		if (g_bDeployMenuOpen[client])
 		{
-			PrintHintText(client, "Press CROUCH+SHOVE to deploy");
+			ExtraMenu_Close(client);
+			g_bDeployMenuOpen[client] = false;
 		}
 	}
 }
@@ -860,6 +916,7 @@ public ResetClientVariables(client)
 	g_bInSaferoom[client] = false;
 	g_bHide[client] = false;
 	g_bClassSelectionThirdPerson[client] = false;
+	g_bDeployMenuOpen[client] = false;
 	
 	// Properly clean up timer
 	if (g_ReadyTimer[client] != null) 
@@ -1221,6 +1278,10 @@ any Native_OnSpecialSkillSuccess(Handle plugin, int numParams)
  
 	char[] str = new char[len + 1];
 	GetNativeString(2, str, len + 1);
+	
+	// Notify player that skill was activated
+	PrintHintText(client, "✓ %s activated!", str);
+	
 	ClientData[client].SpecialsUsed++;
 	ClientData[client].LastDropTime = GetGameTime();
 
@@ -1290,6 +1351,13 @@ public OnMapStart()
 
 	// Precache all class models to avoid runtime frame drops
 	PrecacheClassModels();
+	
+	// Validate LMC availability and log status
+#if LMC_AVAILABLE
+	PrintDebugAll("LMC (Lux Model Changer) support compiled in - will use LMC for model overlays if available at runtime");
+#else
+	PrintDebugAll("LMC (Lux Model Changer) not available at compile time - will use standard SetEntityModel");
+#endif
 
 	// Particles
 	PrecacheParticle(EXPLOSION_PARTICLE);
@@ -1421,8 +1489,64 @@ public void OnClientCookiesCached(int client)
         LastClassConfirmed[client] = view_as<int>(storedClass);
         g_iQueuedClass[client] = 0;
 
-        PrintToChat(client, "%sRestored your %s class. Use the class menu to change it again.", PRINT_PREFIX, MENU_OPTIONS[storedClass]);
-        NotifySelectedClassHint(client);
+        // Apply the class immediately if player is on survivor team
+        if (GetClientTeam(client) == 2)
+        {
+                ClassTypes oldClass = ClientData[client].ChosenClass;
+                
+                // Only apply if not already set or if it's different
+                if (oldClass != storedClass)
+                {
+                        // Check if class is available (not full)
+                        bool classFull = (GetMaxWithClass(view_as<int>(storedClass)) >= 0 && 
+                                        CountPlayersWithClass(view_as<int>(storedClass)) >= GetMaxWithClass(view_as<int>(storedClass)));
+                        
+                        if (!classFull || oldClass == storedClass)
+                        {
+                                ClientData[client].ChosenClass = storedClass;
+                                
+                                // Inform other plugins (only if forward is valid)
+                                if (g_hfwdOnPlayerClassChange != INVALID_HANDLE)
+                                {
+                                        Call_StartForward(g_hfwdOnPlayerClassChange);
+                                        Call_PushCell(client);
+                                        Call_PushCell(ClientData[client].ChosenClass);
+                                        Call_PushCell(LastClassConfirmed[client]);
+                                        Call_Finish();
+                                }
+                                
+                                // Setup the class (defer heavy operations to avoid timeout)
+                                DataPack pack;
+                                CreateDataTimer(0.1, TimerSetupClassOnCookieCached, pack, TIMER_FLAG_NO_MAPCHANGE);
+                                pack.WriteCell(GetClientUserId(client));
+                                pack.WriteCell(view_as<int>(storedClass));
+                                
+                                // Show notification
+                                PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected. Use the Rage menu to change it.", 
+                                           PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+                                PrintHintText(client, "✓ %s class auto-selected", MENU_OPTIONS[storedClass]);
+                        }
+                        else
+                        {
+                                // Class is full, show menu instead
+                                PrintToChat(client, "%sYour previous \x04%s\x01 class is full. Please choose another class.", 
+                                           PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+                                CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
+                        }
+                }
+                else
+                {
+                        // Class already set, just notify
+                        PrintToChat(client, "%s✓ Your \x04%s\x01 class is active. Use the Rage menu to change it.", 
+                                   PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+                }
+        }
+        else
+        {
+                // Not on survivor team yet, just store it
+                PrintToChat(client, "%s✓ Your previous \x04%s\x01 class will be auto-selected when you join survivors.", 
+                           PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+        }
 }
 
 void NotifySelectedClassHint(int client)
@@ -1650,15 +1774,26 @@ void PrecacheClassModels()
                 char model[PLATFORM_MAX_PATH];
                 strcopy(model, sizeof(model), ClassCustomModels[i]);
                 
+                // Validate model path is not empty
+                if (strlen(model) == 0)
+                {
+                        LogError("Empty model path at index %d in ClassCustomModels array", i);
+                        continue;
+                }
+                
                 if (!IsModelPrecached(model))
                 {
                         PrecacheModel(model, true);
-                        PrintDebugAll("Precached class model: %s", model);
+                        PrintDebugAll("Precached class model: %s (index: %d)", model, i);
+                }
+                else
+                {
+                        PrintDebugAll("Model %s already precached (index: %d)", model, i);
                 }
         }
 }
 
-// Apply class-specific character model
+// Apply class-specific character model using LMC (if available)
 void ApplyClassModel(int client, ClassTypes classType)
 {
         if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
@@ -1670,16 +1805,95 @@ void ApplyClassModel(int client, ClassTypes classType)
         int classIndex = view_as<int>(classType);
         if (classIndex < 0 || classIndex >= sizeof(ClassCustomModels))
         {
-                PrintDebugAll("Invalid class index %d for model assignment", classIndex);
+                LogError("Invalid class index %d for model assignment (max: %d)", classIndex, sizeof(ClassCustomModels) - 1);
                 return;
         }
 
         char model[PLATFORM_MAX_PATH];
         strcopy(model, sizeof(model), ClassCustomModels[classIndex]);
         
-        // Models should already be precached in OnMapStart
+        // Validate model path
+        if (strlen(model) == 0)
+        {
+                LogError("Empty model path for class %d (%s)", classIndex, MENU_OPTIONS[classIndex]);
+                return;
+        }
+        
+        // Models should already be precached in OnMapStart - verify and warn
+        if (!IsModelPrecached(model))
+        {
+                LogError("Model %s not precached for class %d (%s)! This should have been done in OnMapStart().", model, classIndex, MENU_OPTIONS[classIndex]);
+                // Don't attempt to precache here - it won't work during gameplay
+                // Still try to apply with SetEntityModel as fallback
+        }
+        
+#if LMC_AVAILABLE
+        // Check if LMC library is actually loaded at runtime (not just available at compile time)
+        if (LibraryExists("LMCCore"))
+        {
+                // Verify client is still valid before LMC call
+                if (!IsClientInGame(client) || !IsPlayerAlive(client))
+                {
+                        LogError("Client %d became invalid before LMC model application", client);
+                        return;
+                }
+                
+                // Use LMC to apply the model overlay
+                int overlayIndex = LMC_SetClientOverlayModel(client, model);
+                if (overlayIndex > 0)
+                {
+                        // Verify client is still valid after LMC call
+                        if (!IsClientInGame(client) || !IsPlayerAlive(client))
+                        {
+                                LogError("Client %d became invalid after LMC_SetClientOverlayModel", client);
+                                return;
+                        }
+                        
+#if LMC_SETTRANSMIT_AVAILABLE
+                        // Check if SetTransmit module is loaded at runtime
+                        if (LibraryExists("LMCL4D2SetTransmit"))
+                        {
+                                // Enable SetTransmit for L4D2 compatibility
+                                if (!LMC_L4D2_SetTransmit(client, overlayIndex, true))
+                                {
+                                        LogError("Failed to set LMC SetTransmit for client %d, overlay %d", client, overlayIndex);
+                                }
+                                else
+                                {
+                                        PrintDebugAll("LMC SetTransmit enabled for client %d, overlay %d", client, overlayIndex);
+                                }
+                        }
+                        else
+                        {
+                                PrintDebugAll("LMCL4D2SetTransmit library not loaded - SetTransmit not configured for client %d", client);
+                        }
+#endif
+                        PrintDebugAll("Applied LMC model %s to client %d (class: %d, overlay: %d)", model, client, classType, overlayIndex);
+                        return;
+                }
+                else
+                {
+                        LogError("LMC_SetClientOverlayModel failed for client %d, model: %s (returned: %d). Falling back to SetEntityModel.", client, model, overlayIndex);
+                }
+        }
+        else
+        {
+                PrintDebugAll("LMCCore library not loaded at runtime - using fallback SetEntityModel for client %d", client);
+        }
+#else
+        PrintDebugAll("LMC not available at compile time - using fallback SetEntityModel for client %d", client);
+#endif
+        
+        // Fallback to standard SetEntityModel if LMC is unavailable or failed
+        // Verify client is still valid before applying model
+        if (!IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+                LogError("Client %d became invalid before SetEntityModel fallback", client);
+                return;
+        }
+        
         SetEntityModel(client, model);
-        PrintDebugAll("Applied model %s to client %d (class: %d)", model, client, classType);
+        PrintDebugAll("Using fallback SetEntityModel for client %d (class: %d, model: %s) - LMC unavailable or failed", client, classType, model);
 }
 
 bool TryExecuteSkillInput(int client, ClassSkillInput input)
@@ -1957,11 +2171,53 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 
                         if (LastClassConfirmed[client] != 0)
                         {
-                                ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                                ClassTypes restoredClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                                
+                                // Check if class is available (not full)
+                                bool classFull = (GetMaxWithClass(LastClassConfirmed[client]) >= 0 && 
+                                                CountPlayersWithClass(LastClassConfirmed[client]) >= GetMaxWithClass(LastClassConfirmed[client]));
+                                
+                                if (!classFull || ClientData[client].ChosenClass == restoredClass)
+                                {
+                                        ClassTypes oldClass = ClientData[client].ChosenClass;
+                                        ClientData[client].ChosenClass = restoredClass;
+                                        
+                                        // Inform other plugins if class changed
+                                        if (oldClass != restoredClass)
+                                        {
+                                                Call_StartForward(g_hfwdOnPlayerClassChange);
+                                                Call_PushCell(client);
+                                                Call_PushCell(ClientData[client].ChosenClass);
+                                                Call_PushCell(LastClassConfirmed[client]);
+                                                Call_Finish();
+                                        }
+                                        
                                 SetupClasses(client, LastClassConfirmed[client]);
+                                        
+                                        // Show notification that class was auto-selected
+                                        if (oldClass == NONE)
+                                        {
+                                                PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected.", 
+                                                           PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
+                                                PrintHintText(client, "✓ %s class auto-selected", MENU_OPTIONS[restoredClass]);
+                                        }
+                                        
+                                        // Show class info
+                                        ShowClassHud(client, false);
+                                        ShowClassSelectionInfo(client, restoredClass);
                         }
                         else
+                                {
+                                        // Class is full, show menu instead
+                                        PrintToChat(client, "%sYour previous \x04%s\x01 class is full. Please choose another class.", 
+                                                   PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
                                 CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
+                                }
+                        }
+                        else
+                        {
+                                CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
+                        }
 
                         CreateTimer(2.0, TimerAnnounceSelectedClassHint, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
                         ShowAthleteAbilityHint(client);
@@ -1975,6 +2231,37 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 
                 g_iPlayerSpawn = true;
         }
+}
+
+public Action TimerSetupClassOnCookieCached(Handle timer, DataPack pack)
+{
+        pack.Reset();
+        int userid = pack.ReadCell();
+        int classIndex = pack.ReadCell();
+        delete pack;
+        
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return Plugin_Stop;
+        }
+        
+        // Verify the class is still valid
+        ClassTypes classType = view_as<ClassTypes>(classIndex);
+        if (ClientData[client].ChosenClass != classType)
+        {
+                return Plugin_Stop;
+        }
+        
+        // Setup the class
+        SetupClasses(client, classIndex);
+        RebuildCache();
+        
+        // Show class info
+        ShowClassHud(client, false);
+        ShowClassSelectionInfo(client, classType);
+        
+        return Plugin_Stop;
 }
 
 void ShowSelectedClassHint(int client)
@@ -1994,7 +2281,7 @@ void ShowSelectedClassHint(int client)
         PrintHintText(client, "You are playing as %s. Use your skill binds to activate abilities.", MENU_OPTIONS[classType]);
 }
 
-void ShowClassSelectionInfo(int client, ClassTypes classType)
+public void ShowClassSelectionInfo(int client, ClassTypes classType)
 {
         if (client <= 0 || client > MaxClients || !IsClientInGame(client) || GetClientTeam(client) != 2 || classType == NONE)
         {
@@ -2029,7 +2316,7 @@ public Action Timer_ShowClassSkillBindings(Handle timer, any userid)
         return Plugin_Stop;
 }
 
-void ShowClassSkillBindings(int client, ClassTypes classType)
+public void ShowClassSkillBindings(int client, ClassTypes classType)
 {
         if (client <= 0 || client > MaxClients || !IsClientInGame(client) || GetClientTeam(client) != 2 || classType == NONE)
         {
@@ -2640,7 +2927,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		g_iTimeWeaponIdle,
 		GetEntDataFloat(weapon,g_iTimeWeaponIdle)
 		);
-		#endif
 	}
 	else
 	{
@@ -2650,7 +2936,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 
 		if (StrContains(bNetCl, "CShotgun_SPAS", false) != -1)
 		{
-			PrintDebugAll("Shotgun Class: %s", stClass);
+				PrintDebugAll("Shotgun Class: %s", stClass);
 			WritePackFloat(hPack, g_flShotgunSpasS);
 			WritePackFloat(hPack, g_flShotgunSpasI);
 			WritePackFloat(hPack, g_flShotgunSpasE);
@@ -2727,7 +3013,7 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 	new Float:insert = ReadPackFloat(hOldPack);
 	new Float:end = ReadPackFloat(hOldPack);
 	CloseHandle(hOldPack);
-	PrintDebugAll("Starting reload");
+		PrintDebugAll("Starting reload");
 
 	if (client <= 0
 		|| weapon <= 0
@@ -2740,7 +3026,7 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 	SetEntDataFloat(weapon,	g_reloadInsertDuration,	insert * fReloadRatio,	true);
 	SetEntDataFloat(weapon,	g_reloadEndDuration, end * fReloadRatio,	true);
 	SetEntDataFloat(weapon, g_iPlaybackRate, 1.0 / fReloadRatio, true);
-	PrintDebugAll("\x03-spas shotgun detected, ratio \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i", fReloadRatio, g_reloadStartDuration, g_reloadInsertDuration, g_reloadEndDuration);
+		PrintDebugAll("\x03-spas shotgun detected, ratio \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i", fReloadRatio, g_reloadStartDuration, g_reloadInsertDuration, g_reloadEndDuration);
 
 	new Handle:hPack = CreateDataPack();
 	WritePackCell(hPack, weapon);
@@ -3408,6 +3694,7 @@ public void DropBomb(client, bombType)
 	PrintHintTextToAll("%N planted a %s mine! (%i/%i)", client, bombName, (1+ ClientData[client].SpecialsUsed), GetConVarInt(SABOTEUR_MAX_BOMBS));
 }
 
+#define DROP_MINE_ENTITY_DEFINED
 public DropMineEntity(Float:pos[3], int index)
 {
 	char mineName[32];
@@ -3617,6 +3904,24 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
         if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
         return Plugin_Continue;
+
+        // SHIFT (IN_SPEED) shows RAGE menu
+        static bool g_bWasHoldingShift[MAXPLAYERS+1] = {false, ...};
+        bool holdingShift = (buttons & IN_SPEED) != 0;
+        if (holdingShift && !g_bWasHoldingShift[client])
+        {
+                // SHIFT just pressed - show RAGE menu
+                FakeClientCommand(client, "+rage_menu");
+        }
+        else if (!holdingShift && g_bWasHoldingShift[client])
+        {
+                // SHIFT released - close RAGE menu
+                FakeClientCommand(client, "-rage_menu");
+        }
+        g_bWasHoldingShift[client] = holdingShift;
+
+        // Ensure IN_USE (T key) is not blocked for voice chat
+        // Don't interfere with IN_USE - let it work normally for voice chat
 
         if (ClientData[client].ChosenClass == athlete)
         {

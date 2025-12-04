@@ -102,6 +102,10 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
     GetPlayerSkillName(client, skillName, sizeof(skillName));
     if (StrEqual(skillName, PLUGIN_SKILL_NAME))
     {
+        int current = GetEntProp(client, Prop_Send, "m_bNightVisionOn");
+        int next = current ? 0 : 1;
+        SetEntProp(client, Prop_Send, "m_bNightVisionOn", next);
+        PrintHintText(client, "✓ Nightvision %s!", next ? "enabled" : "disabled");
         ToggleNightVision(client);
         OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
         return 1;

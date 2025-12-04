@@ -6,7 +6,56 @@
 ///////////////////////////////////////////////////////////////////////////////////	
 // Graphics & effects
 ///////////////////////////////////////////////////////////////////////////////////
-stock g_BeamSprite = -1, g_HaloSprite = -1;
+// Sprite indices - declared as stock so each plugin gets its own copy
+// Main plugin (rage_survivor.sp) initializes these in OnMapStart()
+stock int g_BeamSprite = -1;
+stock int g_HaloSprite = -1;
+
+// Forward declarations for timer callbacks defined in rage/timers.inc
+// These are required by functions in this file
+// Note: If your plugin uses functions that require these callbacks, include rage/timers.inc
+forward Action timerHurtEntity(Handle timer, Handle pack);
+forward Action TimerDeleteParticles(Handle timer, Handle pack);
+forward Action TimerStopFire(Handle timer, Handle pack);
+forward Action TimerRemovePrecacheParticle(Handle timer, any Particle);
+forward Action TimerStopAndRemoveBombParticle(Handle timer, Handle pack);
+forward Action TimerActivateBombParticle(Handle timer, any Particle);
+
+// Forward declaration for DropMineEntity (defined in rage_survivor.sp)
+// Plugins using CreateBombParticleInPos must define this function themselves
+// If not defined, CreateBombParticleInPos will fail to compile
+// Note: This is only used by CreateBombParticleInPos, which is only used by rage_survivor.sp
+#if !defined DROP_MINE_ENTITY_DEFINED
+forward int DropMineEntity(float pos[3], int index);
+#endif
+
+// Plugin-specific constants - define these in your plugin if using CreateExplosion or related functions
+#if !defined EXPLOSION_PARTICLE
+ #define EXPLOSION_PARTICLE "explosion_huge"
+#endif
+#if !defined EXPLOSION_PARTICLE2
+ #define EXPLOSION_PARTICLE2 "explosion_huge_b"
+#endif
+#if !defined EXPLOSION_PARTICLE3
+ #define EXPLOSION_PARTICLE3 "explosion_huge_c"
+#endif
+#if !defined EFIRE_PARTICLE
+ #define EFIRE_PARTICLE "explosion_huge_fire"
+#endif
+#if !defined EXPLOSION_SOUND
+ #define EXPLOSION_SOUND "weapons/hegrenade/explode3.wav"
+#endif
+#if !defined EXPLOSION_SOUND2
+ #define EXPLOSION_SOUND2 "weapons/hegrenade/explode4.wav"
+#endif
+#if !defined EXPLOSION_SOUND3
+ #define EXPLOSION_SOUND3 "weapons/hegrenade/explode5.wav"
+#endif
+#if !defined MODEL_SPRITE
+ #define MODEL_SPRITE "sprites/blueglow1.vmt"
+#endif
+// Note: SABOTEUR_BOMB_POWER and SABOTEUR_BOMB_DAMAGE_INF should be defined as ConVar handles
+// in your plugin if using CreateExplosion. If not defined, default values will be used.
 stock redColor[4]		= {255, 75, 75, 255};
 stock greenColor[4]	= {75, 255, 75, 255};
 stock String:g_ColorNames[12][32] = {"Red", "Green", "Blue", "Yellow", "Purple", "Cyan", "Orange", "Pink", "Olive", "Lime", "Violet", "Lightblue"};
@@ -98,8 +147,12 @@ stock DetonateMolotov(Float:pos[3], owner)
 	CloseHandle(sdkDetonateFire);
 }
 
+#if defined RAGE_SURVIVOR_PLUGIN
 stock DealDamage(iVictim, iAttacker, Float:flAmount, iType = 0)
 {
+	// Note: This function requires timerHurtEntity callback
+	// timerHurtEntity is defined in rage/timers.inc
+	// If your plugin doesn't include rage/timers.inc, use HurtEntity() directly instead
 	new Handle:hPack = CreateDataPack();
 	WritePackCell(hPack, iVictim);
 	WritePackCell(hPack, iAttacker);
@@ -107,6 +160,7 @@ stock DealDamage(iVictim, iAttacker, Float:flAmount, iType = 0)
 	WritePackCell(hPack, iType);
 	CreateTimer(0.1, timerHurtEntity, hPack);
 }
+#endif
 
 stock PushEntity(client, Float:clientEyeAngle[3], Float:power)
 {
@@ -146,6 +200,8 @@ new damage = RoundFloat(amount);
 	}
 }
 
+#if defined RAGE_SURVIVOR_PLUGIN
+
 stock CreateExplosion(Float:expPos[3], attacker = 0, bool:panic = true)
 {
 #pragma unused attacker
@@ -153,9 +209,16 @@ stock CreateExplosion(Float:expPos[3], attacker = 0, bool:panic = true)
 
 decl String:sRadius[16], String:sPower[16], String:sInterval[11];
 	new Float:flMxDistance = 450.0;
-	new Float:power = GetConVarFloat(SABOTEUR_BOMB_POWER);
-	//new iDamageSurv = GetConVarInt(SABOTEUR_BOMB_DAMAGE_SURV);
-	new Float:iDamageInf = GetConVarFloat(SABOTEUR_BOMB_DAMAGE_INF);
+	// Note: SABOTEUR_BOMB_POWER and SABOTEUR_BOMB_DAMAGE_INF should be defined as ConVar handles
+	// in your plugin if using CreateExplosion. If not defined, default values will be used.
+	new Float:power = 2.0;
+	new Float:iDamageInf = 1500.0;
+	#if defined SABOTEUR_BOMB_POWER
+		power = GetConVarFloat(SABOTEUR_BOMB_POWER);
+	#endif
+	#if defined SABOTEUR_BOMB_DAMAGE_INF
+		iDamageInf = GetConVarFloat(SABOTEUR_BOMB_DAMAGE_INF);
+	#endif
 	new Float:flInterval = 0.1;
 	FloatToString(flInterval, sInterval, sizeof(sInterval));
 	IntToString(450, sRadius, sizeof(sRadius));
@@ -324,6 +387,7 @@ decl String:sRadius[16], String:sPower[16], String:sInterval[11];
 		}
 	}
 }
+#endif
 
 stock PrecacheParticle(const String:ParticleName[])
 {
@@ -334,12 +398,34 @@ stock PrecacheParticle(const String:ParticleName[])
 		DispatchSpawn(Particle);
 		ActivateEntity(Particle);
 		AcceptEntityInput(Particle, "start");
+		#if defined RAGE_SURVIVOR_PLUGIN
 		CreateTimer(0.3, TimerRemovePrecacheParticle, Particle, TIMER_FLAG_NO_MAPCHANGE);
+		#else
+		// If timer callback isn't available, kill immediately after a short delay
+		CreateTimer(0.3, TimerKillEntity, Particle, TIMER_FLAG_NO_MAPCHANGE);
+		#endif
 	}
 }
 
+#if !defined RAGE_SURVIVOR_PLUGIN
+public Action TimerKillEntity(Handle timer, any entity)
+{
+	if (IsValidEntity(entity))
+	{
+		AcceptEntityInput(entity, "Kill");
+	}
+	return Plugin_Stop;
+}
+#endif
+
+#if defined RAGE_SURVIVOR_PLUGIN
 stock int CreateBombParticleInPos(Float:pos[3], String:Particle_Name[], int index)
 {
+	// Note: This function requires:
+	// - DropMineEntity function (defined in rage_survivor.sp for saboteur mines)
+	// - TimerStopAndRemoveBombParticle callback (defined in rage/timers.inc)
+	// If your plugin doesn't define DropMineEntity, this will fail to compile
+	// Only use this function if you have implemented DropMineEntity in your plugin
 	new Particle = CreateEntityByName("info_particle_system");
 	TeleportEntity(Particle, pos, NULL_VECTOR, NULL_VECTOR);
 	DispatchKeyValue(Particle, "effect_name", Particle_Name);
@@ -354,7 +440,9 @@ stock int CreateBombParticleInPos(Float:pos[3], String:Particle_Name[], int inde
 	CreateTimer(5.0, TimerStopAndRemoveBombParticle, pack, TIMER_FLAG_NO_MAPCHANGE);
 	return mine;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
+#if defined RAGE_SURVIVOR_PLUGIN
 stock CreateParticle(client, String:Particle_Name[], bool:Parent, Float:duration)
 {
 	decl Float:pos[3], String:sName[64], String:sTargetName[64];
@@ -387,6 +475,7 @@ stock CreateParticle(client, String:Particle_Name[], bool:Parent, Float:duration
 	AcceptEntityInput(Particle, "start");
 	CreateTimer(duration, TimerActivateBombParticle, Particle, TIMER_FLAG_NO_MAPCHANGE);
 }
+#endif
 
 stock ShowParticle(Float:pos[3], Float:ang[3],String:particlename[], Float:time)
 {
@@ -696,3 +785,4 @@ stock bool ExcludeSelf_Filter(int entity, int contentsMask, any client)
 	return false;
 	return true;
 }
+

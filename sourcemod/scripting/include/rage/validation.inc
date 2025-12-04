@@ -45,6 +45,21 @@ stock bool IsValidSurvivor(int client)
 }
 
 /**
+ * Checks if a client is on the survivor team (does not require alive status).
+ * This is a simpler check than IsValidSurvivor which also requires the client to be alive.
+ * 
+ * @param client    Client index to check
+ * @return          True if client is on survivor team, false otherwise
+ */
+stock bool IsSurvivor(int client)
+{
+    if (!IsValidClient(client))
+        return false;
+    
+    return (GetClientTeam(client) == 2);
+}
+
+/**
  * Validates if a client is valid, in-game, alive, and on infected team.
  * 
  * @param client    Client index to validate
