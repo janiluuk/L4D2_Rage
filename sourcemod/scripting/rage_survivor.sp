@@ -48,6 +48,8 @@ ConVar CLASS_PREVIEW_DURATION;
 ConVar ATHLETE_PARACHUTE_ENABLED;
 ConVar HEALTH_MODIFIERS_ENABLED;
 bool LeftSafeAreaMessageShown;
+bool g_bIntroFinished = false;
+bool g_bFirstMission = true;
 // Note: g_BeamSprite and g_HaloSprite are declared as stock in rage/effects.inc
 // We initialize them in OnMapStart() but don't redeclare them here to avoid duplicates
 
@@ -964,6 +966,12 @@ public void GetPlayerSkillReadyHint(client) {
                 return;
         }
 
+        // Only show hints after intro finishes on first mission
+        if (g_bFirstMission && !g_bIntroFinished)
+        {
+                return;
+        }
+
         ClassTypes classType = ClientData[client].ChosenClass;
         if (classType == NONE)
         {
@@ -1573,6 +1581,14 @@ void NotifySelectedClassHint(int client)
 
 public Action TimerAnnounceSelectedClass(Handle timer, any data)
 {
+        // Only show hints after intro finishes on first mission
+        if (g_bFirstMission && !g_bIntroFinished)
+        {
+                // Wait a bit and check again
+                CreateTimer(1.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+                return Plugin_Stop;
+        }
+        
         for (int i = 1; i <= MaxClients; i++)
         {
                 NotifySelectedClassHint(i);
@@ -2124,6 +2140,8 @@ public Event_RoundChange(Handle:event, String:name[], bool:dontBroadcast)
 	RndSession++;
 	RoundStarted = false;
 	LeftSafeAreaMessageShown = false;
+	g_bIntroFinished = false;
+	g_bFirstMission = false; // Will be recalculated on next round_start
 }
 
 public Event_RoundStart(Handle:event, String:name[], bool:dontBroadcast)
@@ -2132,7 +2150,37 @@ public Event_RoundStart(Handle:event, String:name[], bool:dontBroadcast)
                 CreateTimer(1.0, TimerStart, _, TIMER_FLAG_NO_MAPCHANGE);
 
         RoundStarted = true;
-        CreateTimer(2.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+        
+        // Check if this is the first mission (campaign start)
+        char mapname[64];
+        GetCurrentMap(mapname, sizeof(mapname));
+        // First mission maps typically start with "c1m1", "c2m1", etc.
+        g_bFirstMission = (StrContains(mapname, "m1_", false) != -1 || StrContains(mapname, "_01_", false) != -1);
+        
+        // Reset intro finished flag for new round
+        g_bIntroFinished = false;
+        
+        // Only show hints after intro finishes (for first mission) or immediately (for other maps)
+        if (g_bFirstMission)
+        {
+                // Wait for intro to finish before showing hints
+                // L4D_OnFinishIntro forward will handle this
+        }
+        else
+        {
+                // Not first mission - show hints immediately
+                CreateTimer(2.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+        }
+}
+
+public void L4D_OnFinishIntro()
+{
+        // Intro cutscene finished - safe to show hints now
+        g_bIntroFinished = true;
+        if (RoundStarted)
+        {
+                CreateTimer(1.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+        }
 }
 
 public void OnRoundState(int roundstate)
@@ -2194,17 +2242,26 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
                                         
                                 SetupClasses(client, LastClassConfirmed[client]);
                                         
-                                        // Show notification that class was auto-selected
+                                        // Apply model to ensure it persists
+                                        ApplyClassModel(client, restoredClass);
+                                        
+                                        // Show notification that class was auto-selected (only after intro on first mission)
                                         if (oldClass == NONE)
                                         {
-                                                PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected.", 
-                                                           PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
-                                                PrintHintText(client, "✓ %s class auto-selected", MENU_OPTIONS[restoredClass]);
+                                                if (!g_bFirstMission || g_bIntroFinished)
+                                                {
+                                                        PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected.", 
+                                                                   PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
+                                                        PrintHintText(client, "✓ %s class auto-selected", MENU_OPTIONS[restoredClass]);
+                                                }
                                         }
                                         
-                                        // Show class info
-                                        ShowClassHud(client, false);
-                                        ShowClassSelectionInfo(client, restoredClass);
+                                        // Show class info (only after intro on first mission)
+                                        if (!g_bFirstMission || g_bIntroFinished)
+                                        {
+                                                ShowClassHud(client, false);
+                                                ShowClassSelectionInfo(client, restoredClass);
+                                        }
                         }
                         else
                                 {
@@ -3092,8 +3149,13 @@ public Action:Event_WeaponFire(Handle:event, const String:name[], bool:dontBroad
 		if (RoundStarted == true) {
 			ClassHint = true;
 		}
-                PrintHintText(client,"You really should pick a class. Soldier, Medic, or Engineer are good for beginners.");
-		CreatePlayerClassMenu(client);
+		
+		// Only show hints after intro finishes on first mission, or immediately on other maps
+		if (!g_bFirstMission || g_bIntroFinished)
+		{
+			PrintHintText(client,"You really should pick a class. Soldier, Medic, or Engineer are good for beginners.");
+			CreatePlayerClassMenu(client);
+		}
 	}
 
 

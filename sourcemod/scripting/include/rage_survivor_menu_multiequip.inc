@@ -3,6 +3,9 @@
 #endif
 #define _RAGE_SURVIVOR_MENU_MULTIEQUIP_INC_
 
+// Native declaration for multi-equipment sync
+native void MultiEquip_SyncFromCookie(int client);
+
 enum MultiEquipMode
 {
     ME_Off = 0,
@@ -78,8 +81,12 @@ void MultiEquip_SetMode(int client, MultiEquipMode mode)
         SetClientCookie(client, g_hMultiEquipCookie, buffer);
     }
     
-    // The actual plugin (rage_multiple_equipment.sp) will sync with this cookie
-    // via OnClientCookiesCached and update its ControlMode accordingly
+    // Sync the plugin's ControlMode immediately if the plugin is loaded
+    // The native will be called directly if available
+    if (GetFeatureStatus(FeatureType_Native, "MultiEquip_SyncFromCookie") == FeatureStatus_Available)
+    {
+        MultiEquip_SyncFromCookie(client);
+    }
 }
 
 void MultiEquip_Apply(int client)
@@ -95,12 +102,24 @@ void MultiEquip_Apply(int client)
         g_bMultiEquipEnabled[client] = false;
         // Unhook if previously hooked
         SDKUnhook(client, SDKHook_WeaponCanUse, MultiEquip_OnWeaponCanUse);
+        // Show notification that mode is off
+        PrintHintText(client, "Equipment mode: Off");
     }
     else
     {
         g_bMultiEquipEnabled[client] = true;
         // Hook weapon pickup
         SDKHook(client, SDKHook_WeaponCanUse, MultiEquip_OnWeaponCanUse);
+        
+        // Show hint text summarizing the mode
+        if (g_MultiEquipMode[client] == ME_SingleTap)
+        {
+            PrintHintText(client, "Equipment mode: Single Tap");
+        }
+        else if (g_MultiEquipMode[client] == ME_DoubleTap)
+        {
+            PrintHintText(client, "Equipment mode: Double Tap");
+        }
     }
 
     // Reset tap tracking
@@ -176,11 +195,11 @@ public Action MultiEquip_OnWeaponCanUse(int client, int weapon)
         int remainingTaps = requiredTaps - g_iEquipmentTapCount[client];
         if (remainingTaps == 1)
         {
-            PrintHintText(client, "Tap USE %d more time to pick up equipment", remainingTaps);
+            PrintHintText(client, "Tap USE once more");
         }
         else
         {
-            PrintHintText(client, "Tap USE %d more times to pick up equipment", remainingTaps);
+            PrintHintText(client, "Tap USE %d more times", remainingTaps);
         }
         return Plugin_Handled; // Block the pickup
     }

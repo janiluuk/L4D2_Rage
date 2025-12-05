@@ -247,3 +247,67 @@ stock bool IsWithinRadius(const float pos1[3], const float pos2[3], float radius
 {
     return (GetVectorDistance(pos1, pos2) <= radius);
 }
+
+/**
+ * Safely kills a timer handle and sets it to null.
+ * Prevents memory leaks and double-kill errors.
+ * 
+ * @param timer     Timer handle to kill (passed by reference)
+ * @return          True if timer was killed, false if already null/invalid
+ */
+stock bool KillTimerSafe(Handle &timer)
+{
+    if (timer != null && timer != INVALID_HANDLE)
+    {
+        KillTimer(timer);
+        timer = null;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Cleans up an array of timer handles for a client.
+ * Useful in OnClientDisconnect to prevent memory leaks.
+ * 
+ * @param timers    Array of timer handles
+ * @param client    Client index
+ * @param size      Size of the timer array
+ * @return          Number of timers cleaned up
+ */
+stock int CleanupClientTimers(Handle[] timers, int client, int size = MAXPLAYERS+1)
+{
+    if (client <= 0 || client >= size)
+        return 0;
+    
+    int cleaned = 0;
+    if (KillTimerSafe(timers[client]))
+    {
+        cleaned++;
+    }
+    return cleaned;
+}
+
+/**
+ * Validates an entity index is within safe bounds for array access.
+ * 
+ * @param entity    Entity index to validate
+ * @param maxLimit  Maximum allowed entity index (default: 2048)
+ * @return          True if entity is within bounds, false otherwise
+ */
+stock bool IsValidEntityIndexSafe(int entity, int maxLimit = 2048)
+{
+    return (entity > 0 && entity <= maxLimit && IsValidEdict(entity));
+}
+
+/**
+ * Validates array bounds before access.
+ * 
+ * @param index     Array index to check
+ * @param arraySize Size of the array
+ * @return          True if index is valid, false otherwise
+ */
+stock bool IsValidArrayIndex(int index, int arraySize)
+{
+    return (index >= 0 && index < arraySize);
+}

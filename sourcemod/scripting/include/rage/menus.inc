@@ -91,6 +91,10 @@ public bool ApplyClassSelection(int client, int classIndex)
         PrintToConsole(client, "Class is setting up");
 
         SetupClasses(client, classIndex);
+        
+        // Apply model to ensure it persists
+        ApplyClassModel(client, view_as<ClassTypes>(classIndex));
+        
         EmitSoundToClient(client, SOUND_CLASS_SELECTED);
         RebuildCache();
 
@@ -203,6 +207,9 @@ public void PanelHandler_SelectClass(Handle menu, MenuAction action, int client,
                                 PrintToConsole(client, "Class is setting up");
 
                                 SetupClasses(client, param);
+                                
+                                // Apply model to ensure it persists
+                                ApplyClassModel(client, newClass);
                                 EmitSoundToClient(client, SOUND_CLASS_SELECTED);
                                 RebuildCache();
                                 if(view_as<int>(OldClass) == 0)

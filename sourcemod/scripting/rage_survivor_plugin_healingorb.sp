@@ -100,27 +100,25 @@ public void OnMapEnd()
 {
         for(int i = 1; i <= MaxClients; ++i)
         {
-                if(HealingBallTimer[i] != INVALID_HANDLE)
-                        KillTimer(HealingBallTimer[i]);
-
-                HealingBallTimer[i] = INVALID_HANDLE;
+                KillTimerSafe(HealingBallTimer[i]);
                 g_fNextHealingOrbUse[i] = 0.0;
         }
 }
 
 public void OnClientDisconnect(int client)
 {
-        if (HealingBallTimer[client] != INVALID_HANDLE)
-        {
-                KillTimer(HealingBallTimer[client]);
-                HealingBallTimer[client] = INVALID_HANDLE;
-        }
-
+        if (!IsValidClient(client))
+                return;
+        
+        KillTimerSafe(HealingBallTimer[client]);
         g_fNextHealingOrbUse[client] = 0.0;
 }
 
 public Action HealingBallFunction(int Client)
 {
+	if (!IsValidClient(Client))
+		return Plugin_Handled;
+	
 	float Radius = HealingBallRadius[Client];
 	float pos[3];
 	GetTracePosition(Client, pos);
@@ -135,10 +133,7 @@ public Action HealingBallFunction(int Client)
 		TE_SendToAll();
 	}
 
-	if(HealingBallTimer[Client] != INVALID_HANDLE)
-		KillTimer(HealingBallTimer[Client]);
-	
-	HealingBallTimer[Client] = INVALID_HANDLE;
+	KillTimerSafe(HealingBallTimer[Client]);
 	
 	Handle pack;
 	HealingBallTimer[Client] = CreateDataTimer(HealingBallInterval[Client], HealingBallTimerFunction, pack, TIMER_REPEAT);
@@ -174,47 +169,52 @@ public Action HealingBallTimerFunction(Handle timer, Handle pack)
 	TE_SetupBeamRingPoint(pos, Radius-0.1, Radius, g_BeamSprite, g_HaloSprite, 0, 10, 1.0, 10.0, 5.0, BlueColor, 5, 0);
 	TE_SendToAll();
 
+	// Validate client before proceeding
+	if (!IsValidClient(Client))
+	{
+		KillTimerSafe(HealingBallTimer[Client]);
+		return Plugin_Stop;
+	}
+	
 	int team = GetClientTeam(Client);
 	if(GetEngineTime() - time < HealingBallDuration[Client])
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(IsClientInGame(i))
+			if(!IsValidClient(i) || GetClientTeam(i) != team || !IsPlayerAlive(i))
 			{
-				if(GetClientTeam(i) == team && IsPlayerAlive(i))
+				continue;
+			}
+			
+			GetEntPropVector(i, Prop_Send, "m_vecOrigin", entpos);
+			SubtractVectors(entpos, pos, distance);
+			if(GetVectorLength(distance) <= Radius)
+			{
+				int HP = GetClientHealth(i);
+				
+				if(IsPlayerIncapped(i))
 				{
-					GetEntPropVector(i, Prop_Send, "m_vecOrigin", entpos);
-					SubtractVectors(entpos, pos, distance);
-					if(GetVectorLength(distance) <= Radius)
-					{
-						int HP = GetClientHealth(i);
-						
-						if(IsPlayerIncapped(i))
-						{
-							SetEntProp(i, Prop_Data, "m_iHealth", HP+RoundToCeil(HealingBallEffect[Client]));
-						}
-						else
-						{
-							int MaxHP = GetEntProp(i, Prop_Data, "m_iMaxHealth");
-							HP += RoundToCeil(HealingBallEffect[Client]);
-							if(HP > MaxHP)
-								HP = MaxHP;
-							
-							SetEntProp(i, Prop_Data, "m_iHealth", HP);
-						}
-						
-						ShowParticleCompat(entpos, HealingBall_Particle_Effect, 0.5);
-						TE_SetupBeamPoints(pos, entpos, g_BeamSprite, 0, 0, 0, 0.5, 1.0, 1.0, 1, 0.5, BlueColor, 0);
-						TE_SendToAll();
-					}
+					SetEntProp(i, Prop_Data, "m_iHealth", HP+RoundToCeil(HealingBallEffect[Client]));
 				}
+				else
+				{
+					int MaxHP = GetEntProp(i, Prop_Data, "m_iMaxHealth");
+					HP += RoundToCeil(HealingBallEffect[Client]);
+					if(HP > MaxHP)
+						HP = MaxHP;
+					
+					SetEntProp(i, Prop_Data, "m_iHealth", HP);
+				}
+						
+				ShowParticleCompat(entpos, HealingBall_Particle_Effect, 0.5);
+				TE_SetupBeamPoints(pos, entpos, g_BeamSprite, 0, 0, 0, 0.5, 1.0, 1.0, 1, 0.5, BlueColor, 0);
+				TE_SendToAll();
 			}
 		}
 	}
 	else
 	{
-		KillTimer(HealingBallTimer[Client]);
-		HealingBallTimer[Client] = INVALID_HANDLE;
+		KillTimerSafe(HealingBallTimer[Client]);
 	}
 	
 	return Plugin_Continue;

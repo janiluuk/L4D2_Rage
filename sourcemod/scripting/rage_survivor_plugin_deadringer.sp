@@ -292,7 +292,8 @@ public void OnPluginEnd()
 		{ ApplyEffectsToEntity(i, false); }
 	}
 	for (int client = 1; client <= MaxClients; client++) {
-		if (IsValidEntity(g_BloodPool[client]))
+		// Validate entity index before access
+		if (IsValidEntityIndexSafe(g_BloodPool[client]) && IsValidEntity(g_BloodPool[client]))
 		{
 			char class[128];
 			GetEntityClassname(g_BloodPool[client], class, sizeof(class));
@@ -301,6 +302,12 @@ public void OnPluginEnd()
 				AcceptEntityInput(g_BloodPool[client], "Stop"); 
 				AcceptEntityInput(g_BloodPool[client], "Kill"); 
 			}
+			g_BloodPool[client] = -1;
+		}
+		else if (g_BloodPool[client] != -1)
+		{
+			// Entity was invalid, just reset the index
+			g_BloodPool[client] = -1;
 		}
 		if (!IsValidClient(client)) continue;
 		isTriggerable[client] = false;
@@ -471,12 +478,51 @@ Action HitMyself_Command(int client, int args) {
 
 public void OnClientDisconnect(int client)
 {
+	if (!IsValidClient(client))
+		return;
+	
+	// Clean up all timers to prevent memory leaks
+	KillTimerSafe(g_UncloakTimer[client]);
+	KillTimerSafe(g_BoostTimer[client]);
+	KillTimerSafe(g_ReadyTimer[client]);
+	
 	isTriggerable[client] = true;
 	isActive[client] = false;
 	isCloaked[client] = false;
 	RemoveCorpse(client);
 	SDKUnhook(client, MAIN_DAMAGE_HOOK, Hook_OnTakeDamagePost);
 	//SDKUnhook(client, CHANGE_DAMAGE_HOOK, Hook_OnTakeDamage);
+}
+
+public void OnMapEnd()
+{
+	// Clean up all entities and timers on map end
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		// Clean up timers
+		KillTimerSafe(g_UncloakTimer[i]);
+		KillTimerSafe(g_BoostTimer[i]);
+		KillTimerSafe(g_ReadyTimer[i]);
+		
+		// Clean up entities
+		if (IsValidEntityIndexSafe(g_Ragdoll[i]))
+		{
+			RemoveCorpse(i);
+		}
+		if (IsValidEntityIndexSafe(g_BloodPool[i]))
+		{
+			if (IsValidEntity(g_BloodPool[i]))
+			{
+				AcceptEntityInput(g_BloodPool[i], "Kill");
+			}
+			g_BloodPool[i] = -1;
+		}
+		
+		// Reset state
+		isTriggerable[i] = true;
+		isActive[i] = false;
+		isCloaked[i] = false;
+	}
 }
 
 Action Hook_SetTransmit(int client, int entity)
@@ -1392,6 +1438,12 @@ void SpawnCorpse(int client)
 		int corpse = CreateEntityByName(IsSurvivor(client) ? "commentary_dummy" : "prop_dynamic");
 		if(!IsValidEntity(corpse))
 		{ return; }
+		// Validate entity index before storing
+		if (!IsValidEntityIndexSafe(corpse))
+		{
+			AcceptEntityInput(corpse, "Kill");
+			return;
+		}
 		g_Ragdoll[client] = corpse;
 		
 		int c_attack = GetEntPropEnt(client, Prop_Send, "m_pummelAttacker");
@@ -1511,7 +1563,11 @@ bool TraceRay_FilterPlayers(int entity, int contentsMask)
 
 void RemoveCorpse(int client)
 {
-	if(IsValidEntity(g_Ragdoll[client]))
+	if (!IsValidClient(client))
+		return;
+	
+	// Validate entity index before access
+	if (IsValidEntityIndexSafe(g_Ragdoll[client]) && IsValidEntity(g_Ragdoll[client]))
 	{
 		char classname[PLATFORM_MAX_PATH+1];
 		GetEntityClassname(g_Ragdoll[client], classname, sizeof(classname));
@@ -1519,6 +1575,11 @@ void RemoveCorpse(int client)
 		{
 			AcceptEntityInput(g_Ragdoll[client], "Kill");
 		}
+		g_Ragdoll[client] = -1;
+	}
+	else if (g_Ragdoll[client] != -1)
+	{
+		// Entity was invalid, just reset the index
 		g_Ragdoll[client] = -1;
 	}
 }

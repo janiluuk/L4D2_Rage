@@ -145,6 +145,31 @@ public void OnMapStart()
     }
 }
 
+public void OnMapEnd()
+{
+    // Clean up all timers on map end to prevent leaks
+    for(int i = 1; i <= MaxClients; ++i)
+    {
+        KillTimerSafe(g_rageTimer[i]);
+        KillTimerSafe(g_rageRemoveTimer[i]);
+    }
+}
+
+public void OnClientDisconnect(int client)
+{
+    // Clean up timers when client disconnects to prevent memory leaks
+    if (client > 0 && client <= MaxClients)
+    {
+        KillTimerSafe(g_rageTimer[client]);
+        KillTimerSafe(g_rageRemoveTimer[client]);
+        g_rageActive[client] = false;
+        g_rageExtended[client] = false;
+        g_rageForever[client] = false;
+        g_rageNextUse[client] = 0.0;
+        g_rageFadeStep[client] = 0;
+    }
+}
+
 
 
 

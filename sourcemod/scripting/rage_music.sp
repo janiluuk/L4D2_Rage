@@ -79,6 +79,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <clientprefs>
+#include <rage/validation>
 
 public Plugin myinfo =
 {
@@ -180,6 +181,9 @@ public void OnPluginEnd()
 
 public Action Cmd_Music(int client, int args)
 {
+    if (!IsValidClient(client))
+        return Plugin_Handled;
+    
     bool bDebug = false;
     #if DEBUG
         bDebug = true;
@@ -195,6 +199,13 @@ public Action Cmd_Music(int client, int args)
         GetCmdArgString(sIdx, sizeof(sIdx));
         iIdx = StringToInt(sIdx);
         
+        // Validate array bounds before access
+        if (!IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+        {
+            PrintToChat(client, "Invalid sound index: %d", g_rageSndIdx);
+            return Plugin_Handled;
+        }
+        
         char sPath[PLATFORM_MAX_PATH];
         g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
         StopCurrentSound(client);
@@ -206,7 +217,20 @@ public Action Cmd_Music(int client, int args)
                 iIdx = 0;
         }
         
+        // Validate new index before access
+        if (!IsValidArrayIndex(iIdx, g_rageSoundPath.Length))
+        {
+            PrintToChat(client, "Invalid sound index: %d", iIdx);
+            return Plugin_Handled;
+        }
+        
         g_rageSoundPath.GetString(iIdx, sPath, sizeof(sPath));
+        if (strlen(sPath) == 0)
+        {
+            PrintToChat(client, "Empty sound path at index %d", iIdx);
+            return Plugin_Handled;
+        }
+        
         PrintToChat(client, "play - %i - %s", iIdx, sPath);
         PrecacheSound(sPath);
         EmitSoundCustom(client, sPath);
@@ -218,15 +242,28 @@ public Action Cmd_Music(int client, int args)
 
 public Action Cmd_MusicPlay(int client, int args)
 {
-    if (client == 0) return Plugin_Handled;
+    if (!IsValidClient(client))
+        return Plugin_Handled;
+    
     char sPath[PLATFORM_MAX_PATH];
+    sPath[0] = '\0';
+    
     if (g_rageFirstConnect[client] && g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
-        g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+    {
+        if (IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+        {
+            g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+        }
+    }
     else if (g_rageSoundPath.Length > 0)
-        g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
-    else
-        sPath[0] = '\0';
-    if (sPath[0])
+    {
+        if (IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+        {
+            g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+        }
+    }
+    
+    if (strlen(sPath) > 0)
     {
         StopCurrentSound(client);
         EmitSoundCustom(client, sPath);
@@ -240,31 +277,41 @@ public Action Cmd_MusicPlay(int client, int args)
 
 public Action Cmd_MusicPause(int client, int args)
 {
-    if (client == 0) return Plugin_Handled;
+    if (!IsValidClient(client))
+        return Plugin_Handled;
+    
     StopCurrentSound(client);
     return Plugin_Handled;
 }
 
 public Action Cmd_MusicNext(int client, int args)
 {
-    if (client == 0) return Plugin_Handled;
+    if (!IsValidClient(client))
+        return Plugin_Handled;
+    
     char sPath[PLATFORM_MAX_PATH];
+    sPath[0] = '\0';
+    
     if (g_rageFirstConnect[client] && g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
     {
         if (++g_rageSndIdxNewly >= g_rageSoundPathNewly.Length)
             g_rageSndIdxNewly = 0;
-        g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+        if (IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+        {
+            g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+        }
     }
     else if (g_rageSoundPath.Length > 0)
     {
         if (++g_rageSndIdx >= g_rageSoundPath.Length)
             g_rageSndIdx = 0;
-        g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+        if (IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+        {
+            g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+        }
     }
-    else
-        sPath[0] = '\0';
 
-    if (sPath[0])
+    if (strlen(sPath) > 0)
     {
         StopCurrentSound(client);
         PrecacheSound(sPath);
@@ -279,7 +326,8 @@ public Action Cmd_MusicNext(int client, int args)
 
 public Action Cmd_MusicVolume(int client, int args)
 {
-    if (client == 0) return Plugin_Handled;
+    if (!IsValidClient(client))
+        return Plugin_Handled;
     if (args < 1) return Plugin_Handled;
     char sArg[8];
     GetCmdArg(1, sArg, sizeof(sArg));
@@ -310,15 +358,28 @@ public Action Cmd_MusicVolume(int client, int args)
 
 public Action Cmd_MusicCurrent(int client, int args)
 {
-    if (client == 0) return Plugin_Handled;
+    if (!IsValidClient(client))
+        return Plugin_Handled;
+    
     char sPath[PLATFORM_MAX_PATH];
+    sPath[0] = '\0';
+    
     if (g_rageFirstConnect[client] && g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
-        g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+    {
+        if (IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+        {
+            g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+        }
+    }
     else if (g_rageSoundPath.Length > 0)
-        g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
-    else
-        sPath[0] = '\0';
-    if (sPath[0])
+    {
+        if (IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+        {
+            g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+        }
+    }
+    
+    if (strlen(sPath) > 0)
     {
         int last = -1;
         int len = strlen(sPath);
@@ -396,17 +457,15 @@ void ReadCookie(int client)
 public void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    if (client > 0 && client <= MaxClients)
-    {
-        if (g_rageTimerMusic[client] != INVALID_HANDLE)
-        {
-            KillTimer(g_rageTimerMusic[client]);
-            g_rageTimerMusic[client] = INVALID_HANDLE;
-        }
-        g_rageCookie[client] = 0;
-        g_rageFirstConnect[client] = true;
-        g_rageMusicPlaying[client] = false;
-    }
+    if (!IsValidClient(client))
+        return;
+    
+    // Clean up timer to prevent memory leaks
+    KillTimerSafe(g_rageTimerMusic[client]);
+    
+    g_rageCookie[client] = 0;
+    g_rageFirstConnect[client] = true;
+    g_rageMusicPlaying[client] = false;
 }
 
 public Action Cmd_MusicUpdate(int client, int args)
@@ -532,11 +591,7 @@ void ResetTimer()
 {
     for (int i = 1; i <= MaxClients; i++)
     {
-        if (g_rageTimerMusic[i] != INVALID_HANDLE)
-        {
-            KillTimer(g_rageTimerMusic[i]);
-            g_rageTimerMusic[i] = INVALID_HANDLE;
-        }
+        KillTimerSafe(g_rageTimerMusic[i]);
     }
 }
 
@@ -545,7 +600,8 @@ public Action Timer_PlayMusic(Handle timer, int UserId)
     int client = GetClientOfUserId(UserId);
     g_rageTimerMusic[client] = INVALID_HANDLE;
     
-    if (client != 0 && IsClientInGame(client)) 
+    if (!IsValidClient(client))
+        return Plugin_Stop; 
     {
         if (GetCookiePlayMusic(client))
         {
@@ -553,14 +609,23 @@ public Action Timer_PlayMusic(Handle timer, int UserId)
             
             if (g_rageFirstConnect[client] && g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
             {
-                g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+                if (IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+                {
+                    g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+                }
             }
             else if (g_rageSoundPath.Length > 0)
             {
-                g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+                if (IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+                {
+                    g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+                }
             }
             
-            EmitSoundCustom(client, sPath);
+            if (strlen(sPath) > 0)
+            {
+                EmitSoundCustom(client, sPath);
+            }
         }
         if (GetCookieShowMenu(client))
         {
@@ -610,14 +675,18 @@ public int MenuHandler_MenuMusic(Menu menu, MenuAction action, int param1, int p
                 case 6: {
                     StopCurrentSound(client);
                     
-                    if (g_rageSoundPath.Length > 0)
+                    sPath[0] = '\0';
+                    if (g_rageSoundPath.Length > 0 && IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
                     {
                         g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
-                        EmitSoundCustom(client, sPath);
                     }
-                    else if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
+                    else if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0 && IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
                     {
                         g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+                    }
+                    
+                    if (strlen(sPath) > 0)
+                    {
                         EmitSoundCustom(client, sPath);
                     }
                 }
@@ -706,17 +775,26 @@ public int MenuHandler_MenuSettings(Menu menu, MenuAction action, int param1, in
 
 void StopCurrentSound(int client)
 {
+    if (!IsValidClient(client))
+        return;
+    
     char sPath[PLATFORM_MAX_PATH];
     
-    if (g_rageSoundPath.Length > 0)
+    if (g_rageSoundPath.Length > 0 && IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
     {
         g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
-        StopSound(client, SNDCHAN_DEFAULT, sPath);
+        if (strlen(sPath) > 0)
+        {
+            StopSound(client, SNDCHAN_DEFAULT, sPath);
+        }
     }
-    if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
+    if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0 && IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
     {
         g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
-        StopSound(client, SNDCHAN_DEFAULT, sPath);
+        if (strlen(sPath) > 0)
+        {
+            StopSound(client, SNDCHAN_DEFAULT, sPath);
+        }
     }
     g_rageMusicPlaying[client] = false;
 }
@@ -761,9 +839,17 @@ public int MenuHandler_MenuVolume(Menu menu, MenuAction action, int param1, int 
             g_rageSoundVolume[client] = StringToInt(sItem);
             g_rageCookie[client] = (g_rageCookie[client] & 0x0F) | (g_rageSoundVolume[client] << 4);
             SaveCookie(client);
-            g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
-            StopSound(client, SNDCHAN_DEFAULT, sPath);
-            EmitSoundCustom(client, sPath);
+            
+            // Validate index before accessing
+            if (IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+            {
+                g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+                if (strlen(sPath) > 0)
+                {
+                    StopSound(client, SNDCHAN_DEFAULT, sPath);
+                    EmitSoundCustom(client, sPath);
+                }
+            }
             ShowVolumeMenu(client);
         }
     }
@@ -799,11 +885,11 @@ stock void CPrintToChat(int iClient, const char[] format, any ...)
 public void OnMapStart()
 {
     // remove already played track from the list
-    if (g_rageSndIdx != -1 && g_rageSoundPath.Length > 0)
+    if (g_rageSndIdx != -1 && IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
     {
         g_rageSoundPath.Erase(g_rageSndIdx);
     }
-    if (g_rageSndIdxNewly != -1 && g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
+    if (g_rageSndIdxNewly != -1 && g_rageCvarUseNewly.IntValue == 1 && IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
     {
         g_rageSoundPathNewly.Erase(g_rageSndIdxNewly);
     }
@@ -822,10 +908,29 @@ public void OnMapStart()
     if (g_rageSoundPath.Length > 0)
     {
         g_rageSndIdx = GetRandomInt(0, g_rageSoundPath.Length - 1);
+        // Validate index after selection
+        if (!IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+        {
+            g_rageSndIdx = 0; // Fallback to first track
+        }
     }
+    else
+    {
+        g_rageSndIdx = -1; // No tracks available
+    }
+    
     if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
     {
         g_rageSndIdxNewly = GetRandomInt(0, g_rageSoundPathNewly.Length - 1);
+        // Validate index after selection
+        if (!IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+        {
+            g_rageSndIdxNewly = 0; // Fallback to first track
+        }
+    }
+    else
+    {
+        g_rageSndIdxNewly = -1; // No tracks available
     }
     
     char sSoundPath[PLATFORM_MAX_PATH];
@@ -859,21 +964,27 @@ public void OnMapStart()
             }
         }
     #else
-        if (g_rageSoundPath.Length > 0)
+        if (g_rageSoundPath.Length > 0 && IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
         {
             g_rageSoundPath.GetString(g_rageSndIdx, sSoundPath, sizeof(sSoundPath));
-            Format(sDLPath, sizeof(sDLPath), "sound/%s", sSoundPath);
-            AddFileToDownloadsTable(sDLPath);
-            PrecacheSound(sSoundPath, true);
+            if (strlen(sSoundPath) > 0)
+            {
+                Format(sDLPath, sizeof(sDLPath), "sound/%s", sSoundPath);
+                AddFileToDownloadsTable(sDLPath);
+                PrecacheSound(sSoundPath, true);
+            }
         }
-        if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
+        if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0 && IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
         {
             g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sSoundPathNewly, sizeof(sSoundPathNewly));
-            Format(sDLPathNewly, sizeof(sDLPathNewly), "sound/%s", sSoundPathNewly);
-            if (strcmp(sDLPathNewly, sDLPath) != 0)
+            if (strlen(sSoundPathNewly) > 0)
             {
-                AddFileToDownloadsTable(sDLPathNewly);
-                PrecacheSound(sSoundPathNewly, true);
+                Format(sDLPathNewly, sizeof(sDLPathNewly), "sound/%s", sSoundPathNewly);
+                if (strcmp(sDLPathNewly, sDLPath) != 0)
+                {
+                    AddFileToDownloadsTable(sDLPathNewly);
+                    PrecacheSound(sSoundPathNewly, true);
+                }
             }
         }
     #endif
@@ -932,6 +1043,19 @@ void EmitSoundCustom(
     bool updatePos = true,
     float soundtime = 0.0)
 {
+    // Validate client and sound path before emitting
+    if (!IsValidClient(client))
+    {
+        LogError("[Music] Attempted to play sound for invalid client: %d", client);
+        return;
+    }
+    
+    if (strlen(sound) == 0)
+    {
+        LogError("[Music] Attempted to play empty sound path for client %d", client);
+        return;
+    }
+    
     int clients[1];
     clients[0] = client;
     
@@ -941,6 +1065,8 @@ void EmitSoundCustom(
     volume = float(g_rageSoundVolume[client]) / 10.0;
     if (volume < 0.0)
         volume = 0.0;
+    if (volume > 1.0)
+        volume = 1.0; // Clamp to valid range
 
     g_rageMusicPlaying[client] = true;
     

@@ -13,7 +13,7 @@
 #include <rage_survivor_menu_thirdperson>
 #include <rage_survivor_menu_multiequip>
 
-#define GAMEMODE_OPTION_COUNT 11
+#define GAMEMODE_OPTION_COUNT 12
 #define CLASS_OPTION_COUNT 8
 #define MENU_OPTION_EXIT -1
 #define MENU_OPTION_BACK_ON_FIRST_PAGE -2
@@ -30,7 +30,8 @@ static const char g_sGameModeNames[GAMEMODE_OPTION_COUNT][] =
     "Team Scavenge",
     "Survival",
     "Co-op",
-    "Realism"
+    "Realism",
+    "GuessWho"
 };
 
 static const char g_sGameModeCvarNames[GAMEMODE_OPTION_COUNT][] =
@@ -45,7 +46,8 @@ static const char g_sGameModeCvarNames[GAMEMODE_OPTION_COUNT][] =
     "rage_gamemode_teamscavenge",
     "rage_gamemode_survival",
     "rage_gamemode_coop",
-    "rage_gamemode_realism"
+    "rage_gamemode_realism",
+    "rage_gamemode_guesswho"
 };
 
 static const char g_sGameModeDefaults[GAMEMODE_OPTION_COUNT][] =
@@ -60,7 +62,8 @@ static const char g_sGameModeDefaults[GAMEMODE_OPTION_COUNT][] =
     "teamscavenge",
     "survival",
     "coop",
-    "realism"
+    "realism",
+    "guesswho"
 };
 
 static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
@@ -75,7 +78,8 @@ static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
     "mp_gamemode value for team-based Scavenge.",
     "mp_gamemode value for Survival.",
     "mp_gamemode value for Co-op.",
-    "mp_gamemode value for Realism."
+    "mp_gamemode value for Realism.",
+    "mp_gamemode value for GuessWho (Hide & Seek)."
 };
 
 static const char g_sClassOptions[CLASS_OPTION_COUNT][] =
@@ -122,6 +126,11 @@ int g_iAdminMenuOptionIndexInfected = -1;   // Index of admin menu option in inf
 
 Handle g_hClassCookie = INVALID_HANDLE;
 
+// Team switch tracking
+int g_iTeamSwitchCount[MAXPLAYERS + 1] = {0, ...};
+int g_iVoteSelection[MAXPLAYERS + 1] = {-1, ...};  // -1 = none, 0 = map, 1+ = gamemode index
+bool g_bVoteTypeIsMap[MAXPLAYERS + 1] = {false, ...};
+
 ConVar g_hCvarMPGameMode;
 ConVar g_hGameModeCvars[GAMEMODE_OPTION_COUNT];
 
@@ -133,8 +142,8 @@ enum RageMenuOption
     Menu_ChangeClass,
     Menu_DeployAction,
     Menu_ViewRank,
-    Menu_VoteCustomMap,
-    Menu_VoteGameMode,
+    Menu_VoteOptions,  // Combined voting menu (map + gamemode)
+    Menu_VoteAction,   // Action button to initiate vote
     Menu_ThirdPerson,
     Menu_MultiEquip,
     Menu_MusicToggle,
@@ -212,16 +221,15 @@ public void OnAllPluginsLoaded()
     RefreshGuideLibraryStatus();
 }
 
-public void OnMapStart()
-{
-}
-
 public void OnClientPutInServer(int client)
 {
     g_bMenuHeld[client] = false;
     g_iLastButtons[client] = 0;
     g_iLastSelectedOption[client] = -1;
     g_iLastSelectedMenuId[client] = -1;
+    g_iTeamSwitchCount[client] = 0;
+    g_iVoteSelection[client] = -1;
+    g_bVoteTypeIsMap[client] = false;
     ThirdPerson_OnClientPutInServer(client);
     MultiEquip_OnClientPutInServer(client);
     Kits_OnClientPutInServer(client);
@@ -231,9 +239,23 @@ public void OnClientPutInServer(int client)
 public void OnClientDisconnect(int client)
 {
     g_bMenuHeld[client] = false;
+    g_iTeamSwitchCount[client] = 0;
+    g_iVoteSelection[client] = -1;
+    g_bVoteTypeIsMap[client] = false;
     ThirdPerson_OnClientDisconnect(client);
     MultiEquip_OnClientDisconnect(client);
     Kits_OnClientDisconnect(client);
+}
+
+public void OnMapStart()
+{
+    // Reset team switch counts on new map
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        g_iTeamSwitchCount[i] = 0;
+        g_iVoteSelection[i] = -1;
+        g_bVoteTypeIsMap[i] = false;
+    }
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
@@ -598,14 +620,62 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         FakeClientCommand(client, "sm_stats");
         return;
     }
-    else if (menuOption == Menu_VoteCustomMap)
+    else if (menuOption == Menu_VoteOptions)
     {
-        FakeClientCommand(client, "sm_chmap");
+        // value: 0 = Change Map, 1+ = Gamemode index (1 = Versus, 2 = Competitive, etc.)
+        if (value < 0)
+        {
+            PrintHintText(client, "Invalid vote option.");
+            return;
+        }
+        
+        if (value == 0)
+        {
+            // Map vote selected
+            g_iVoteSelection[client] = 0;
+            g_bVoteTypeIsMap[client] = true;
+            PrintHintText(client, "Selected: Change Map. Press 'Initiate Vote' to start.");
+        }
+        else
+        {
+            // Gamemode vote selected (value is 1-based index into gamemode array)
+            int modeIndex = value - 1; // Convert to 0-based
+            if (modeIndex >= 0 && modeIndex < GAMEMODE_OPTION_COUNT)
+            {
+                g_iVoteSelection[client] = modeIndex;
+                g_bVoteTypeIsMap[client] = false;
+                PrintHintText(client, "Selected: %s. Press 'Initiate Vote' to start.", g_sGameModeNames[modeIndex]);
+            }
+            else
+            {
+                PrintHintText(client, "Invalid gamemode selection.");
+            }
+        }
         return;
     }
-    else if (menuOption == Menu_VoteGameMode)
+    else if (menuOption == Menu_VoteAction)
     {
-        ChangeGameModeByIndex(client, value);
+        // Initiate the selected vote
+        if (g_iVoteSelection[client] == -1)
+        {
+            PrintHintText(client, "Please select a vote option first.");
+            return;
+        }
+        
+        if (g_bVoteTypeIsMap[client])
+        {
+            // Initiate map vote
+            FakeClientCommand(client, "sm_chmap");
+            g_iVoteSelection[client] = -1;
+            g_bVoteTypeIsMap[client] = false;
+        }
+        else
+        {
+            // Initiate gamemode vote
+            ChangeGameModeByIndex(client, g_iVoteSelection[client]);
+            g_iVoteSelection[client] = -1;
+            g_bVoteTypeIsMap[client] = false;
+        }
         return;
     }
     else if (menuOption == Menu_ThirdPerson)
@@ -653,19 +723,19 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             case ME_Off:
             {
                 strcopy(modeName, sizeof(modeName), "Off");
-                PrintHintText(client, "Multiple equipment mode: %s (normal pickup)", modeName);
+                PrintHintText(client, "Equipment mode: Off");
             }
             case ME_SingleTap:
             {
                 strcopy(modeName, sizeof(modeName), "Single Tap");
                 tapCount = 1;
-                PrintHintText(client, "Multiple equipment mode: %s - Tap USE %d time to switch equipment slot", modeName, tapCount);
+                PrintHintText(client, "Equipment mode: Single Tap");
             }
             case ME_DoubleTap:
             {
                 strcopy(modeName, sizeof(modeName), "Double Tap");
                 tapCount = 2;
-                PrintHintText(client, "Multiple equipment mode: %s - Tap USE %d times to switch equipment slot", modeName, tapCount);
+                PrintHintText(client, "Equipment mode: Double Tap");
             }
         }
 
@@ -911,15 +981,44 @@ void BuildSingleMenu(bool includeChangeClass)
     ExtraMenu_AddEntry(menu_id, "4. Guide", MENU_SELECT_ONLY, true);
     optionMap.Push(view_as<int>(Menu_Guide));
 
-    ExtraMenu_AddEntry(menu_id, "5. Set yourself away", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_SetAway));
-    ExtraMenu_AddEntry(menu_id, "6. Vote for map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
-    optionMap.Push(view_as<int>(Menu_VoteCustomMap));
-    ExtraMenu_AddEntry(menu_id, "7. Switch team", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_SelectTeam));
     ExtraMenu_NewPage(menu_id);
 
-    ExtraMenu_AddEntry(menu_id, "GAME MENU (continued):", MENU_ENTRY);
+    ExtraMenu_AddEntry(menu_id, "TEAM & VOTING:", MENU_ENTRY);
+    if (!buttons_nums)
+    {
+        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
+    }
+
+    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
+    
+    // Team selection as slider (AFK/Infected/Survivors)
+    ExtraMenu_AddEntry(menu_id, "1. Team: _OPT_", MENU_SELECT_LIST);
+    optionMap.Push(view_as<int>(Menu_SelectTeam));
+    ExtraMenu_AddOptions(menu_id, "AFK|Infected|Survivors");
+    
+    ExtraMenu_AddEntry(menu_id, "2. Set yourself away", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_SetAway));
+    
+    // Combined voting options (scrollable)
+    ExtraMenu_AddEntry(menu_id, "3. Vote Options: _OPT_", MENU_SELECT_ADD, false, 250, 10, 100, 300);
+    optionMap.Push(view_as<int>(Menu_VoteOptions));
+    // Build vote options string: "Change Map|Gamemode1|Gamemode2|..."
+    char voteOptions[512] = "Change Map|";
+    for (int i = 0; i < GAMEMODE_OPTION_COUNT; i++)
+    {
+        if (i > 0)
+            StrCat(voteOptions, sizeof(voteOptions), "|");
+        StrCat(voteOptions, sizeof(voteOptions), g_sGameModeNames[i]);
+    }
+    ExtraMenu_AddOptions(menu_id, voteOptions);
+    
+    // Action button to initiate vote
+    ExtraMenu_AddEntry(menu_id, "4. Initiate Vote", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_VoteAction));
+    
+    ExtraMenu_NewPage(menu_id);
+
+    ExtraMenu_AddEntry(menu_id, "EQUIPMENT & STATS:", MENU_ENTRY);
     if (!buttons_nums)
     {
         ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
@@ -931,9 +1030,6 @@ void BuildSingleMenu(bool includeChangeClass)
     ExtraMenu_AddOptions(menu_id, "Medic kit|Rambo kit|Counter-terrorist kit|Ninja kit");
     ExtraMenu_AddEntry(menu_id, "2. See your ranking", MENU_SELECT_ONLY);
     optionMap.Push(view_as<int>(Menu_ViewRank));
-    ExtraMenu_AddEntry(menu_id, "3. Vote for gamemode", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_VoteGameMode));
-    AddGameModeOptions(menu_id);
     ExtraMenu_NewPage(menu_id);
 
     ExtraMenu_AddEntry(menu_id, "GAME OPTIONS:", MENU_ENTRY);
@@ -1014,6 +1110,18 @@ public void SyncMenuSelections(int client, int menuId, ArrayList optionMap)
     SyncMenuSelection(client, menuId, optionMap, Menu_ThirdPerson, view_as<int>(g_ThirdPersonMode[client]));
     SyncMenuSelection(client, menuId, optionMap, Menu_ChangeClass, GetSavedClassIndex(client));
     SyncMenuSelection(client, menuId, optionMap, Menu_MultiEquip, view_as<int>(MultiEquip_GetMode(client)));
+    
+    // Sync team selection (0=AFK, 1=Infected, 2=Survivors)
+    int currentTeam = GetClientTeam(client);
+    int teamValue = (currentTeam == 0) ? 0 : (currentTeam == 3) ? 1 : 2;
+    SyncMenuSelection(client, menuId, optionMap, Menu_SelectTeam, teamValue);
+    
+    // Sync vote selection
+    if (g_iVoteSelection[client] >= 0)
+    {
+        int voteValue = g_bVoteTypeIsMap[client] ? 0 : (g_iVoteSelection[client] + 1);
+        SyncMenuSelection(client, menuId, optionMap, Menu_VoteOptions, voteValue);
+    }
 }
 
 public void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value)

@@ -136,6 +136,10 @@ public void OnPluginStart()
 	{
 		g_hCookie = RegClientCookie("rage_multiequip_mode", "Rage multiple equipment mode preference", CookieAccess_Public);
 	}
+	
+	// Register native for menu system to sync state
+	CreateNative("MultiEquip_SyncFromCookie", Native_SyncFromCookie);
+	RegPluginLibrary("rage_survivor_multiple_equipment");
 
 	// Cache ammo offset for performance (expensive lookup)
 	g_iAmmoOffset = FindSendPropInfo("CTerrorPlayer", "m_iAmmo");
@@ -192,6 +196,9 @@ public void OnClientCookiesCached(int client)
 			{
 				EnableClient(client, true);
 			}
+			// Show hint text summarizing the mode
+			ControlMode[client] = 0;
+			PrintHintText(client, "Equipment mode: Single Tap");
 		}
 		else if(menuMode == 2) // ME_DoubleTap
 		{
@@ -201,12 +208,18 @@ public void OnClientCookiesCached(int client)
 			{
 				EnableClient(client, true);
 			}
+			// Show hint text summarizing the mode
+			ControlMode[client] = 1;
+			PrintHintText(client, "Equipment mode: Double Tap");
 		}
 		else // ME_Off (0) or invalid - disable multiple equipment
 		{
 			g_iClientModePref[client] = 0;
 			// Disable multiple equipment when mode is Off
 			EnableClient(client, false);
+			ControlMode[client] = 0;
+			// Notify user that multiple equipment is disabled
+			PrintHintText(client, "Equipment mode: Off");
 		}
 	}
 }
@@ -220,7 +233,7 @@ void SetClientPrefs(int client)
 		static char sCookie[2];
 		Format(sCookie, sizeof(sCookie), "%i", menuMode);
 		SetClientCookie(client, g_hCookie, sCookie);
-		ShowMsg(client, "Saving your preference. Type !me or use !rage menu to change it later");
+		// Preference saved - hint text already shown by caller
 	}
 }
 
@@ -270,7 +283,8 @@ ModeSelectMenu(client, bool force=false)
 			{
 				// Multiple equipment is disabled
 				EnableClient(client, false);
-				ShowMsg(client, "Multiple equipment is disabled. Use !rage menu to enable it.");
+				ControlMode[client] = 0;
+				PrintHintText(client, "Equipment mode: Off");
 				return;
 			}
 			else if(menuMode == 1) // ME_SingleTap
@@ -278,9 +292,7 @@ ModeSelectMenu(client, bool force=false)
 				ControlMode[client] = 0;
 				g_iClientModePref[client] = 0;
 				EnableClient(client, true);
-				char message[128]; 
-				Format(message, sizeof(message), "Mode 1 (Single Tap) automatically chosen for multiple equipment. Type !me or use !rage menu to change it.");
-				ShowMsg(client, message);
+				PrintHintText(client, "Equipment mode: Single Tap");
 				return;
 			}
 			else if(menuMode == 2) // ME_DoubleTap
@@ -288,9 +300,7 @@ ModeSelectMenu(client, bool force=false)
 				ControlMode[client] = 1;
 				g_iClientModePref[client] = 1;
 				EnableClient(client, true);
-				char message[128]; 
-				Format(message, sizeof(message), "Mode 2 (Double Tap) automatically chosen for multiple equipment. Type !me or use !rage menu to change it.");
-				ShowMsg(client, message);
+				PrintHintText(client, "Equipment mode: Double Tap");
 				return;
 			}
 		}
@@ -298,9 +308,15 @@ ModeSelectMenu(client, bool force=false)
 		// Fall back to old preference system
 		if (g_iClientModePref[client] >= 0 && g_iClientModePref[client] < 3 && force == false) {
 			 ControlMode[client] = g_iClientModePref[client];
-			 char message[128]; 
-			 Format(message, sizeof(message), "Mode %i automatically chosen for multiple equipment. Type !me to change it.", ControlMode[client]);
-			 ShowMsg(client, message);
+			 // Show hint text based on mode
+			 if (ControlMode[client] == 0)
+			 {
+				 PrintHintText(client, "Equipment mode: Single Tap");
+			 }
+			 else if (ControlMode[client] == 1)
+			 {
+				 PrintHintText(client, "Equipment mode: Double Tap");
+			 }
 
 		} else {
 
@@ -330,14 +346,20 @@ public MenuSelector1(Handle:menu, MenuAction:action, client, param2)
 			g_iClientModePref[client] = 0;
 			SetClientPrefs(client);
 			ControlMode[client]=0;
-			if(client>0 && IsClientInGame(client))ShowMsg(client, "Press 1,2,3,4,5 to use Multi-Equipments");
+			if(client>0 && IsClientInGame(client))
+			{
+				PrintHintText(client, "Equipment mode: Single Tap");
+			}
 		}
 		else if(StrEqual(item, "2"))
 		{
 			g_iClientModePref[client] = 1;
 			SetClientPrefs(client);
 			ControlMode[client]=1;
-			if(client>0 && IsClientInGame(client))ShowMsg(client, "Press double click Q, 1,2,3,4,5 to use Multi-Equipments");
+			if(client>0 && IsClientInGame(client))
+			{
+				PrintHintText(client, "Equipment mode: Double Tap");
+			}
 		}
 	}
 	 
@@ -464,9 +486,7 @@ public void OnClientPostAdminCheck(int client)
 	if(GetConVarInt(l4d_me_view) == 1) // && !IsFakeClient(client))
 		CreateTimer(5.0, FixWeaponView, client, TIMER_FLAG_NO_MAPCHANGE);
 
-	//SIMPLE PLAYER CONNECT MESSAGE
-	if(GetConVarInt(l4d_me_player_connect) == 1 && !IsFakeClient(client))
-		PrintToChatAll("%N Connected", client);
+	// Player connect message removed - no chat spam
 }
 
 public void OnClientPutInServer(int client)
@@ -2256,6 +2276,53 @@ static bool IsValidEntRef(int iEntRef)
     static int iEntity;
     iEntity = EntRefToEntIndex(iEntRef);
     return (iEntRef && iEntity != INVALID_ENT_REFERENCE && IsValidEntity(iEntity));
+}
+
+// Native function to sync ControlMode from cookie (called by menu system)
+public int Native_SyncFromCookie(Handle plugin, int numParams)
+{
+	int client = GetNativeCell(1);
+	if (client <= 0 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return 0;
+	}
+	
+	if (g_hCookie == INVALID_HANDLE)
+	{
+		return 0;
+	}
+	
+	// Read cookie and sync ControlMode
+	static char sCookie[3];
+	GetClientCookie(client, g_hCookie, sCookie, sizeof(sCookie));
+	int menuMode = StringToInt(sCookie);
+	
+	if(menuMode == 1) // ME_SingleTap
+	{
+		ControlMode[client] = 0;
+		g_iClientModePref[client] = 0;
+		if(MeEnable[client] == false)
+		{
+			EnableClient(client, true);
+		}
+	}
+	else if(menuMode == 2) // ME_DoubleTap
+	{
+		ControlMode[client] = 1;
+		g_iClientModePref[client] = 1;
+		if(MeEnable[client] == false)
+		{
+			EnableClient(client, true);
+		}
+	}
+	else // ME_Off (0) or invalid
+	{
+		ControlMode[client] = 0;
+		g_iClientModePref[client] = 0;
+		EnableClient(client, false);
+	}
+	
+	return 1;
 }
 
 public bool TraceRayDontHitPlayers(int entity, int mask)

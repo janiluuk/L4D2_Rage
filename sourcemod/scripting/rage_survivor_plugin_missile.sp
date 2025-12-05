@@ -5,6 +5,7 @@
 #include <sdkhooks>
 #include <RageCore>
 #include <rage/skills>
+#include <rage/validation>
 
 #define PLUGIN_VERSION "0.1"
 #define PLUGIN_NAME "Missile"
@@ -279,7 +280,7 @@ int LaunchMissile(int client, bool homing)
     TeleportEntity(projectile, spawnPos, eyeAng, velocity);
 
     // Track missile data if within array bounds
-    if (projectile >= 0 && projectile < MAX_ENTITY_LIMIT)
+    if (IsValidArrayIndex(projectile, MAX_ENTITY_LIMIT))
     {
         g_bHomingMissile[projectile] = homing;
         g_iMissileOwner[projectile] = client;
@@ -292,6 +293,12 @@ int LaunchMissile(int client, bool homing)
     else
     {
         LogError("Missile entity %d exceeds MAX_ENTITY_LIMIT (%d). Missile tracking disabled for this entity.", projectile, MAX_ENTITY_LIMIT);
+        // Clean up the entity we just created since we can't track it
+        if (IsValidEntity(projectile))
+        {
+            AcceptEntityInput(projectile, "Kill");
+        }
+        return -1;
     }
 
     SDKHook(projectile, SDKHook_Touch, MissileTouch);
@@ -307,15 +314,12 @@ public Action MissileTouch(int entity, int other)
 
 void CleanupMissile(int entity)
 {
-    if (entity <= 0 || entity >= MAX_ENTITY_LIMIT)
+    if (!IsValidArrayIndex(entity, MAX_ENTITY_LIMIT))
     {
         return;
     }
 
-    if (g_hHomingTimer[entity] != null)
-    {
-        delete g_hHomingTimer[entity];
-    }
+    KillTimerSafe(g_hHomingTimer[entity]);
 
     g_bHomingMissile[entity] = false;
     g_iMissileOwner[entity] = 0;
@@ -324,19 +328,21 @@ void CleanupMissile(int entity)
 public Action Timer_UpdateHoming(Handle timer, any ref)
 {
     int missile = EntRefToEntIndex(ref);
-    if (missile == INVALID_ENT_REFERENCE || missile <= 0 || missile >= MAX_ENTITY_LIMIT)
+    if (missile == INVALID_ENT_REFERENCE || !IsValidArrayIndex(missile, MAX_ENTITY_LIMIT))
     {
         return Plugin_Stop;
     }
 
     if (!IsValidEntity(missile))
     {
+        CleanupMissile(missile);
         return Plugin_Stop;
     }
 
     int owner = g_iMissileOwner[missile];
-    if (!owner || !IsClientInGame(owner))
+    if (!IsValidClient(owner))
     {
+        CleanupMissile(missile);
         return Plugin_Stop;
     }
 
