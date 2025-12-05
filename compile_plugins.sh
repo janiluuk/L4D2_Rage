@@ -63,9 +63,13 @@ else
     echo -e "${YELLOW}Warning: Include directory not found at $INCLUDE_DIR${NC}"
 fi
 
-# Find all .sp files
+# Find all .sp files (main directory, gamemodes, and plugins subdirectories)
 echo -e "\n${BLUE}Searching for plugin files...${NC}"
 SP_FILES=($(find "$SCRIPTING_DIR" -maxdepth 1 -name "rage*.sp" -type f | sort))
+GAMEMODE_FILES=($(find "$SCRIPTING_DIR/gamemodes" -maxdepth 1 -name "rage*.sp" -type f 2>/dev/null | sort))
+PLUGIN_FILES=($(find "$SCRIPTING_DIR/plugins" -maxdepth 1 -name "rage*.sp" -type f 2>/dev/null | sort))
+SP_FILES+=("${GAMEMODE_FILES[@]}")
+SP_FILES+=("${PLUGIN_FILES[@]}")
 
 if [ ${#SP_FILES[@]} -eq 0 ]; then
     echo -e "${RED}Error: No .sp files found in $SCRIPTING_DIR${NC}"

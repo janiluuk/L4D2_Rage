@@ -58,7 +58,7 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <rage_menu_base>
+#include <extra_menu>
 
 #pragma semicolon 1
 #pragma newdecls required

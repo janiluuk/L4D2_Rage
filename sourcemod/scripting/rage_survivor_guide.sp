@@ -120,7 +120,7 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             }
             else if (StrEqual(info, "gamemodes"))
             {
-                DisplayGameModeMenu(param1);
+                DisplayGameModesMenu(param1);
             }
             else if (StrEqual(info, "tips"))
             {
@@ -644,6 +644,60 @@ void DisplayEngineerMenu(int client)
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
+void DisplayGameModesMenu(int client)
+{
+    Menu menu = CreateMenu(MenuHandler_GameModes);
+    SetMenuTitle(menu, "Game Modes Guide");
+    AddMenuItem(menu, "overview", "Overview");
+    AddMenuItem(menu, "guesswho", "GuessWho (Hide & Seek)");
+    AddMenuItem(menu, "race", "Race Mod");
+    SetMenuExitButton(menu, true);
+    DisplayMenu(menu, client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_GameModes(Menu menu, MenuAction action, int param1, int param2)
+{
+    switch (action)
+    {
+        case MenuAction_Select:
+        {
+            char info[32];
+            GetMenuItem(menu, param2, info, sizeof(info));
+            if (StrEqual(info, "overview"))
+            {
+                PrintGuideLine(param1, "Rage Edition includes custom game modes that change how you play.");
+                PrintGuideLine(param1, "Access game modes from the main menu: Vote Options -> Select Game Mode.");
+                PrintGuideLine(param1, "Each mode has unique rules and objectives. Try them all!");
+                DisplayGameModesMenu(param1);
+            }
+            else if (StrEqual(info, "guesswho"))
+            {
+                PrintGuideLine(param1, "GuessWho (Hide & Seek): One player is the Seeker, others are Hiders.");
+                PrintGuideLine(param1, "Hiders must blend in with props and avoid detection.");
+                PrintGuideLine(param1, "Seeker must find and eliminate all hiders before time runs out.");
+                PrintGuideLine(param1, "Hiders can use special abilities to escape and confuse the seeker.");
+                PrintGuideLine(param1, "Activate via menu: Select 'GuessWho' from game mode options.");
+                DisplayGameModesMenu(param1);
+            }
+            else if (StrEqual(info, "race"))
+            {
+                PrintGuideLine(param1, "Race Mod: Compete to be first to the safe room!");
+                PrintGuideLine(param1, "Players race through the campaign, earning points based on finish position.");
+                PrintGuideLine(param1, "Points: 1st=10, 2nd=8, 3rd=6, 4th=4. Bonus points for killing Tanks/Witches.");
+                PrintGuideLine(param1, "Friendly fire is disabled (except molotovs). Special infected delay you but won't kill.");
+                PrintGuideLine(param1, "Type !scores to check current standings. Admins can use !startrace to force start.");
+                PrintGuideLine(param1, "Activate via menu: Select 'Race Mod' from game mode options.");
+                DisplayGameModesMenu(param1);
+            }
+        }
+        case MenuAction_End:
+        {
+            delete menu;
+        }
+    }
+    return 0;
+}
+
 public int MenuHandler_Engineer(Menu menu, MenuAction action, int param1, int param2)
 {
     switch (action)
@@ -855,7 +909,7 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
 
 void DisplayGameModeMenu(int client)
 {
-    Menu menu = CreateMenu(MenuHandler_GameModes);
+    Menu menu = CreateMenu(MenuHandler_GameModeDetails);
     SetMenuTitle(menu, "Game Modes");
     AddMenuItem(menu, "versus", "Versus variants");
     AddMenuItem(menu, "objective", "Objective modes");
@@ -865,7 +919,7 @@ void DisplayGameModeMenu(int client)
     DisplayMenu(menu, client, MENU_TIME_FOREVER);
 }
 
-public int MenuHandler_GameModes(Menu menu, MenuAction action, int param1, int param2)
+public int MenuHandler_GameModeDetails(Menu menu, MenuAction action, int param1, int param2)
 {
     switch (action)
     {

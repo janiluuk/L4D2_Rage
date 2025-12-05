@@ -5,15 +5,16 @@
 #include <sdkhooks>
 #include <admin>
 #include <clientprefs>
-#include <rage_menu_base>
+#include <left4dhooks>
+#include <rage_menus/rage_menu_base>
 #include <rage_survivor_guide>
 #include <jutils>
-#include <rage_survivor_menu_kits>
-#include <rage_survivor_menu_keybinds>
-#include <rage_survivor_menu_thirdperson>
-#include <rage_survivor_menu_multiequip>
+#include <rage_menus/rage_survivor_menu_kits>
+#include <rage_menus/rage_survivor_menu_keybinds>
+#include <rage_menus/rage_survivor_menu_thirdperson>
+#include <rage_menus/rage_survivor_menu_multiequip>
 
-#define GAMEMODE_OPTION_COUNT 12
+#define GAMEMODE_OPTION_COUNT 13
 #define CLASS_OPTION_COUNT 8
 #define MENU_OPTION_EXIT -1
 #define MENU_OPTION_BACK_ON_FIRST_PAGE -2
@@ -31,7 +32,8 @@ static const char g_sGameModeNames[GAMEMODE_OPTION_COUNT][] =
     "Survival",
     "Co-op",
     "Realism",
-    "GuessWho"
+    "GuessWho",
+    "Race Mod"
 };
 
 static const char g_sGameModeCvarNames[GAMEMODE_OPTION_COUNT][] =
@@ -47,7 +49,8 @@ static const char g_sGameModeCvarNames[GAMEMODE_OPTION_COUNT][] =
     "rage_gamemode_survival",
     "rage_gamemode_coop",
     "rage_gamemode_realism",
-    "rage_gamemode_guesswho"
+    "rage_gamemode_guesswho",
+    "rage_gamemode_race"
 };
 
 static const char g_sGameModeDefaults[GAMEMODE_OPTION_COUNT][] =
@@ -63,7 +66,8 @@ static const char g_sGameModeDefaults[GAMEMODE_OPTION_COUNT][] =
     "survival",
     "coop",
     "realism",
-    "guesswho"
+    "guesswho",
+    "coop"
 };
 
 static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
@@ -79,7 +83,8 @@ static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
     "mp_gamemode value for Survival.",
     "mp_gamemode value for Co-op.",
     "mp_gamemode value for Realism.",
-    "mp_gamemode value for GuessWho (Hide & Seek)."
+    "mp_gamemode value for GuessWho (Hide & Seek).",
+    "mp_gamemode value for Race Mod (race to safe room)."
 };
 
 static const char g_sClassOptions[CLASS_OPTION_COUNT][] =

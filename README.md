@@ -243,6 +243,11 @@ All settings live in `cfg/sourcemod/rage_survivor_predicament.cfg`. The importan
 
 **🗳️ Game Mode Voting** – Vote for custom game modes (Escort missions, Jockey chase, 1v1 deathmatch) and maps without typing commands. Democracy in action.
 
+**🎮 Custom Game Modes** – Multiple game modes available:
+- **GuessWho (Hide & Seek)** – One seeker hunts hiders who blend with props
+- **Race Mod** – Race to the safe room, compete for points based on finish position
+- More modes coming soon!
+
 **⚙️ Multiple Equipment Mode** – Configure how forgiving item pickups are. Off = normal, Single Tap = one tap to switch, Double Tap = two taps to switch. Your choice, your preference.
 
 **💬 Tutorial System** – Type `!guide` or `!ragetutorial` for an in-game tutorial covering classes, controls, skills, and tips. Never get lost again.
@@ -259,7 +264,7 @@ Type `!guide` or `!ragetutorial` to open the full tutorial. It covers:
 3. **Controls & Features** – Quick menu, skill buttons, third-person camera, HUD toggles, AFK mode, equipment settings
 4. **Skills & Deployables** – How to use class abilities and deploy items
 5. **Predicaments** – Survival mechanics explained
-6. **Game Modes** – Overview of custom modes
+6. **Game Modes** – Overview of custom modes (GuessWho, Race Mod, and more)
 7. **Gameplay Tips** – Pro strategies and tricks
 
 Access any topic from the menu—it's like having a handbook built into the game. No alt-tabbing to a wiki, no searching forums. Just press a button and learn.
@@ -268,15 +273,43 @@ Access any topic from the menu—it's like having a handbook built into the game
 
 ## Music Setup (Make It Yours) 🎵
 
-Want a custom soundtrack? Easy:
-1. Put 44.1 kHz audio files (WAV or MP4) in the `music/` folder
-2. List them in `sourcemod/data/music_mapstart*.txt` (use paths like `custom/rage/my_track.wav`)
-3. Point your fast-download host at the files
-4. Restart the server and players can choose tracks with `!music`
+Want a custom soundtrack? See **[MUSIC_SETUP_GUIDE.md](MUSIC_SETUP_GUIDE.md)** for complete step-by-step instructions.
 
-**Want it even easier?** Run `python music/download_soundtrack.py --out music` to grab the DOOM/DOOM II gamerip and Zorasoft's royalty-free Project Doom album. No manual downloads needed.
+**Quick Start:**
+1. **Prepare audio files:** Convert to 44.1 kHz MP4 or WAV format
+   ```bash
+   ffmpeg -i your_track.mp3 -ar 44100 -ac 2 your_track.mp4
+   ```
 
-The Docker Compose setup automatically mounts `music/` to `left4dead2/sound/custom/rage` so everything just works.
+2. **Place files:** 
+   - Docker: `custom/sound/music/your_track.mp4`
+   - Manual: `left4dead2/sound/custom/rage/your_track.mp4`
+
+3. **Add to list:** Edit `sourcemod/data/music_mapstart.txt`:
+   ```
+   custom/rage/your_track.mp4 TAG- Your Track Name
+   ```
+
+4. **Configure fast download:** Set in `server.cfg`:
+   ```bash
+   sv_allowdownload 1
+   sv_downloadurl "http://your-content-server.com/left4dead2"
+   ```
+
+5. **Upload to web server:** Copy files to your fast download server
+
+6. **Reload:** Use `sm_music_update` in-game or restart server
+
+**Admin Menu:** Access music management via `!rageadm` → Music section:
+- List all available tracks
+- View current playing track
+- Reload music list
+- Play/Pause/Next track
+- Select specific track to play
+
+**Want it even easier?** Run `python custom/sound/music/download_soundtrack.py --out .` to grab the DOOM/DOOM II gamerip and Zorasoft's royalty-free Project Doom album.
+
+The Docker Compose setup automatically mounts `custom/sound/music/` to `left4dead2/sound/custom/rage` so everything just works.
 
 ---
 
@@ -379,6 +412,11 @@ The codebase is organized for modularity and maintainability:
 - `rage/const.inc` – Shared constants and enums
 
 **Plugin Naming:** All plugins use the `[RAGE]` prefix for consistency and easy identification.
+
+**Game Modes** (`sourcemod/scripting/gamemodes/`):
+- `rage_gamemode_guesswho.sp` – Hide & Seek game mode
+- `rage_gamemode_race.sp` – Race to safe room competition mode
+- `rage_tests_gamemodes.sp` – Test suite for gamemode functionality
 
 **Testing:** The comprehensive test suite ensures code quality, catches bugs early, and verifies integration between systems. Run `./tests/run_tests.sh` anytime to verify everything works.
 

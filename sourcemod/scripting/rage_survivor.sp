@@ -36,7 +36,7 @@ public Plugin myinfo =
 #tryinclude <LMCL4D2SetTransmit>
 #include <rage/skill_actions>
 #include <rage/debug>
-#include <rage_menu_base>
+#include <rage_menus/rage_menu_base>
 
 // Global variables - MUST be declared before <talents> which includes <rage/menus>
 // Using hardcoded sizes since constants are defined later
