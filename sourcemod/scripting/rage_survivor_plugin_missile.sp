@@ -6,6 +6,7 @@
 #include <RageCore>
 #include <rage/skills>
 #include <rage/validation>
+#include <rage/timers>
 
 #define PLUGIN_VERSION "0.1"
 #define PLUGIN_NAME "Missile"
@@ -160,6 +161,21 @@ public void OnMapEnd()
         }
         g_bHomingMissile[i] = false;
         g_iMissileOwner[i] = 0;
+    }
+}
+
+public void OnClientDisconnect(int client)
+{
+    if (!IsValidClient(client))
+        return;
+    
+    // Clean up any missiles owned by this client
+    for (int i = 0; i < MAX_ENTITY_LIMIT; i++)
+    {
+        if (g_iMissileOwner[i] == client)
+        {
+            CleanupMissile(i);
+        }
     }
 }
 

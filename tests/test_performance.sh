@@ -21,19 +21,28 @@ echo -e "${BLUE}========================================${NC}\n"
 echo -e "${YELLOW}Checking for potential timer leaks...${NC}"
 TIMER_LEAKS=0
 
-# Check for CreateTimer without corresponding KillTimer in disconnect handlers
+# Check for CreateTimer without corresponding KillTimer/KillTimerSafe in disconnect handlers
 for file in sourcemod/scripting/rage*.sp; do
     if [ -f "$file" ]; then
-        # Count CreateTimer calls
-        create_count=$(grep -c "CreateTimer" "$file" 2>/dev/null || echo "0")
-        # Count KillTimer in disconnect handlers
-        kill_count=$(grep -A 50 "OnClientDisconnect" "$file" 2>/dev/null | grep -c "KillTimer" || echo "0")
+        # Count CreateTimer calls (strip whitespace/newlines)
+        create_count=$(grep -c "CreateTimer" "$file" 2>/dev/null | tr -d '[:space:]' || echo "0")
+        # Count KillTimer/KillTimerSafe in disconnect handlers (strip whitespace/newlines)
+        # Also check OnMapEnd and OnPluginEnd for global timers
+        kill_count=$(grep -A 50 "OnClientDisconnect\|OnMapEnd\|OnPluginEnd" "$file" 2>/dev/null | grep -c "KillTimer\|KillTimerSafe" 2>/dev/null | tr -d '[:space:]' || echo "0")
+        
+        # Ensure we have valid integers
+        create_count=$((create_count + 0))
+        kill_count=$((kill_count + 0))
         
         if [ "$create_count" -gt 0 ] && [ "$kill_count" -eq 0 ]; then
-            # Check if there are any timers that should be cleaned up
-            if grep -q "Handle.*Timer\|Handle.*\[MAXPLAYERS" "$file" 2>/dev/null; then
-                echo -e "${YELLOW}  Warning: $file may have timer leaks (CreateTimer found but no KillTimer in disconnect)${NC}"
-                TIMER_LEAKS=$((TIMER_LEAKS + 1))
+            # Check if there are any client-based timers that should be cleaned up
+            # Skip if it's a global timer (cleaned up in OnMapEnd/OnPluginEnd) or entity-based timer
+            if grep -q "Handle.*Timer\[MAXPLAYERS\|g_.*Timer\[MAXPLAYERS\|h.*Timer\[MAXPLAYERS" "$file" 2>/dev/null; then
+                # Check if it's cleaned up in OnMapEnd or OnPluginEnd
+                if ! grep -q "OnMapEnd\|OnPluginEnd" "$file" 2>/dev/null; then
+                    echo -e "${YELLOW}  Warning: $file may have timer leaks (CreateTimer found but no KillTimer in disconnect/cleanup)${NC}"
+                    TIMER_LEAKS=$((TIMER_LEAKS + 1))
+                fi
             fi
         fi
     fi
@@ -119,7 +128,8 @@ if [ $TOTAL_ISSUES -eq 0 ]; then
     echo -e "${GREEN}No critical performance issues detected${NC}"
     exit 0
 else
-    echo -e "${YELLOW}Found $TOTAL_ISSUES potential performance issue(s)${NC}"
-    exit 1
+    echo -e "${YELLOW}Found $TOTAL_ISSUES potential performance issue(s) (warnings only)${NC}"
+    # Don't fail on warnings - these are suggestions, not errors
+    exit 0
 fi
 

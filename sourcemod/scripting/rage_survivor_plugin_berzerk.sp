@@ -54,6 +54,7 @@ bool g_bRageAvailable = false;
 #include <rage/effects>
 #include <rage/timers>
 #include <rage/debug>
+#include <rage/validation>
 #pragma semicolon 1
 
 //Definitions
@@ -874,11 +875,7 @@ public OnClientDisconnect(client)
 	if(client > 0)
 	{
 		// Clean up timers
-		if(g_hAdrenCheckHandle[client] != INVALID_HANDLE)
-		{
-			KillTimer(g_hAdrenCheckHandle[client]);
-			g_hAdrenCheckHandle[client] = INVALID_HANDLE;
-		}
+		KillTimerSafe(g_hAdrenCheckHandle[client]);
 		
 		g_iKillCount[client] = false;
 		g_iZerkTime[client] = GetConVarInt(g_cvarInfectedDuration);
@@ -942,16 +939,8 @@ public OnRoundEnd(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 //Add Lethal bite to yourself
 public Action:CmdLethBiteMe(client, args)
 {
-	if(g_timerLethalBiteDur != INVALID_HANDLE)
-	{
-		KillTimer(g_timerLethalBiteDur);
-		g_timerLethalBiteDur = INVALID_HANDLE;
-	}
-	if(g_timerLethalBiteFreq != INVALID_HANDLE)
-	{
-		KillTimer(g_timerLethalBiteFreq);
-		g_timerLethalBiteFreq = INVALID_HANDLE;
-	}
+	KillTimerSafe(g_timerLethalBiteDur);
+	KillTimerSafe(g_timerLethalBiteFreq);
 	DoLethalBite(client, client, GetConVarInt(g_cvarLethalBiteDmg), GetConVarFloat(g_cvarLethalBiteDur), GetConVarFloat(g_cvarLethalBiteFreq));
 }
 
@@ -1730,11 +1719,7 @@ public Action:OnAdrenalineUsed(Handle:hEvent, String:event_name[], bool:dontBroa
 	new client = GetClientOfUserId(userid);
 	if(GetConVarBool(g_cvarAdrenCheckEnable))
 	{
-		if(g_hAdrenCheckHandle[client] != INVALID_HANDLE)
-		{
-			KillTimer(g_hAdrenCheckHandle[client]);
-			g_hAdrenCheckHandle[client] = INVALID_HANDLE;
-		}
+		KillTimerSafe(g_hAdrenCheckHandle[client]);
 		
 		g_hAdrenCheckHandle[client] = CreateTimer(GetConVarFloat(g_cvarAdrenCheckTimer), timerAdrenCheck, client, TIMER_FLAG_NO_MAPCHANGE);
 	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
@@ -1758,11 +1743,7 @@ public Action:timerAdrenCheck(Handle:timer, any:client)
 	//Check: Berserker enabled, in case the berserker was enabled or was applied, cancel adrenaline use and refire timer.
 	if(g_bHasBerserker[client])
 	{
-		if(g_hAdrenCheckHandle[client] != INVALID_HANDLE)
-		{
-			KillTimer(g_hAdrenCheckHandle[client]);
-			g_hAdrenCheckHandle[client] = INVALID_HANDLE;
-		}
+		KillTimerSafe(g_hAdrenCheckHandle[client]);
 		
 		g_hAdrenCheckHandle[client] = CreateTimer(1.5, timerAdrenCheck, client, TIMER_FLAG_NO_MAPCHANGE);
 	// Debug output removed - use PrintDebug() from rage/debug.inc if needed

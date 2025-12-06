@@ -126,11 +126,11 @@ echo -e "${YELLOW}=== Critical Test Cases ===${NC}\n"
 
 # Test 1: Client Disconnect Cleanup - Check for timer cleanup
 run_test "Timer Cleanup on Disconnect" \
-    "test_patterns_in_file 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp' 'OnClientDisconnect_Post' 'ME_Notify'"
+    "test_patterns_in_file 'sourcemod/scripting/rage_plugin_multiple_equipment.sp' 'OnClientDisconnect_Post' 'ME_Notify'"
 
 # Test 2: Entity Cleanup on Disconnect
 run_test "Entity Cleanup on Disconnect" \
-    "test_patterns_in_file 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp' 'OnClientDisconnect_Post' 'RemoveItemAttach'"
+    "test_patterns_in_file 'sourcemod/scripting/rage_plugin_multiple_equipment.sp' 'OnClientDisconnect_Post' 'RemoveItemAttach'"
 
 # Test 3: Input Handling - Check CTRL/SHIFT handling
 run_test "Input Handling (CTRL/SHIFT)" \
@@ -164,7 +164,7 @@ run_test "Timer Cleanup Pattern" \
 
 # Test 9: Entity Reference Cleanup
 run_test "Entity Reference Cleanup" \
-    "test_pattern_in_file 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp' 'MEIndex.*= 0'"
+    "test_pattern_in_file 'sourcemod/scripting/rage_plugin_multiple_equipment.sp' 'MEIndex.*= 0'"
 
 # ===================================================================
 # Integration Tests
@@ -182,7 +182,7 @@ run_test "Admin Menu Integration" \
 
 # Test 12: Multiple Equipment Integration
 run_test "Multiple Equipment Integration" \
-    "test_file_exists 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp'"
+    "test_file_exists 'sourcemod/scripting/rage_plugin_multiple_equipment.sp' || test_file_exists 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp'"
 
 # Test 13: Rage System Natives
 run_test "Rage System Natives" \
@@ -273,6 +273,57 @@ run_test "No Duplicate Functions" \
 # Test 30: Proper error handling
 run_test "Error Handling Present" \
     "grep -r 'IsValidClient\|IsValidEntity\|IsValidSurvivor' sourcemod/scripting/rage*.sp | wc -l | grep -qE '^[1-9][0-9]*$'"
+
+# ===================================================================
+# Test Script Execution
+# ===================================================================
+
+echo -e "\n${YELLOW}=== Running Test Scripts ===${NC}\n"
+
+# List of test scripts to run (in order of execution)
+TEST_SCRIPTS=(
+    "test_skills.sh"              # Skills functionality tests
+    "test_class_skills.sh"         # Class skills and deployment menu tests
+    "test_bugs.sh"                # Bug detection tests
+    "test_coverage.sh"            # Code coverage analysis
+    "test_integration.sh"         # Integration tests
+    "test_integration_detailed.sh" # Detailed integration tests
+    "test_performance.sh"         # Performance and memory leak tests
+)
+
+# Run each test script
+for test_script in "${TEST_SCRIPTS[@]}"; do
+    test_path="$SCRIPT_DIR/$test_script"
+    
+    if [ -f "$test_path" ]; then
+        # Make executable if not already
+        if [ ! -x "$test_path" ]; then
+            chmod +x "$test_path"
+        fi
+        
+        echo -e "${BLUE}Running: $test_script${NC}"
+        if bash "$test_path" > /tmp/test_script_$$.log 2>&1; then
+            echo -e "${GREEN}  ✓ PASSED: $test_script${NC}"
+            TESTS_PASSED=$((TESTS_PASSED + 1))
+            TEST_RESULTS+=("PASS: $test_script")
+        else
+            echo -e "${RED}  ✗ FAILED: $test_script${NC}"
+            # Show first 30 lines of output for debugging
+            if [ -f /tmp/test_script_$$.log ]; then
+                echo -e "${YELLOW}  Output:${NC}"
+                head -30 /tmp/test_script_$$.log | sed 's/^/    /'
+            fi
+            TESTS_FAILED=$((TESTS_FAILED + 1))
+            TEST_RESULTS+=("FAIL: $test_script")
+        fi
+        echo ""
+    else
+        echo -e "${YELLOW}  ⚠ SKIPPED: $test_script (not found)${NC}"
+    fi
+done
+
+# Cleanup temp files
+rm -f /tmp/test_output_$$.log /tmp/test_script_$$.log 2>/dev/null
 
 # ===================================================================
 # Summary

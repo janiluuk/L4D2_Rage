@@ -7,6 +7,7 @@
 #include <rage/validation>
 #include <rage/effects>
 #include <rage/timers>
+#include <rage/cooldown_notify>
 
 #define PLUGIN_VERSION	"0.2"
 #define CVAR_FLAGS		FCVAR_NONE
@@ -79,6 +80,8 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
         HealingBallRadius[client] = 130.0;
         HealingBallDuration[client] = 8.0;
         g_fNextHealingOrbUse[client] = now + g_fHealingOrbCooldown;
+        // Register cooldown for notification
+        CooldownNotify_Register(client, g_fNextHealingOrbUse[client], PLUGIN_SKILL_NAME);
         HealingBallFunction(client);
         PrintHintText(client, "✓ Healing orb activated!");
         OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);

@@ -468,6 +468,18 @@ public void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroa
     g_rageMusicPlaying[client] = false;
 }
 
+public void OnClientDisconnect(int client)
+{
+    // Additional cleanup for client disconnect (called after event)
+    if (IsValidClient(client))
+    {
+        KillTimerSafe(g_rageTimerMusic[client]);
+        g_rageCookie[client] = 0;
+        g_rageFirstConnect[client] = true;
+        g_rageMusicPlaying[client] = false;
+    }
+}
+
 public Action Cmd_MusicUpdate(int client, int args)
 {
     ReadCookie(client);
@@ -635,6 +647,38 @@ public Action Timer_PlayMusic(Handle timer, int UserId)
     return Plugin_Continue;
 }
 
+public Action Timer_PlayAgain(Handle timer, int UserId)
+{
+    int client = GetClientOfUserId(UserId);
+    if (!IsValidClient(client))
+        return Plugin_Stop;
+    
+    char sPath[PLATFORM_MAX_PATH];
+    sPath[0] = '\0';
+    
+    if (g_rageFirstConnect[client] && g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
+    {
+        if (IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+        {
+            g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+        }
+    }
+    else if (g_rageSoundPath.Length > 0)
+    {
+        if (IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+        {
+            g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+        }
+    }
+    
+    if (strlen(sPath) > 0)
+    {
+        EmitSoundCustom(client, sPath);
+    }
+    
+    return Plugin_Stop;
+}
+
 void ShowMusicMenu(int client)
 {
     Menu menu = new Menu(MenuHandler_MenuMusic, MENU_ACTIONS_DEFAULT);    
@@ -670,21 +714,32 @@ public int MenuHandler_MenuMusic(Menu menu, MenuAction action, int param1, int p
                     StopCurrentSound(client);
                 }
                 case 6: {
-                    StopCurrentSound(client);
-                    
+                    // Fix PlayAgain button: Check newly list first if applicable, then default list
                     sPath[0] = '\0';
-                    if (g_rageSoundPath.Length > 0 && IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+                    if (g_rageFirstConnect[client] && g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0)
                     {
-                        g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+                        if (IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+                        {
+                            g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+                        }
                     }
-                    else if (g_rageCvarUseNewly.IntValue == 1 && g_rageSoundPathNewly.Length > 0 && IsValidArrayIndex(g_rageSndIdxNewly, g_rageSoundPathNewly.Length))
+                    else if (g_rageSoundPath.Length > 0)
                     {
-                        g_rageSoundPathNewly.GetString(g_rageSndIdxNewly, sPath, sizeof(sPath));
+                        if (IsValidArrayIndex(g_rageSndIdx, g_rageSoundPath.Length))
+                        {
+                            g_rageSoundPath.GetString(g_rageSndIdx, sPath, sizeof(sPath));
+                        }
                     }
                     
                     if (strlen(sPath) > 0)
                     {
-                        EmitSoundCustom(client, sPath);
+                        StopCurrentSound(client);
+                        // Small delay to ensure sound stops before playing again
+                        CreateTimer(0.1, Timer_PlayAgain, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+                    }
+                    else
+                    {
+                        PrintToChat(client, "No music track available to play.");
                     }
                 }
                 case -1: {

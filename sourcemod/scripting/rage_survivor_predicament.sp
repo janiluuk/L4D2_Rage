@@ -379,6 +379,23 @@ public void OnMapStart()
         PrecacheSound("weapons/knife/knife_hitwall1.wav", true);
 }
 
+public void OnClientDisconnect(int client)
+{
+	if (!IsValidClient(client))
+		return;
+	
+	// Clean up timer to prevent memory leaks
+	if (hSHTime[client] != null)
+	{
+		KillTimerSafe(hSHTime[client]);
+		hSHTime[client] = null;
+	}
+	
+	// Reset client state
+	iAttacker[client] = 0;
+	fSelfHelpTime[client] = 0.0;
+}
+
 public void OnRoundEvents(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!bEnabled)

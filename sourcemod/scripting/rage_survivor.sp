@@ -36,19 +36,9 @@ public Plugin myinfo =
 #tryinclude <LMCL4D2SetTransmit>
 #include <rage/skill_actions>
 #include <rage/debug>
+#include <rage/cooldown_notify>
 #include <rage_menus/rage_menu_base>
-
-// KillTimerSafe helper (rage/validation conflicts with jutils.inc's IsValidClient)
-stock bool KillTimerSafe(Handle &timer)
-{
-    if (timer != null && timer != INVALID_HANDLE)
-    {
-        KillTimer(timer);
-        timer = null;
-        return true;
-    }
-    return false;
-}
+#include <rage/validation>
 
 // Global variables - MUST be declared before <talents> which includes <rage/menus>
 // Using hardcoded sizes since constants are defined later
@@ -1344,6 +1334,12 @@ any Native_OnSpecialSkillFail(Handle plugin, int numParams)
 
 public OnMapStart()
 {
+	// Initialize cooldown notification system
+	CooldownNotify_Init();
+	
+	// Precache cooldown ready sound
+	PrecacheSound(COOLDOWN_READY_SOUND, true);
+	
 	// Sounds
 	PrecacheSound(SOUND_CLASS_SELECTED);
 	PrecacheSound(SOUND_DROP_BOMB);
@@ -1410,6 +1406,7 @@ public OnMapStart()
 
 public void OnMapEnd()
 {
+	CooldownNotify_OnMapEnd();
 	// Cache
 	RoundStarted=false;
 	LeftSafeAreaMessageShown = false;
@@ -1648,6 +1645,7 @@ public Action:OnWeaponEquip(client, weapon)
 
 public OnClientDisconnect(client)
 {
+	CooldownNotify_OnClientDisconnect(client);
         UnhookPlayer(false);
         RebuildCache();
         ResetClientVariables(client);
@@ -3877,7 +3875,9 @@ stock FindAttacker(iClient)
 	return iAttacker;
 }
 
-stock bool:IsValidSurvivor(client, bool:isAlive = false) {
+// IsValidSurvivor is now provided by rage/validation.inc
+// This version has an optional isAlive parameter for backward compatibility
+stock bool:IsValidSurvivorCompat(client, bool:isAlive = false) {
 	if(client >= 1 && client <= MaxClients && GetClientTeam(client) == 2 && IsClientConnected(client) && IsClientInGame(client) && (isAlive == false || IsPlayerAlive(client)))
 	{	 
 		return true;

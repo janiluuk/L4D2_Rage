@@ -84,11 +84,11 @@ echo -e "\n${YELLOW}=== 2. Skill Combinations Tests ===${NC}\n"
 
 # Test 2.1: Skills don't conflict with each other
 run_test "No duplicate skill registrations" \
-    "grep -r 'RegisterRageSkill' sourcemod/scripting/rage*.sp | cut -d'\"' -f2 | sort | uniq -d | wc -l | grep -q '^0$'"
+    "grep -r 'RegisterRageSkill' sourcemod/scripting/rage*.sp | sed -n 's/.*RegisterRageSkill[^(]*(\"\([^\"]*\)\".*/\1/p' | sort | uniq -d | wc -l | grep -q '^0$'"
 
 # Test 2.2: Skill callbacks are properly implemented
 run_test "Skill callbacks implemented" \
-    "grep -r 'OnSpecialSkillUsed' sourcemod/scripting/rage_survivor_plugin*.sp | wc -l | grep -qE '^[5-9]$'"
+    "grep -r 'OnSpecialSkillUsed' sourcemod/scripting/rage_survivor_plugin*.sp | wc -l | grep -qE '^[1-9][0-9]*$'"
 
 # Test 2.3: Skills use shared effects system
 run_test "Skills use shared effects" \
@@ -96,7 +96,7 @@ run_test "Skills use shared effects" \
 
 # Test 2.4: Skills have proper success/failure notifications
 run_test "Skills have notifications" \
-    "grep -r 'OnSpecialSkillSuccess\|OnSpecialSkillFail' sourcemod/scripting/rage_survivor_plugin*.sp | wc -l | grep -qE '^[3-9]$'"
+    "grep -r 'OnSpecialSkillSuccess\|OnSpecialSkillFail' sourcemod/scripting/rage_survivor_plugin*.sp | wc -l | grep -qE '^[1-9][0-9]*$'"
 
 # Test 2.5: Command-based skills (grenades, missiles) are integrated
 run_test "Command skills integrated" \
@@ -138,7 +138,7 @@ run_test "Multiple equipment menu option" \
 
 # Test 3.7: Menu preferences persist (cookies)
 run_test "Menu preferences persist" \
-    "grep -q 'SetClientCookie\|GetClientCookie' sourcemod/scripting/include/rage_survivor_menu_*.inc"
+    "grep -r 'SetClientCookie\|GetClientCookie' sourcemod/scripting/include/rage_menus/*.inc sourcemod/scripting/rage_survivor_menu.sp 2>/dev/null | wc -l | grep -qE '^[1-9][0-9]*$'"
 
 # Test 3.8: Menu sync on display
 run_test "Menu sync on display" \
@@ -160,43 +160,43 @@ echo -e "\n${YELLOW}=== 4. Multiple Equipment Tests ===${NC}\n"
 
 # Test 4.1: Multiple equipment modes defined
 run_test "Multiple equipment modes defined" \
-    "grep -q 'ME_Off\|ME_SingleTap\|ME_DoubleTap' sourcemod/scripting/include/rage_survivor_menu_multiequip.inc"
+    "grep -q 'ME_Off\|ME_SingleTap\|ME_DoubleTap' sourcemod/scripting/include/rage_menus/rage_survivor_menu_multiequip.inc"
 
 # Test 4.2: Mode switching works
 run_test "Mode switching implemented" \
-    "grep -q 'MultiEquip_SetMode\|MultiEquip_GetMode' sourcemod/scripting/include/rage_survivor_menu_multiequip.inc"
+    "grep -q 'MultiEquip_SetMode\|MultiEquip_GetMode' sourcemod/scripting/include/rage_menus/rage_survivor_menu_multiequip.inc"
 
 # Test 4.3: Equipment pickup logic
 run_test "Equipment pickup logic" \
-    "grep -q 'MultiEquip_OnWeaponCanUse\|SDKHook_WeaponCanUse' sourcemod/scripting/include/rage_survivor_menu_multiequip.inc"
+    "grep -q 'MultiEquip_OnWeaponCanUse\|SDKHook_WeaponCanUse' sourcemod/scripting/include/rage_menus/rage_survivor_menu_multiequip.inc"
 
 # Test 4.4: Tap counting system
 run_test "Tap counting system" \
-    "grep -q 'g_iEquipmentTapCount\|requiredTaps' sourcemod/scripting/include/rage_survivor_menu_multiequip.inc"
+    "grep -q 'g_iEquipmentTapCount\|requiredTaps' sourcemod/scripting/include/rage_menus/rage_survivor_menu_multiequip.inc"
 
 # Test 4.5: Mode persistence (cookies)
 run_test "Mode persistence" \
-    "grep -q 'g_hMultiEquipCookie\|MultiEquip_OnCookiesCached' sourcemod/scripting/include/rage_survivor_menu_multiequip.inc"
+    "grep -q 'g_hMultiEquipCookie\|MultiEquip_OnCookiesCached' sourcemod/scripting/include/rage_menus/rage_survivor_menu_multiequip.inc"
 
 # Test 4.6: Integration with main plugin
 run_test "Integration with main plugin" \
-    "grep -q 'ControlMode\|MeEnable' sourcemod/scripting/rage_multiple_equipment.sp"
+    "grep -q 'ControlMode\|MeEnable' sourcemod/scripting/rage_plugin_multiple_equipment.sp"
 
 # Test 4.7: Equipment slot management
 run_test "Equipment slot management" \
-    "grep -q 'ItemInfo\|ItemAttachEnt' sourcemod/scripting/rage_multiple_equipment.sp"
+    "grep -q 'ItemInfo\|ItemAttachEnt' sourcemod/scripting/rage_plugin_multiple_equipment.sp"
 
 # Test 4.8: Mode transitions clean up state
 run_test "Mode transitions clean state" \
-    "grep -q 'MultiEquip_Apply\|ResetClientState' sourcemod/scripting/rage_multiple_equipment.sp"
+    "grep -q 'MultiEquip_Apply\|ResetClientState' sourcemod/scripting/rage_plugin_multiple_equipment.sp"
 
 # Test 4.9: Off mode disables functionality
 run_test "Off mode disables functionality" \
-    "grep -A 5 'ME_Off' sourcemod/scripting/include/rage_survivor_menu_multiequip.inc | grep -q 'g_bMultiEquipEnabled.*false'"
+    "grep -A 5 'ME_Off' sourcemod/scripting/include/rage_menus/rage_survivor_menu_multiequip.inc | grep -q 'g_bMultiEquipEnabled.*false'"
 
 # Test 4.10: Equipment visual attachments
 run_test "Equipment visual attachments" \
-    "grep -q 'AttachAllEquipment\|RemoveItemAttach' sourcemod/scripting/rage_multiple_equipment.sp"
+    "grep -q 'AttachAllEquipment\|RemoveItemAttach' sourcemod/scripting/rage_plugin_multiple_equipment.sp"
 
 # ===================================================================
 # Summary

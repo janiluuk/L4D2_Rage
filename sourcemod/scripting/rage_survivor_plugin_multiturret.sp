@@ -903,6 +903,30 @@ public void OnMapEnd()
 	bMapStarted = false;
 }
 
+public void OnClientDisconnect(int client)
+{
+	if (!IsValidClient(client))
+		return;
+	
+	// Reset client data to prevent leaks
+	GunState[client] = State_None;
+	ShowMsg[client] = 0;
+	GunOwner[client] = 0;
+	GunCarrier[client] = 0;
+	Gun[client] = 0;
+	MachineGunCounterUser[client] = 0;
+	FreezedPlayer[client] = false;
+	VomitedPlayer[client] = false;
+	MachineGunerTime[client] = 0.0;
+	Machine_RateTime[client] = 0.0;
+	
+	for(int iArrayNum = 0; iArrayNum < MAX_EACHPLAYER; iArrayNum++)
+	{
+		FreezingMachineGunOwner[client][iArrayNum] = 0;
+		FreezingMachineGunCount[client][iArrayNum] = -1;
+	}
+}
+
 //////////////////////////////////////////////
 // Events
 /////////////////////////////////////////////

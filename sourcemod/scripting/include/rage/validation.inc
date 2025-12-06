@@ -16,11 +16,16 @@
  * 
  * @param client    Client index to validate
  * @return          True if valid client in-game, false otherwise
+ * 
+ * Note: jutils.inc also defines IsValidClient with a different signature.
+ * We only define our version if jutils.inc is not included.
  */
+#if !defined _jutils_included
 stock bool IsValidClient(int client)
 {
     return (client > 0 && client <= MaxClients && IsClientInGame(client));
 }
+#endif
 
 /**
  * Validates if a client is valid, in-game, and alive.
@@ -34,14 +39,23 @@ stock bool IsValidAliveClient(int client)
 }
 
 /**
- * Validates if a client is valid, in-game, alive, and on survivor team.
+ * Validates if a client is valid, in-game, and on survivor team.
+ * Optionally checks if the client is alive.
  * 
  * @param client    Client index to validate
+ * @param isAlive   If true, also requires client to be alive (default: true)
  * @return          True if valid survivor, false otherwise
  */
-stock bool IsValidSurvivor(int client)
+stock bool IsValidSurvivor(int client, bool isAlive = true)
 {
-    return IsValidAliveClient(client) && GetClientTeam(client) == 2;
+    if (isAlive)
+    {
+        return IsValidAliveClient(client) && GetClientTeam(client) == 2;
+    }
+    else
+    {
+        return IsValidClient(client) && GetClientTeam(client) == 2;
+    }
 }
 
 /**

@@ -5,6 +5,7 @@
 #include <sourcemod>
 #include <rage/validation>
 #include <rage/skills>
+#include <rage/cooldown_notify>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -199,6 +200,8 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
         }
 
         g_rageNextUse[client] = now + cooldown;
+        // Register cooldown for notification
+        CooldownNotify_Register(client, g_rageNextUse[client], PLUGIN_SKILL_NAME);
         AddExtendedSight(GetConVarFloat(g_rageCvarDuration), client);
         PrintHintText(client, "✓ Extended sight activated!");
         OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
@@ -228,6 +231,8 @@ public Action Command_ExtendedSight(int client, int args)
         }
 
         g_rageNextUse[client] = now + cooldown;
+        // Register cooldown for notification
+        CooldownNotify_Register(client, g_rageNextUse[client], PLUGIN_SKILL_NAME);
         AddExtendedSight(GetConVarFloat(g_rageCvarDuration), client);
         PrintHintText(client, "✓ Extended sight activated!");
         OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);

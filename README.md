@@ -12,6 +12,20 @@ This is what happens when players get tired of vanilla and decide to turn everyt
 
 ---
 
+## 📖 Documentation
+
+**Need more details?** Check out our comprehensive [Documentation Manual](docs/README.md) covering:
+- [Getting Started](docs/getting-started/) - Quick start guides for players and admins
+- [Classes & Skills](docs/classes-skills/) - Complete class and ability reference
+- [Features](docs/features/) - All gameplay features explained
+- [Assets](docs/assets/) - Custom content and asset requirements
+- [Testing](docs/testing/) - Test suite documentation
+- [Development](docs/development/) - Developer guidelines and plugin integration
+
+---
+
+---
+
 ## Why You'll Love This 💪
 
 **Pick Your Playstyle** – Six classes that actually feel different. Want to be a tank? Soldier's got you. Want to zoom around like a ninja? Athlete's your jam. Want to heal everyone and be the team MVP? Medic's waiting. Each class changes how you play, not just what color your name is.

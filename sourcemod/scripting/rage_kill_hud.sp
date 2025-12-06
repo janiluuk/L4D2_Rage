@@ -290,6 +290,12 @@ public void OnMapEnd()
 	delete g_hKillHUDDecreaseTimer;
 }
 
+public void OnPluginEnd()
+{
+	// Cleanup global timer on plugin unload
+	delete g_hKillHUDDecreaseTimer;
+}
+
 //Event-------------------------------
 
 void Event_PlayerDeathInfo_Pre(Event event, const char[] name, bool dontBroadcast)

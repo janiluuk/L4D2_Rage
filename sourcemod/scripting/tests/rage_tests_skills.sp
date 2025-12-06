@@ -36,6 +36,9 @@ public void OnPluginStart()
     RegAdminCmd("sm_test_healingorb", Command_TestHealingOrb, ADMFLAG_ROOT, "Test healing orb functionality");
     RegAdminCmd("sm_test_grenades", Command_TestGrenades, ADMFLAG_ROOT, "Test grenades functionality");
     RegAdminCmd("sm_test_missile", Command_TestMissile, ADMFLAG_ROOT, "Test missile deployment functionality");
+    RegAdminCmd("sm_test_lethalweapon", Command_TestLethalWeapon, ADMFLAG_ROOT, "Test Lethal Weapon skill");
+    RegAdminCmd("sm_test_unvomit", Command_TestUnvomit, ADMFLAG_ROOT, "Test Unvomit skill");
+    RegAdminCmd("sm_test_berzerk", Command_TestBerzerk, ADMFLAG_ROOT, "Test Berzerk skill");
     RegAdminCmd("sm_test_all_skills", Command_TestAllSkills, ADMFLAG_ROOT, "Run all skill tests");
 }
 
@@ -404,6 +407,9 @@ public Action Command_TestAllSkills(int client, int args)
     CreateTimer(1.5, Timer_RunTest, GetClientUserId(client) | (3 << 16)); // Healing Orb
     CreateTimer(2.0, Timer_RunTest, GetClientUserId(client) | (4 << 16)); // Grenades
     CreateTimer(2.5, Timer_RunTest, GetClientUserId(client) | (5 << 16)); // Missile
+    CreateTimer(3.0, Timer_RunTest, GetClientUserId(client) | (6 << 16)); // Lethal Weapon
+    CreateTimer(3.5, Timer_RunTest, GetClientUserId(client) | (7 << 16)); // Unvomit
+    CreateTimer(4.0, Timer_RunTest, GetClientUserId(client) | (8 << 16)); // Berzerk
     
     ReplyToCommand(client, "[Tests] All tests scheduled. Results will appear over the next few seconds.");
     return Plugin_Handled;
@@ -426,8 +432,185 @@ public Action Timer_RunTest(Handle timer, int data)
         case 3: Command_TestHealingOrb(client, 0);
         case 4: Command_TestGrenades(client, 0);
         case 5: Command_TestMissile(client, 0);
+        case 6: Command_TestLethalWeapon(client, 0);
+        case 7: Command_TestUnvomit(client, 0);
+        case 8: Command_TestBerzerk(client, 0);
     }
     
     return Plugin_Stop;
+}
+
+public Action Command_TestLethalWeapon(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Lethal Weapon...");
+    
+    bool pluginLoaded = LibraryExists("rage_survivor_lethalweapon");
+    ReplyToCommand(client, "[Tests] Lethal Weapon Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Lethal Weapon plugin not found. Skipping remaining tests.");
+        return Plugin_Handled;
+    }
+    
+    char skillName[32];
+    GetPlayerSkillName(client, skillName, sizeof(skillName));
+    bool hasSkill = StrEqual(skillName, "LethalWeapon", false);
+    ReplyToCommand(client, "[Tests] Has Lethal Weapon Skill: %s (Current: %s)", hasSkill ? "✓ PASS" : "✗ FAIL", skillName);
+    
+    bool isAlive = IsPlayerAlive(client);
+    ReplyToCommand(client, "[Tests] Player Alive: %s", isAlive ? "✓ PASS" : "✗ FAIL");
+    
+    if (!isAlive)
+    {
+        ReplyToCommand(client, "[Tests] Player must be alive to test Lethal Weapon. Skipping activation test.");
+        return Plugin_Handled;
+    }
+    
+    int weapon = GetPlayerWeaponSlot(client, 0);
+    char weaponClass[32];
+    bool hasSniper = false;
+    if (weapon > MaxClients && IsValidEntity(weapon))
+    {
+        GetEntityClassname(weapon, weaponClass, sizeof(weaponClass));
+        hasSniper = (StrContains(weaponClass, "sniper") != -1 || StrContains(weaponClass, "hunting_rifle") != -1);
+    }
+    ReplyToCommand(client, "[Tests] Has Sniper Rifle: %s", hasSniper ? "✓ PASS" : "✗ FAIL");
+    
+    if (!hasSniper)
+    {
+        ReplyToCommand(client, "[Tests] Give a sniper rifle: give weapon_sniper_awp");
+    }
+    
+    if (hasSkill && isAlive)
+    {
+        ReplyToCommand(client, "[Tests] Note: Crouch and hold still to charge weapon.");
+        ReplyToCommand(client, "[Tests] When charged, next shot will create explosion.");
+    }
+    
+    ReplyToCommand(client, "[Tests] Lethal Weapon tests completed.");
+    return Plugin_Handled;
+}
+
+public Action Command_TestUnvomit(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Unvomit...");
+    
+    bool pluginLoaded = LibraryExists("rage_survivor_unvomit");
+    ReplyToCommand(client, "[Tests] Unvomit Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Unvomit plugin not found. Skipping remaining tests.");
+        return Plugin_Handled;
+    }
+    
+    char skillName[32];
+    GetPlayerSkillName(client, skillName, sizeof(skillName));
+    bool hasSkill = StrEqual(skillName, "UnVomit", false);
+    ReplyToCommand(client, "[Tests] Has Unvomit Skill: %s (Current: %s)", hasSkill ? "✓ PASS" : "✗ FAIL", skillName);
+    
+    bool isAlive = IsPlayerAlive(client);
+    ReplyToCommand(client, "[Tests] Player Alive: %s", isAlive ? "✓ PASS" : "✗ FAIL");
+    
+    if (hasSkill && isAlive)
+    {
+        int result = OnSpecialSkillUsed(client, 0, 0);
+        ReplyToCommand(client, "[Tests] Skill Activation Result: %d", result);
+        if (result == 1)
+        {
+            ReplyToCommand(client, "[Tests] ✓ Skill activated successfully (bile cleared)");
+        }
+        else
+        {
+            ReplyToCommand(client, "[Tests] Skill not activated (expected if player is not covered in bile)");
+            ReplyToCommand(client, "[Tests] To test: Get covered in boomer bile, then use skill.");
+        }
+    }
+    
+    ReplyToCommand(client, "[Tests] Unvomit tests completed.");
+    return Plugin_Handled;
+}
+
+public Action Command_TestBerzerk(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Berzerk...");
+    
+    bool pluginLoaded = LibraryExists("rage_berzerk");
+    ReplyToCommand(client, "[Tests] Berzerk Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Berzerk plugin not found. Skipping remaining tests.");
+        return Plugin_Handled;
+    }
+    
+    char skillName[32];
+    GetPlayerSkillName(client, skillName, sizeof(skillName));
+    bool hasSkill = StrEqual(skillName, "Berzerk", false);
+    ReplyToCommand(client, "[Tests] Has Berzerk Skill: %s (Current: %s)", hasSkill ? "✓ PASS" : "✗ FAIL", skillName);
+    
+    bool isAlive = IsPlayerAlive(client);
+    ReplyToCommand(client, "[Tests] Player Alive: %s", isAlive ? "✓ PASS" : "✗ FAIL");
+    
+    if (!isAlive)
+    {
+        ReplyToCommand(client, "[Tests] Player must be alive to test berzerk. Skipping activation test.");
+        return Plugin_Handled;
+    }
+    
+    if (hasSkill)
+    {
+        int result = OnSpecialSkillUsed(client, 0, 0);
+        ReplyToCommand(client, "[Tests] Skill Activation Result: %d", result);
+        if (result == 1)
+        {
+            ReplyToCommand(client, "[Tests] ✓ Skill activated successfully");
+            ReplyToCommand(client, "[Tests] Note: Check for faster attacks, damage boost, fire shield.");
+        }
+        else
+        {
+            ReplyToCommand(client, "[Tests] ✗ Skill activation failed or on cooldown");
+        }
+    }
+    
+    ReplyToCommand(client, "[Tests] Berzerk tests completed.");
+    return Plugin_Handled;
 }
 

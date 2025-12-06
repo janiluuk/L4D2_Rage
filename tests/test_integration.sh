@@ -24,7 +24,10 @@ echo -e "${YELLOW}Testing: All classes have skills...${NC}"
 CLASSES=("soldier" "athlete" "medic" "saboteur" "commando" "engineer" "brawler")
 
 for class in "${CLASSES[@]}"; do
-    skill_count=$(grep -A 10 "\"$class\"" sourcemod/configs/rage_class_skills.cfg 2>/dev/null | grep -c "skill:\|command:" || echo "0")
+    skill_count=$(grep -A 10 "\"$class\"" sourcemod/configs/rage_class_skills.cfg 2>/dev/null | grep -c "skill:\|command:" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    
+    # Ensure we have a valid integer
+    skill_count=$((skill_count + 0))
     
     if [ "$class" = "brawler" ]; then
         # Brawler intentionally has no skills
