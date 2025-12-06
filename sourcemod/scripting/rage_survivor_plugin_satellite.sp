@@ -11,6 +11,7 @@
 // Include rage/timers first - it includes rage/effects.inc which provides the timer callbacks
 #include <rage/timers>
 #include <rage/skills>
+#include <rage/validation>
 #define PLUGIN_VERSION "1.3"
 #define PLUGIN_SKILL_NAME "Satellite"
 
@@ -297,7 +298,7 @@ public Action:TraceTimerEx(Handle:timer, any:client)
 
 public Action:SatelliteTimerEx(Handle:timer, any:client)
 {
-	if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if(!IsValidAliveClient(client))
 		return;
 	
 	/* Mode: JUDGEMENT */
@@ -453,7 +454,7 @@ public Action:Event_Item_Pickup(Handle:event, const String:name[], bool:dontBroa
 /*
 public Action:OnPlayerRunCmd(client, &buttons)
 {
-	if(IsClientInGame(client) && IsPlayerAlive(client))
+	if(IsValidAliveClient(client))
 	{
 		if(GetClientTeam(client) != SURVIVOR)
 			return;
@@ -558,7 +559,7 @@ public Action:TraceTimer(Handle:timer, any:client)
 
 public Action:SatelliteTimer(Handle:timer, any:client)
 {
-	if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if(!IsValidAliveClient(client))
 		return;
 	
 	if (operation[client] != MODE_JUDGEMENT &&
@@ -615,7 +616,7 @@ public Judgement(client)
 	/* Damage to special infected */
 	for(new i = 1; i <= MaxClients; i++)
 	{
-		if(!IsClientInGame(i) || GetClientTeam(i) != 3)
+		if(!IsValidInfected(i))
 			continue;
 		
 		GetClientAbsOrigin(i, pos);

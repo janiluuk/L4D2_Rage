@@ -46,11 +46,12 @@ public void OnPluginStart()
         g_fHealingOrbCooldown = GetConVarFloat(g_hHealingOrbCooldown);
         HookConVarChange(g_hHealingOrbCooldown, OnHealingOrbCooldownChanged);
 
+        // Initialize arrays
         for (int i = 1; i <= MaxClients; ++i)
         {
                 HealingBallTimer[i] = INVALID_HANDLE;
-                g_fNextHealingOrbUse[i] = 0.0;
         }
+        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0, MAXPLAYERS+1);
 }
 
 public void OnHealingOrbCooldownChanged(Handle convar, const char[] oldValue, const char[] newValue)
@@ -101,11 +102,12 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
+        // Clean up timers and reset arrays
         for(int i = 1; i <= MaxClients; ++i)
         {
                 KillTimerSafe(HealingBallTimer[i]);
-                g_fNextHealingOrbUse[i] = 0.0;
         }
+        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0, MAXPLAYERS+1);
 }
 
 public void OnClientDisconnect(int client)
@@ -184,8 +186,7 @@ public Action HealingBallTimerFunction(Handle timer, Handle pack)
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(!IsValidClient(i) || GetClientTeam(i) != team || !IsPlayerAlive(i))
-			{
+			if(!IsValidAliveClient(i) || GetClientTeam(i) != team)
 				continue;
 			}
 			

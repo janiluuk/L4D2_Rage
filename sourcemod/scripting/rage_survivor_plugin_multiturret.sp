@@ -1586,7 +1586,7 @@ public int MenuHandler_AdvancedMachineGuns(Menu hMenu, MenuAction hAction, int P
 /****************************************************************************************************************************************/
 public Action CMD_RemoveMachine(int client, int args)
 {
-	if(client > 0 && IsClientInGame(client) && IsPlayerAlive(client))
+	if(IsValidAliveClient(client))
 	{
 		int iEntity = GetMinigun(client);
 		int iIndex = FindGunIndex(iEntity);
@@ -1603,7 +1603,7 @@ public Action CMD_RemoveMachine(int client, int args)
 			RemoveMachine(iIndex, owner);
 			CustomPrintToChat(client, "%s %t", sPluginTag, "Admin Removed Entity", owner);
 		}
-		else if(owner > 0 && IsClientInGame(owner) && IsPlayerAlive(owner))
+		else if(IsValidAliveClient(owner))
 		{
 			PrintHintText(client, "%t", "Can't Pick Up", owner);
 		}
@@ -1949,7 +1949,7 @@ void CreateMachine(int client, int iMachineGunModel, int iSpecialType = NULL)
 		return;
 	}
 
-	if(IsClientInGame(client) && IsPlayerAlive(client))
+	if(IsValidAliveClient(client))
 	{
 		if(!(GetEntityFlags(client) & FL_ONGROUND))
 			return;
@@ -2323,7 +2323,7 @@ void ScanEnemys()
 		InfectedCount = 0;
 
 	for(int i = 1; i <= MaxClients; i ++)
-		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsPlayerGhost(i))
+		if(IsValidAliveClient(i) && !IsPlayerGhost(i))
 			InfectedsArray[InfectedCount++] = i;
 	
 	int entity = -1;
@@ -2455,7 +2455,7 @@ public void PreThinkGun(int iEntity)
 		else if(GunState[index] == State_Carry)
 		{
 			int carrier = GunCarrier[index];
-			if(IsClientInGame(carrier) && IsPlayerAlive(carrier) && !IsFakeClient(carrier))
+			if(IsValidAliveClient(carrier) && !IsFakeClient(carrier))
 			{
 				Carrying(index, interval);
 			}
@@ -3047,7 +3047,7 @@ int IsEnemyVisible(int iEntity, int iNewTarget, float vStartingPos[3], float vEn
 	{
 		if(target <= MaxClients)
 		{
-			if(IsClientInGame(target) && IsPlayerAlive(target) && GetClientTeam(target) == iTeam && !IsPlayerGhost(target))
+			if(IsValidAliveClient(target) && GetClientTeam(target) == iTeam && !IsPlayerGhost(target))
 				return target;
 			else 
 				return 0;
@@ -3341,14 +3341,14 @@ int isGatlingGun(int index)
 
 bool canCarryGun(int index, int client) 
 {
- 	if (index < 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+ 	if (index < 0 || !IsValidAliveClient(client))
  		return false;
 	int owner = GunOwner[index];
 	if (isGatlingGun(index)) {
 
 		if (iCvar_MachineAllowCarryGatling == 0) return false;
 		if (iCvar_MachineAllowCarryGatling == 1) return true;
-		if (iCvar_MachineAllowCarryGatling == 2 && owner > 0 && IsClientInGame(owner) && IsPlayerAlive(owner) && owner != client) {
+		if (iCvar_MachineAllowCarryGatling == 2 && IsValidAliveClient(owner) && owner != client) {
  			return false;
  		} 
  		return true;
@@ -3358,7 +3358,7 @@ bool canCarryGun(int index, int client)
 
 		if (iCvar_MachineAllowCarry == 0) return false;
 		if (iCvar_MachineAllowCarry == 1) return true;
-		if (iCvar_MachineAllowCarry == 2 && owner > 0 && IsClientInGame(owner) && IsPlayerAlive(owner) && owner != client) {
+		if (iCvar_MachineAllowCarry == 2 && IsValidAliveClient(owner) && owner != client) {
  			return false;
  		}
  		return true;
@@ -3823,7 +3823,7 @@ public void FreezeTargets(int entity)
 	float vEnd[3];
 	for(int i = 1; i <= MaxClients; i++) 
 	{
-		if(IsClientInGame(i) && IsPlayerAlive(i) /*&& GetClientTeam(i) == TEAM_SURVIVOR*/)
+		if(IsValidAliveClient(i) /*&& GetClientTeam(i) == TEAM_SURVIVOR*/)
 		{
 			if(IsValidArrayEntity(i, entity))
 				continue;
@@ -3857,7 +3857,7 @@ public void FreezeTargets(int entity)
 
 void Freeze(int i)
 {
-	if(IsValidClient(i) && IsClientInGame(i) && IsPlayerAlive(i))
+	if(IsValidAliveClient(i))
 	{
 		if(FreezedPlayer[i] == false)
 		{
@@ -3914,7 +3914,7 @@ public Action Timer_Freeze(Handle hTimer, any EntityID)
 
 public Action TimerDefreeze(Handle hTimer, any client)
 {
-	if((client = GetClientOfUserId(client)) && IsClientInGame(client) && IsPlayerAlive(client))
+	if((client = GetClientOfUserId(client)) && IsValidAliveClient(client))
 	{
 //		if(FreezedPlayer[client] == false)
 //			return Plugin_Stop;
@@ -4230,7 +4230,7 @@ stock void CreateEffectsDamage(int entity)
 	float vEnd[3];
 	for(int i = 1; i <= MaxClients; i++) 
 	{
-		if(IsClientInGame(i) && IsPlayerAlive(i))
+		if(IsValidAliveClient(i))
 		{	
 			GetClientAbsOrigin(i, vEnd);
 			if(GetVectorDistance(vPos, vEnd) <= 250.0) 

@@ -138,12 +138,10 @@ public int OnPlayerClassChange(int client, int newClass, int previousClass)
 public void OnMapStart()
 {
     SetGlowColor();
-    for(int i = 1; i <= MaxClients; ++i)
-    {
-        g_rageActive[i] = false;
-        g_rageExtended[i] = false;
-        g_rageForever[i] = false;
-    }
+    // Reset client arrays
+    ResetClientArrayBool(g_rageActive, false, MAXPLAYERS+1);
+    ResetClientArrayBool(g_rageExtended, false, MAXPLAYERS+1);
+    ResetClientArrayBool(g_rageForever, false, MAXPLAYERS+1);
 }
 
 public void OnMapEnd()
@@ -379,15 +377,14 @@ void RemoveExtendedSight()
 {
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(g_rageActive[iClient])
-		{
-			g_rageActive[iClient] = false;
-			g_rageExtended[iClient] = false;
-			g_rageForever[iClient] = false;
-			
-			DisableGlow();
-		}
+		if(!g_rageActive[iClient])
+			continue;
+		
+		g_rageActive[iClient] = false;
+		g_rageExtended[iClient] = false;
+		g_rageForever[iClient] = false;
 	}
+	DisableGlow(); // Only need to call once
 }
 
 void SetGlow(any color, int client)
@@ -396,12 +393,15 @@ void SetGlow(any color, int client)
 
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(IsClientInGame(iClient) && IsPlayerAlive(iClient) && GetClientTeam(iClient) == 3 && g_rageActive[client] == true && color != 0 && GetEntData(iClient, g_ragePropGhost, 1)!=1)
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		if(IsValidInfected(iClient) && g_rageActive[client] == true && color != 0 && GetEntData(iClient, g_ragePropGhost, 1)!=1)
 		{
 			SetEntProp(iClient, Prop_Send, "m_iGlowType", 3);
 			SetEntProp(iClient, Prop_Send, "m_glowColorOverride", color);
 		}
-		else if(IsClientInGame(iClient))
+		else
 		{
 			SetEntProp(iClient, Prop_Send, "m_iGlowType", 0);
 			SetEntProp(iClient, Prop_Send, "m_glowColorOverride", 0);	
@@ -413,11 +413,11 @@ void DisableGlow()
 {
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(IsClientInGame(iClient))
-		{
-			SetEntProp(iClient, Prop_Send, "m_iGlowType", 0);
-			SetEntProp(iClient, Prop_Send, "m_glowColorOverride", 0);	
-		}
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		SetEntProp(iClient, Prop_Send, "m_iGlowType", 0);
+		SetEntProp(iClient, Prop_Send, "m_glowColorOverride", 0);	
 	}	
 }
 
@@ -425,13 +425,15 @@ void NotifyPlayers()
 {
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(IsClientInGame(iClient))
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		if(!IsSurvivor(iClient))
+			continue;
+		
+		if(g_rageActive[iClient] && !g_rageExtended[iClient])
 		{
-			if(GetClientTeam(iClient) == 2)
-			{
-				if(g_rageActive[iClient] && !g_rageExtended[iClient])
-				{
-					if(GetConVarInt(g_rageCvarNotify)==1)
+			if(GetConVarInt(g_rageCvarNotify)==1)
 						PrintHintText(iClient, "%t", "ACTIVATED");
 					else
 						PrintToChat(iClient, "%t", "ACTIVATED");

@@ -819,7 +819,7 @@ public OnGameFrame()
 	{
 		//If the selected client was 0 or wasn't in game, discart
 		//Checks: Is a survivor, is alive, is in game, has berserker running and the required convar is enabled
-		if(i > 0 && IsValidEntity(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && IsClientInGame(i) && g_bHasBerserker[i] && GetConVarBool(g_cvarShovePenalty))
+		if(IsValidSurvivor(i, true) && g_bHasBerserker[i] && GetConVarBool(g_cvarShovePenalty))
 		{
 			//If the player is pressing the right click of the mouse, proceed
 			if(GetClientButtons(i) & IN_ATTACK2)
@@ -1025,7 +1025,7 @@ public Action:CmdDebugReport(client, args)
 	decl String:weapon[256]; 
 	decl String:godmode[30];
 	decl String:exinfectedED[256];
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	GetConVarString(g_cvarEDExInfected, exinfectedED, sizeof(exinfectedED));
 	if( StrContains( exinfectedED, "boomer" ) != -1) 
 	{
@@ -1348,7 +1348,7 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 		else if(GetConVarBool(g_cvarInfectedEnable) && g_iTeam[iAttacker] == 3)
 		{
 	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
-			if(GetClientTeam(iVictim) == 2)
+			if(IsSurvivor(iVictim))
 			{
 	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 				if(!g_bHasBerserker[iAttacker] && !g_bBerserkerEnabled[iAttacker])
@@ -2102,7 +2102,7 @@ public Action:BeginBerserkerMode(client)
 		{
 			case 1:
 			{
-				if(GetClientTeam(client) == 2 && GetConVarBool(g_cvarYellSurvivor) || GetClientTeam(client) == 3 && GetConVarBool(g_cvarYellInfected))
+				if((IsSurvivor(client) && GetConVarBool(g_cvarYellSurvivor)) || (IsValidInfected(client) && GetConVarBool(g_cvarYellInfected)))
 				{
 					Yell(client);
 					g_bDidYell[client] = true;
@@ -2113,7 +2113,7 @@ public Action:BeginBerserkerMode(client)
 	}
 	//Survivors
 	g_iTeam[client] = GetClientTeam(client);
-	if((g_iTeam[client] == 2) && (IsClientInGame(client)) && (IsPlayerAlive(client)))
+	if((g_iTeam[client] == 2) && IsValidAliveClient(client))
 	{
 		g_iZerkTime[client] = GetConVarInt(g_cvarSurvivorDuration);
 		PrintHintTextToAll("\x04%N went into berzerk mode!", client);
@@ -2240,7 +2240,7 @@ public Action:BeginBerserkerMode(client)
 	}
 	
 	//Infected
-	else if((g_iTeam[client] == 3) && (IsClientInGame(client)) && (!GetEntProp(client, Prop_Send, "m_isIncapacitated")) && (IsPlayerAlive(client)))
+	else if((g_iTeam[client] == 3) && IsValidAliveClient(client) && (!GetEntProp(client, Prop_Send, "m_isIncapacitated")))
 	{
 		if(GetConVarBool(g_cvarAdvEffectInfected))
 		{
@@ -2532,7 +2532,7 @@ public Action:ResetDamageCount(Handle:timer, any:attacker)
 //Timer - Will set the default color again in case it has not come back yet
 public Action:timerRestoreColor(Handle:timer, any:client)
 {
-	if(client > 0 && IsValidEntity(client) && IsClientInGame(client) && GetClientTeam(client) != 1 && IsPlayerAlive(client))
+	if(IsValidAliveClient(client) && GetClientTeam(client) != 1)
 	{
 		SetEntityRenderColor(client, 255, 255, 255, 255);
 		SetEntityRenderColor(client, 255, 255, 255, 255);
@@ -2669,7 +2669,7 @@ stock bool:IsValidBulletBased(String:weapon[])
 //On the start of a reload
 AdrenReload (client)
 {
-	if (GetClientTeam(client) == 2)
+	if (IsSurvivor(client))
 	{
 	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		new iEntid = GetEntDataEnt2(client, g_iActiveWO);
@@ -3043,7 +3043,7 @@ MA_Rebuild ()
 	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	for (new iI=1 ; iI<=MaxClients ; iI++)
 	{
-		if (IsClientInGame(iI)==true && IsPlayerAlive(iI)==true && GetClientTeam(iI)==2 && g_bHasBerserker[iI])
+		if (IsValidSurvivor(iI, true) && g_bHasBerserker[iI])
 		{
 			g_iMARegisterCount++;
 			g_iMARegisterIndex[g_iMARegisterCount]=iI;
@@ -3077,7 +3077,7 @@ DT_Rebuild ()
 	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	for (new iI=1 ; iI<=MaxClients ; iI++)
 	{
-		if (IsClientInGame(iI)==true && IsPlayerAlive(iI)==true && GetClientTeam(iI)==2 && g_bHasBerserker[iI])
+		if (IsValidSurvivor(iI, true) && g_bHasBerserker[iI])
 		{
 			g_iDTRegisterCount++;
 			g_iDTRegisterIndex[g_iDTRegisterCount]=iI;
@@ -3372,7 +3372,7 @@ DT_OnGameFrame()
 IsRestrictedED(client)
 {
 	decl String:weapon[256];
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3420,7 +3420,7 @@ IsRestrictedED(client)
 IsRestrictedLB(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3468,7 +3468,7 @@ IsRestrictedLB(client)
 IsRestrictedEIH(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3516,7 +3516,7 @@ IsRestrictedEIH(client)
 IsRestrictedFS(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3564,7 +3564,7 @@ IsRestrictedFS(client)
 IsRestrictedBY(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3616,7 +3616,7 @@ IsRestrictedALL(client)
 	{
 		return -1;
 	}
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -4153,7 +4153,7 @@ GetTankCount()
 	new count = 0;
 	for(new i=1 ; i<=MaxClients ; i++)
 	{
-		if(i > 0 && IsClientConnected(i) && IsValidEntity(i) && IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 3)
+		if(IsValidInfected(i))
 		{
 			decl String:weapon[128];
 			new entity = GetEntDataEnt2(i, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
@@ -4192,7 +4192,7 @@ stock Yell(client)
 		//Find any possible colliding clients.
 		for(new i=1; i<=MaxClients; i++)
 		{
-			if(i == 0 || !IsValidEntity(i) || !IsClientInGame(i) || !IsPlayerAlive(i))
+			if(!IsValidAliveClient(i))
 			{
 				continue;
 			}
@@ -4228,7 +4228,7 @@ stock Yell(client)
 		//Find any possible colliding clients.
 		for(new i=1; i<=MaxClients; i++)
 		{
-			if(i == 0 || !IsValidEntity(i) || !IsClientInGame(i) || !IsPlayerAlive(i))
+			if(!IsValidAliveClient(i))
 			{
 				continue;
 			}

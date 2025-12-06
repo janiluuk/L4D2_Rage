@@ -186,13 +186,14 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
+	// Reset client arrays
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		KillTimerSafe(g_hClientTimer[i]);
-		g_iChargeEndTime[i] = 0;
-		g_iReleaseLock[i] = 0;
-		g_iChargeLock[i] = 0;
 	}
+	ResetClientArray(g_iChargeEndTime);
+	ResetClientArray(g_iReleaseLock);
+	ResetClientArray(g_iChargeLock);
 }
 
 public void OnClientDisconnect(int client)
@@ -209,21 +210,22 @@ public void OnClientDisconnect(int client)
 
 void InitCharge()
 {
+	// Reset client arrays
+	ResetClientArray(g_iChargeEndTime);
+	ResetClientArray(g_iReleaseLock);
+	ResetClientArray(g_iChargeLock);
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		g_iChargeEndTime[i] = 0;
-		g_iReleaseLock[i] = 0;
-		g_iChargeLock[i] = 0;
 		g_hClientTimer[i] = INVALID_HANDLE;
 	}
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidClient(i) && GetClientTeam(i) == 2)
-		{
-			KillTimerSafe(g_hClientTimer[i]);
-			g_hClientTimer[i] = CreateTimer(0.5, ChargeTimer, i, TIMER_REPEAT);
-		}
+		if (!IsSurvivor(i))
+			continue;
+		
+		KillTimerSafe(g_hClientTimer[i]);
+		g_hClientTimer[i] = CreateTimer(0.5, ChargeTimer, i, TIMER_REPEAT);
 	}
 }
 
@@ -263,7 +265,7 @@ public Action Event_Player_Spawn(Handle event, const char[] name, bool dontBroad
 {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	
-	if (IsValidClient(client) && GetClientTeam(client) == 2)
+	if (IsSurvivor(client))
 	{
 		KillTimerSafe(g_hClientTimer[client]);
 		g_iChargeLock[client] = 0;
@@ -357,7 +359,7 @@ public Action Event_Player_Hurt(Handle event, const char[] name, bool dontBroadc
 
 public Action Timer_Damage(Handle timer, any target)
 {
-	if (IsClientInGame(target) && IsPlayerAlive(target))
+	if (IsValidAliveClient(target))
 	{
 		int health = GetClientHealth(target);
 		int damage = g_cvarLethalDamage.IntValue;

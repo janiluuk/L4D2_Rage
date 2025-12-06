@@ -8,7 +8,7 @@
 *	(at your option) any later version.
 *
 *	This program is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
+*	but WITHOUT ANY WARRAFcNTY; without even the implied warranty of
 *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *	GNU General Public License for more details.
 *
@@ -312,6 +312,7 @@
 #include <rage/skills>
 #include <rage/debug>
 #include <rage/effects>
+#include <rage/validation>
 
 // SetTeleportEndPoint is provided by rage/effects.inc as SetClientLocation
 #define SetTeleportEndPoint SetClientLocation
@@ -1307,7 +1308,7 @@ public int OnCustomCommand(char[] name, int client, int entity, int type)
 		return -1;
 	}
 
-	if (!client || !IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2) {
+	if (!IsValidSurvivor(client, true)) {
 		return -1;
 	}
 	
@@ -1381,7 +1382,7 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 		return 0;
 	}
 
-	if (!client || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if (!IsValidAliveClient(client))
 	{
 		return 0;
 	}
@@ -1502,22 +1503,22 @@ void IsAllowed()
 			HookEvent("player_spawn",		Event_PlayerSpawn); // Chemical Mode - Acid damage
 		}
 
-		for( int i = 1; i <= MaxClients; i++ )
-		{
-			if( IsClientInGame(i) )
-			{
-				// Hook WeaponEquip, get cookies
-				OnClientPutInServer(i);
-				OnClientCookiesCached(i);
-				SetCurrentNadePref(i);
+	for( int i = 1; i <= MaxClients; i++ )
+	{
+		if( !IsClientInGame(i) )
+			continue;
+		
+		// Hook WeaponEquip, get cookies
+		OnClientPutInServer(i);
+		OnClientCookiesCached(i);
+		SetCurrentNadePref(i);
 
-				// Chemical Mode - Acid damage
-				if( g_bLeft4Dead2 )
-				{
-					SDKHook(i, SDKHook_OnTakeDamage, OnPlayerDamage);
-				}
-			}
+		// Chemical Mode - Acid damage
+		if( g_bLeft4Dead2 )
+		{
+			SDKHook(i, SDKHook_OnTakeDamage, OnPlayerDamage);
 		}
+	}
 
 		// Chemical Mode - Acid damage
 		if( g_bLeft4Dead2 )
@@ -1553,9 +1554,7 @@ void IsAllowed()
 			for( int i = 1; i <= MaxClients; i++ )
 			{
 				if( IsClientInGame(i) )
-				{
 					SDKUnhook(i, SDKHook_OnTakeDamage, OnPlayerDamage);
-				}
 			}
 
 			// Chemical Mode - Acid damage
@@ -2372,19 +2371,23 @@ void ResetPlugin(bool all = false)
 		g_hAlFireType = new ArrayList();
 	}
 
-	for( int i = 1; i <= MaxClients; i++ )
-	{
-		g_bChangingTypesMenu[i] = false;
-		g_fLastEquip[i] = 0.0;
-		g_fLastFreeze[i] = 0.0;
-		g_fLastShield[i] = 0.0;
-		g_fLastUse[i] = 0.0;
+	// Reset client arrays
+	ResetClientArrayBool(g_bChangingTypesMenu, false);
+	ResetClientArrayFloat(g_fLastEquip);
+	ResetClientArrayFloat(g_fLastFreeze);
+	ResetClientArrayFloat(g_fLastShield);
+	ResetClientArrayFloat(g_fLastUse);
 
-		if( all )
+	if( all )
+	{
+		for( int i = 1; i <= MaxClients; i++ )
 		{
-			SDKUnhook(i, SDKHook_WeaponEquip,		OnWeaponEquip);
-			SDKUnhook(i, SDKHook_WeaponDrop,		OnWeaponDrop);
-			SDKUnhook(i, SDKHook_OnTakeDamage,		OnPlayerDamage);
+			if( IsClientInGame(i) )
+			{
+				SDKUnhook(i, SDKHook_WeaponEquip,		OnWeaponEquip);
+				SDKUnhook(i, SDKHook_WeaponDrop,		OnWeaponDrop);
+				SDKUnhook(i, SDKHook_OnTakeDamage,		OnPlayerDamage);
+			}
 		}
 	}
 
@@ -2417,7 +2420,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		if( holdingCTRL && !wasHoldingCTRL )
 		{
 			// Just pressed CTRL - show menu
-			int iWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+			int iWeapon = GetClientActiveWeapon(client);
 			if( iWeapon > MaxClients && IsValidEntity(iWeapon) )
 			{
 				int type = IsGrenade(iWeapon);
@@ -2455,7 +2458,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 					g_fLastUse[client] = GetGameTime();
 
 					// Validate weapon
-					int iWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+					int iWeapon = GetClientActiveWeapon(client);
 					if( iWeapon > MaxClients && IsValidEntity(iWeapon) && CheckCommandAccess(client, "sm_grenade", 0) == true )
 					{
 						int type = IsGrenade(iWeapon);
@@ -3532,7 +3535,7 @@ Action OnPlayerDamage(int victim, int &attacker, int &inflictor, float &damage, 
 {
 	// SHIELD
 	// Check hook time
-	if( GetGameTime() - g_fLastShield[victim] <= 0.5 && GetClientTeam(victim) == 2 )
+	if( GetGameTime() - g_fLastShield[victim] <= 0.5 && IsSurvivor(victim) )
 	{
 		damage *= (100 - g_GrenadeData[INDEX_SHIELD][CONFIG_DAMAGE]) / 100;
 		if( damage < 0.0 ) damage = 0.0;
@@ -3850,7 +3853,7 @@ void Explode_Shield(int entity, int index, bool fromTimer)
 
 void OnTouchTriggerShield(int target)
 {
-	if( target <= MaxClients && GetClientTeam(target) == 2 )
+	if( target <= MaxClients && IsSurvivor(target) )
 	{
 		g_fLastShield[target] = GetGameTime();
 	}
@@ -4099,7 +4102,7 @@ void OnTouchTriggerFreezer(int target)
 
 Action TimerFreezer(Handle timer, int client)
 {
-	if( (client = GetClientOfUserId(client)) && IsClientInGame(client) && IsPlayerAlive(client) )
+	if( (client = GetClientOfUserId(client)) && IsValidAliveClient(client) )
 	{
 		if( GetGameTime() - g_fLastFreeze[client] < g_fConfigFreezeTime )
 		{
@@ -4155,15 +4158,17 @@ void Explode_Medic(int entity, int index)
 	// Survivors and Special Infected
 	for( int i = 1; i <= MaxClients; i++ )
 	{
-		if( IsClientInGame(i) && IsPlayerAlive(i) )
-		{
-			team = GetClientTeam(i);
-			if( team == 2 && targ & (1<<TARGET_SURVIVOR) )
-				pass = true;
-			else if( team == 3 && targ & (1<<TARGET_SPECIAL) && GetEntProp(i, Prop_Send, "m_zombieClass") != g_iClassTank )
-				pass = true;
-			else if( team == 3 && targ & (1<<TARGET_TANK) && GetEntProp(i, Prop_Send, "m_zombieClass") == g_iClassTank )
-				pass = true;
+		if( !IsValidAliveClient(i) )
+			continue;
+		
+		team = GetClientTeam(i);
+		pass = false;
+		if( team == 2 && targ & (1<<TARGET_SURVIVOR) )
+			pass = true;
+		else if( team == 3 && targ & (1<<TARGET_SPECIAL) && GetEntProp(i, Prop_Send, "m_zombieClass") != g_iClassTank )
+			pass = true;
+		else if( team == 3 && targ & (1<<TARGET_TANK) && GetEntProp(i, Prop_Send, "m_zombieClass") == g_iClassTank )
+			pass = true;
 
 			if( pass )
 			{
@@ -5108,12 +5113,14 @@ void CreateGrenadeExplosion(int client, int entity, int index, float range = 0.0
 
 		for( i = 1; i <= MaxClients; i++ )
 		{
-			if( IsClientInGame(i) && IsPlayerAlive(i) )
+			if( !IsValidAliveClient(i) )
+				continue;
+			
+			team = GetClientTeam(i);
+			if( team == 2 ? targ & (1<<TARGET_SURVIVOR) : targ & (1<<TARGET_SPECIAL) )
 			{
-				team = GetClientTeam(i);
-				if( team == 2 ? targ & (1<<TARGET_SURVIVOR) : targ & (1<<TARGET_SPECIAL) )
-				{
-					if( team == 3 && GetEntProp(i, Prop_Send, "m_isGhost") == 1 ) continue; // Ignore ghosts
+				if( team == 3 && IsPlayerGhost(i) )
+					continue; // Ignore ghosts
 	
 					GetEntPropVector(i, Prop_Data, "m_vecOrigin", vEnd);
 					fDistance = GetVectorDistance(vPos, vEnd);

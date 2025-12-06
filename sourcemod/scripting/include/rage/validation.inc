@@ -325,3 +325,63 @@ stock bool IsValidArrayIndex(int index, int arraySize)
 {
     return (index >= 0 && index < arraySize);
 }
+
+/**
+ * Gets a client's active weapon entity.
+ * 
+ * @param client    Client index
+ * @return          Entity index of active weapon, or -1 if invalid
+ */
+stock int GetClientActiveWeapon(int client)
+{
+    if (!IsValidClient(client))
+        return -1;
+    
+    return GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+}
+
+/**
+ * Resets an array to a default value for all client indices.
+ * Useful in OnMapEnd/OnClientDisconnect cleanup.
+ * 
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1] or similar)
+ * @param value     Value to set (default: 0)
+ * @param size      Size of array (default: MAXPLAYERS+1)
+ */
+stock void ResetClientArray(int array[], int value = 0, int size = MAXPLAYERS+1)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = value;
+    }
+}
+
+/**
+ * Resets a float array to a default value for all client indices.
+ * 
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1] or similar)
+ * @param value     Value to set (default: 0.0)
+ * @param size      Size of array (default: MAXPLAYERS+1)
+ */
+stock void ResetClientArrayFloat(float array[], float value = 0.0, int size = MAXPLAYERS+1)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = value;
+    }
+}
+
+/**
+ * Resets a bool array to a default value for all client indices.
+ * 
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1] or similar)
+ * @param value     Value to set (default: false)
+ * @param size      Size of array (default: MAXPLAYERS+1)
+ */
+stock void ResetClientArrayBool(bool array[], bool value = false, int size = MAXPLAYERS+1)
+{
+    for (int i = 0; i < size; i++)
+    {
+        array[i] = value;
+    }
+}
