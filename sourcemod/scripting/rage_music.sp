@@ -549,10 +549,7 @@ public void OnClientPutInServer(int client)
     if (client > 0 && client <= MaxClients && !IsFakeClient(client))
     {
         // Kill existing timer before creating new one
-        if (g_rageTimerMusic[client] != INVALID_HANDLE)
-        {
-            KillTimer(g_rageTimerMusic[client]);
-        }
+        KillTimerSafe(g_rageTimerMusic[client]);
         g_rageTimerMusic[client] = CreateTimer(g_rageCvarDelay.FloatValue, Timer_PlayMusic, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
     }
 }

@@ -38,6 +38,18 @@ public Plugin myinfo =
 #include <rage/debug>
 #include <rage_menus/rage_menu_base>
 
+// KillTimerSafe helper (rage/validation conflicts with jutils.inc's IsValidClient)
+stock bool KillTimerSafe(Handle &timer)
+{
+    if (timer != null && timer != INVALID_HANDLE)
+    {
+        KillTimer(timer);
+        timer = null;
+        return true;
+    }
+    return false;
+}
+
 // Global variables - MUST be declared before <talents> which includes <rage/menus>
 // Using hardcoded sizes since constants are defined later
 char g_ClassDescriptions[8][128];  // MAXCLASSES = 8, CLASS_DESCRIPTION_LENGTH = 128
@@ -921,11 +933,7 @@ public ResetClientVariables(client)
 	g_bDeployMenuOpen[client] = false;
 	
 	// Properly clean up timer
-	if (g_ReadyTimer[client] != null) 
-	{ 
-		KillTimer(g_ReadyTimer[client]);
-		g_ReadyTimer[client] = null;
-	}
+	KillTimerSafe(g_ReadyTimer[client]);
 }
 
 public ClearCache()

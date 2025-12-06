@@ -670,8 +670,8 @@ void DeadRingerUncloak(int client, bool killtimer = true)
 	SetTransmit(client, false);
 	DoStuffToWeapons(client, false);
 	ApplyEffectsToEntity(client, false);
-	if (g_UncloakTimer[client] != null && killtimer)
-	{ KillTimer(g_UncloakTimer[client]); }
+	if (killtimer)
+	{ KillTimerSafe(g_UncloakTimer[client]); }
 	if (IsPlayerAlive(client)) {
 		//SetEntityRenderColor(client, 255, 255, 255, 255);
 	}
@@ -1235,15 +1235,9 @@ int TriggerDeadRinger(int client, bool hint, bool clean, bool override, bool ove
 		{ PrintHintText(client, ACTIVE_STR); }
 		if (clean)
 		{
-			if (g_UncloakTimer[client] != null)
-			{ KillTimer(g_UncloakTimer[client], true); }
-			if (g_BoostTimer[client] != null)
-			{ KillTimer(g_BoostTimer[client], true); }
-			if (g_ReadyTimer[client] != null)
-			{ KillTimer(g_ReadyTimer[client], true); }
-			g_UncloakTimer[client] = null;
-			g_BoostTimer[client] = null;
-			g_ReadyTimer[client] = null;
+			KillTimerSafe(g_UncloakTimer[client]);
+			KillTimerSafe(g_BoostTimer[client]);
+			KillTimerSafe(g_ReadyTimer[client]);
 		}
 		return 1;
 	}
@@ -1256,15 +1250,9 @@ int TriggerDeadRinger(int client, bool hint, bool clean, bool override, bool ove
 		{ PrintHintText(client, INACTIVE_STR); }
 		if (clean)
 		{
-			if (g_UncloakTimer[client] != null)
-			{ KillTimer(g_UncloakTimer[client], true); }
-			if (g_BoostTimer[client] != null)
-			{ KillTimer(g_BoostTimer[client], true); }
-			if (g_ReadyTimer[client] != null)
-			{ KillTimer(g_ReadyTimer[client], true); }
-			g_UncloakTimer[client] = null;
-			g_BoostTimer[client] = null;
-			g_ReadyTimer[client] = null;
+			KillTimerSafe(g_UncloakTimer[client]);
+			KillTimerSafe(g_BoostTimer[client]);
+			KillTimerSafe(g_ReadyTimer[client]);
 			//Hook_Manager_AliveProp(client, false);
 		}
 		return 0;

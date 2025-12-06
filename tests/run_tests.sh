@@ -81,11 +81,20 @@ test_patterns_in_file() {
 # Function to check compilation
 test_compilation() {
     local plugin="$1"
-    local sp_file="sourcemod/scripting/$plugin.sp"
+    local sp_file=""
     local smx_file="sourcemod/plugins/$plugin.smx"
     
-    if [ ! -f "$sp_file" ]; then
-        echo "Plugin source not found: $sp_file"
+    # Check in root scripting directory first
+    if [ -f "sourcemod/scripting/$plugin.sp" ]; then
+        sp_file="sourcemod/scripting/$plugin.sp"
+    # Check in plugins subdirectory
+    elif [ -f "sourcemod/scripting/plugins/$plugin.sp" ]; then
+        sp_file="sourcemod/scripting/plugins/$plugin.sp"
+    # Check in gamemodes subdirectory
+    elif [ -f "sourcemod/scripting/gamemodes/$plugin.sp" ]; then
+        sp_file="sourcemod/scripting/gamemodes/$plugin.sp"
+    else
+        echo "Plugin source not found: $plugin.sp (checked root, plugins/, and gamemodes/)"
         return 1
     fi
     
@@ -117,11 +126,11 @@ echo -e "${YELLOW}=== Critical Test Cases ===${NC}\n"
 
 # Test 1: Client Disconnect Cleanup - Check for timer cleanup
 run_test "Timer Cleanup on Disconnect" \
-    "test_patterns_in_file 'sourcemod/scripting/rage_survivor_multiple_equipment.sp' 'OnClientDisconnect_Post' 'ME_Notify'"
+    "test_patterns_in_file 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp' 'OnClientDisconnect_Post' 'ME_Notify'"
 
 # Test 2: Entity Cleanup on Disconnect
 run_test "Entity Cleanup on Disconnect" \
-    "test_patterns_in_file 'sourcemod/scripting/rage_survivor_multiple_equipment.sp' 'OnClientDisconnect_Post' 'RemoveItemAttach'"
+    "test_patterns_in_file 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp' 'OnClientDisconnect_Post' 'RemoveItemAttach'"
 
 # Test 3: Input Handling - Check CTRL/SHIFT handling
 run_test "Input Handling (CTRL/SHIFT)" \
@@ -133,7 +142,7 @@ run_test "Skill Registration System" \
 
 # Test 5: Menu Sync - Check cookie usage
 run_test "Menu Preference Persistence" \
-    "test_patterns_in_file 'sourcemod/scripting/rage_survivor_menu.sp' 'GetClientCookie' && (test_pattern_in_file 'sourcemod/scripting/include/rage_survivor_menu_multiequip.inc' 'SetClientCookie' || test_pattern_in_file 'sourcemod/scripting/rage_survivor_menu.sp' 'SetClientCookie')"
+    "test_patterns_in_file 'sourcemod/scripting/rage_survivor_menu.sp' 'GetClientCookie' && test_pattern_in_file 'sourcemod/scripting/include/rage_menus/rage_survivor_menu_multiequip.inc' 'SetClientCookie'"
 
 # Test 6: LMC Availability - Check conditional compilation
 run_test "LMC Conditional Compilation" \
@@ -155,7 +164,7 @@ run_test "Timer Cleanup Pattern" \
 
 # Test 9: Entity Reference Cleanup
 run_test "Entity Reference Cleanup" \
-    "test_pattern_in_file 'sourcemod/scripting/rage_survivor_multiple_equipment.sp' 'MEIndex.*= 0'"
+    "test_pattern_in_file 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp' 'MEIndex.*= 0'"
 
 # ===================================================================
 # Integration Tests
@@ -173,7 +182,7 @@ run_test "Admin Menu Integration" \
 
 # Test 12: Multiple Equipment Integration
 run_test "Multiple Equipment Integration" \
-    "test_file_exists 'sourcemod/scripting/rage_survivor_multiple_equipment.sp'"
+    "test_file_exists 'sourcemod/scripting/plugins/rage_plugin_multiple_equipment.sp'"
 
 # Test 13: Rage System Natives
 run_test "Rage System Natives" \
@@ -195,11 +204,11 @@ run_test "Menu Plugin Compilation" \
 
 # Test 16: Admin Menu Compilation
 run_test "Admin Menu Compilation" \
-    "test_compilation 'rage_admin_menu'"
+    "test_compilation 'rage_menu_admin'"
 
 # Test 17: Multiple Equipment Compilation
 run_test "Multiple Equipment Compilation" \
-    "test_compilation 'rage_survivor_multiple_equipment'"
+    "test_compilation 'rage_plugin_multiple_equipment'"
 
 # ===================================================================
 # Configuration Tests

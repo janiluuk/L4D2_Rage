@@ -58,7 +58,8 @@ void MultiEquip_OnCookiesCached(int client)
     }
     else
     {
-        g_MultiEquipMode[client] = ME_Off;
+        // Default to Single Tap mode instead of Off
+        g_MultiEquipMode[client] = ME_SingleTap;
     }
 
     MultiEquip_Apply(client);
@@ -103,7 +104,7 @@ void MultiEquip_Apply(int client)
         // Unhook if previously hooked
         SDKUnhook(client, SDKHook_WeaponCanUse, MultiEquip_OnWeaponCanUse);
         // Show notification that mode is off
-        PrintHintText(client, "Equipment mode: Off");
+        PrintHintText(client, "Quick switch disabled - normal item pickup");
     }
     else
     {
@@ -114,11 +115,11 @@ void MultiEquip_Apply(int client)
         // Show hint text summarizing the mode
         if (g_MultiEquipMode[client] == ME_SingleTap)
         {
-            PrintHintText(client, "Equipment mode: Single Tap");
+            PrintHintText(client, "Quick switch enabled - tap once to swap items");
         }
         else if (g_MultiEquipMode[client] == ME_DoubleTap)
         {
-            PrintHintText(client, "Equipment mode: Double Tap");
+            PrintHintText(client, "Double tap enabled - tap twice to swap items");
         }
     }
 

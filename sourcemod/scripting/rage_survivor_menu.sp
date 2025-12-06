@@ -556,7 +556,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         if (!CheckCommandAccess(client, "sm_adm", ADMFLAG_ROOT))
         {
-            PrintHintText(client, "Admin-only option.");
+            PrintHintText(client, "This option is only available to admins.");
             return;
         }
         
@@ -569,7 +569,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         if (!Kits_CanUseKit(client))
         {
-            PrintHintText(client, "out of kits");
+            PrintHintText(client, "You're out of kits. Please wait for more to become available.");
             return;
         }
 
@@ -586,20 +586,20 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     }
     else if (menuOption == Menu_SelectTeam)
     {
-        PrintHintText(client, "Team selection is not available in this menu.");
+        PrintHintText(client, "Team selection is not available here. Use the main menu instead.");
         return;
     }
     else if (menuOption == Menu_ChangeClass)
     {
         if (value < 0 || value >= CLASS_OPTION_COUNT)
         {
-            PrintHintText(client, "Choose a class with left/right to apply it.");
+            PrintHintText(client, "Please select a class using the left/right arrows.");
             return;
         }
 
         if (value == 0)
         {
-            PrintHintText(client, "No class selected yet.");
+            PrintHintText(client, "No class selected. Please choose one first.");
             return;
         }
 
@@ -630,7 +630,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         // value: 0 = Change Map, 1+ = Gamemode index (1 = Versus, 2 = Competitive, etc.)
         if (value < 0)
         {
-            PrintHintText(client, "Invalid vote option.");
+            PrintHintText(client, "Something went wrong. Please try again.");
             return;
         }
         
@@ -653,7 +653,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             }
             else
             {
-                PrintHintText(client, "Invalid gamemode selection.");
+                PrintHintText(client, "Something went wrong. Please try again.");
             }
         }
         return;
@@ -687,7 +687,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         if (value < 0 || value > 2)
         {
-            PrintHintText(client, "Invalid camera selection.");
+            PrintHintText(client, "Something went wrong. Please try again.");
             return;
         }
 
@@ -713,7 +713,7 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
     {
         if (value < 0 || value > 2)
         {
-            PrintHintText(client, "Invalid equipment mode selection.");
+            PrintHintText(client, "Something went wrong. Please try again.");
             return;
         }
 
@@ -728,19 +728,19 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
             case ME_Off:
             {
                 strcopy(modeName, sizeof(modeName), "Off");
-                PrintHintText(client, "Equipment mode: Off");
+                PrintHintText(client, "Quick switch disabled - normal item pickup");
             }
             case ME_SingleTap:
             {
                 strcopy(modeName, sizeof(modeName), "Single Tap");
                 tapCount = 1;
-                PrintHintText(client, "Equipment mode: Single Tap");
+                PrintHintText(client, "Quick switch enabled - tap once to swap items");
             }
             case ME_DoubleTap:
             {
                 strcopy(modeName, sizeof(modeName), "Double Tap");
                 tapCount = 2;
-                PrintHintText(client, "Equipment mode: Double Tap");
+                PrintHintText(client, "Double tap enabled - tap twice to swap items");
             }
         }
 

@@ -264,10 +264,9 @@ public Action TimerChangeGlow(Handle timer, Handle hPack)
 		int color = CalculateFadeColor(fadeStep);
 		SetGlow(color, client);
 	}
-	else if (g_rageTimer[client] != INVALID_HANDLE)
+	else
 	{
-		KillTimer(g_rageTimer[client]);
-		g_rageTimer[client] = INVALID_HANDLE;
+		KillTimerSafe(g_rageTimer[client]);
 	}
 
 	CloseHandle(hPack);
@@ -325,10 +324,9 @@ public Action TimerGlowFading(Handle timer, int userId)
 		int color = CalculateFadeColor(g_rageFadeStep[client]);
 		SetGlow(color, client);
 	}
-	else if (g_rageTimer[client] != INVALID_HANDLE)
+	else
 	{
-		KillTimer(g_rageTimer[client]);
-		g_rageTimer[client] = INVALID_HANDLE;
+		KillTimerSafe(g_rageTimer[client]);
 		return Plugin_Stop;
 	}
 	return Plugin_Continue;
@@ -345,11 +343,7 @@ void AddExtendedSight(float time, int client)
 
 	if(g_rageActive[client])
 	{		
-		if (g_rageRemoveTimer[client] != INVALID_HANDLE)
-		{
-			KillTimer(g_rageRemoveTimer[client]);
-			g_rageRemoveTimer[client] = INVALID_HANDLE;	
-		}
+		KillTimerSafe(g_rageRemoveTimer[client]);
 		g_rageExtended[client] = true;
 	}
 	
