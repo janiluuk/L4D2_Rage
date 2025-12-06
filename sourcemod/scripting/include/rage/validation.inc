@@ -344,13 +344,12 @@ stock int GetClientActiveWeapon(int client)
  * Resets an array to a default value for all client indices.
  * Useful in OnMapEnd/OnClientDisconnect cleanup.
  * 
- * @param array     Array to reset (must be declared with [MAXPLAYERS+1] or similar)
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1])
  * @param value     Value to set (default: 0)
- * @param size      Size of array (default: MAXPLAYERS+1)
  */
-stock void ResetClientArray(int array[], int value = 0, int size = MAXPLAYERS+1)
+stock void ResetClientArray(int array[MAXPLAYERS+1], int value = 0)
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i <= MAXPLAYERS; i++)
     {
         array[i] = value;
     }
@@ -359,13 +358,12 @@ stock void ResetClientArray(int array[], int value = 0, int size = MAXPLAYERS+1)
 /**
  * Resets a float array to a default value for all client indices.
  * 
- * @param array     Array to reset (must be declared with [MAXPLAYERS+1] or similar)
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1])
  * @param value     Value to set (default: 0.0)
- * @param size      Size of array (default: MAXPLAYERS+1)
  */
-stock void ResetClientArrayFloat(float array[], float value = 0.0, int size = MAXPLAYERS+1)
+stock void ResetClientArrayFloat(float array[MAXPLAYERS+1], float value = 0.0)
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i <= MAXPLAYERS; i++)
     {
         array[i] = value;
     }
@@ -374,13 +372,12 @@ stock void ResetClientArrayFloat(float array[], float value = 0.0, int size = MA
 /**
  * Resets a bool array to a default value for all client indices.
  * 
- * @param array     Array to reset (must be declared with [MAXPLAYERS+1] or similar)
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1])
  * @param value     Value to set (default: false)
- * @param size      Size of array (default: MAXPLAYERS+1)
  */
-stock void ResetClientArrayBool(bool array[], bool value = false, int size = MAXPLAYERS+1)
+stock void ResetClientArrayBool(bool array[MAXPLAYERS+1], bool value = false)
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i <= MAXPLAYERS; i++)
     {
         array[i] = value;
     }

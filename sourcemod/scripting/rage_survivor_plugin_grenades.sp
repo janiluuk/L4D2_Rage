@@ -2373,10 +2373,10 @@ void ResetPlugin(bool all = false)
 
 	// Reset client arrays
 	ResetClientArrayBool(g_bChangingTypesMenu, false);
-	ResetClientArrayFloat(g_fLastEquip);
-	ResetClientArrayFloat(g_fLastFreeze);
-	ResetClientArrayFloat(g_fLastShield);
-	ResetClientArrayFloat(g_fLastUse);
+	ResetClientArrayFloat(g_fLastEquip, 0.0);
+	ResetClientArrayFloat(g_fLastFreeze, 0.0);
+	ResetClientArrayFloat(g_fLastShield, 0.0);
+	ResetClientArrayFloat(g_fLastUse, 0.0);
 
 	if( all )
 	{
@@ -4170,62 +4170,59 @@ void Explode_Medic(int entity, int index)
 		else if( team == 3 && targ & (1<<TARGET_TANK) && GetEntProp(i, Prop_Send, "m_zombieClass") == g_iClassTank )
 			pass = true;
 
-			if( pass )
+		if( pass )
+		{
+			GetClientAbsOrigin(i, vEnd);
+			if( GetVectorDistance(vPos, vEnd) <= fRange )
 			{
-				GetClientAbsOrigin(i, vEnd);
-				if( GetVectorDistance(vPos, vEnd) <= fRange )
+				// Check for Black and White health:
+				bool bBlackAndWhite;
+				if( team == 2 )
 				{
-					// Check for Black and White health:
-					bool bBlackAndWhite;
-					if( team == 2 )
-					{
 						if( g_bLeft4Dead2 )
 							bBlackAndWhite = view_as<bool>(GetEntProp(i, Prop_Send, "m_bIsOnThirdStrike", 1));
 						else
 							bBlackAndWhite = GetEntProp(i, Prop_Send, "m_currentReviveCount") >= GetMaxReviveCount();
 					}
 
-					if( bBlackAndWhite )
+				if( bBlackAndWhite )
+				{
+					fHealth = GetTempHealth(i);
+					if( fHealth < 100 )
 					{
-						fHealth = GetTempHealth(i);
-						if( fHealth < 100 )
-						{
-							fHealth += g_GrenadeData[index - 1][CONFIG_DAMAGE];
+						fHealth += g_GrenadeData[index - 1][CONFIG_DAMAGE];
 
-							if( fHealth > 100.0 )
-								fHealth = 100.0;
+						if( fHealth > 100.0 )
+							fHealth = 100.0;
 
-							SetTempHealth(i, fHealth);
-						}
-					} else {
-						iHealth = GetClientHealth(i);
-						iMax = GetClientMaxHealth(i);
-	
-						if( iHealth < iMax )
-						{
-							iHealth += iHeal;
-							if( iHealth > iMax )
-								iHealth = iMax;
-
-							if( team == 2 )
-							{
-								fHealth = GetTempHealth(i);
-								if( iHealth + fHealth > 100 )
-								{
-									fHealth = 100.0 - iHealth;
-									SetTempHealth(i, fHealth);
-								}
-							}
-
-							SetEntityHealth(i, iHealth);
-						}
+						SetTempHealth(i, fHealth);
 					}
+				} else {
+					iHealth = GetClientHealth(i);
+					iMax = GetClientMaxHealth(i);
+
+					if( iHealth < iMax )
+					{
+						iHealth += iHeal;
+						if( iHealth > iMax )
+							iHealth = iMax;
+
+						if( team == 2 )
+						{
+							fHealth = GetTempHealth(i);
+							if( iHealth + fHealth > 100 )
+							{
+								fHealth = 100.0 - iHealth;
+								SetTempHealth(i, fHealth);
+							}
+						}
+
+						SetEntityHealth(i, iHealth);
+					}
+				}
 				}
 			}
 		}
-	}
-
-
 
 	// Common
 	if( targ & (1<<TARGET_COMMON) )
@@ -5119,107 +5116,106 @@ void CreateGrenadeExplosion(int client, int entity, int index, float range = 0.0
 			team = GetClientTeam(i);
 			if( team == 2 ? targ & (1<<TARGET_SURVIVOR) : targ & (1<<TARGET_SPECIAL) )
 			{
-				if( team == 3 && IsPlayerGhost(i) )
-					continue; // Ignore ghosts
-	
-					GetEntPropVector(i, Prop_Data, "m_vecOrigin", vEnd);
-					fDistance = GetVectorDistance(vPos, vEnd);
+			if( team == 3 && IsPlayerGhost(i) )
+				continue; // Ignore ghosts
 
-					if( !IsVisibleTo(vPos, vEnd) ) continue;
+			GetEntPropVector(i, Prop_Data, "m_vecOrigin", vEnd);
+			fDistance = GetVectorDistance(vPos, vEnd);
 
-					// Stumble
-					// In range, not Cluster projectiles, not Tesla, not BlackHole, not Anti-Gravity
-					if( range == 0.0 && range_stumble && fDistance < range_stumble && index != INDEX_TESLA && index != INDEX_BLACKHOLE && index != INDEX_ANTIGRAVITY )
-					{
-						StaggerClient(GetClientUserId(i), vPos);
-					}
+			if( !IsVisibleTo(vPos, vEnd) ) continue;
 
-					// Scale Damage to Range
-					if( fDistance <= range_damage )
+			// Stumble
+			// In range, not Cluster projectiles, not Tesla, not BlackHole, not Anti-Gravity
+			if( range == 0.0 && range_stumble && fDistance < range_stumble && index != INDEX_TESLA && index != INDEX_BLACKHOLE && index != INDEX_ANTIGRAVITY )
+			{
+				StaggerClient(GetClientUserId(i), vPos);
+			}
+
+			// Scale Damage to Range
+			if( fDistance <= range_damage )
 					{
 						if( index == INDEX_VAPORIZER )
 						{
 							fDamage = damage; // Full damage
-						} else {
-							fDamage = fDistance / (index == INDEX_TESLA ? range_damage * 2 : range_damage); // Double Tesla range so damage is more when entering.
-							fDamage = damage * fDamage;
-							fDamage = damage - fDamage;
-						}
+			} else {
+				fDamage = fDistance / (index == INDEX_TESLA ? range_damage * 2 : range_damage); // Double Tesla range so damage is more when entering.
+				fDamage = damage * fDamage;
+				fDamage = damage - fDamage;
+			}
 
-						if( team == 3 )
-						{
-							if( GetEntProp(i, Prop_Send, "m_zombieClass") == g_iClassTank )
-							{
-								tank = true;
-
-								if( targ & (1<<TARGET_TANK) )
-									fDamage = fDamage * g_fConfigTank * g_GrenadeData[index][CONFIG_DMG_TANK];
-								else
-									fDamage = 0.0;
-							}
-							else
-							{
-								tank = false;
-
-								fDamage = fDamage * g_fConfigSpecial * g_GrenadeData[index][CONFIG_DMG_SPECIAL];
-							}
-						} else {
-							fDamage = fDamage * g_fConfigSurvivors * g_GrenadeData[index][CONFIG_DMG_SURVIVORS];
-						}
-
-						// Round to 1 because damage fall off scaling can set the value to above 0 and below 1. So affected guaranteed to lose 1 HP.
-						if( fDamage > 0.0 && fDamage < 1.0 )
-							fDamage = 1.0;
-
-						if( fDamage > 0.0 )
-						{
-							// ==================================================
-							// Grenade mode specific things:
-							// ==================================================
-							if( GrenadeSpecificExplosion(i, client, entity, index + 1, TARGET_SURVIVOR, 0.0, fDistance, vPos, vEnd) == false )
-								fDamage = 0.0;
-
-							// Damage
-							if( fDamage != 0.0 && (!g_bLeft4Dead2 || (team == 3 || index != INDEX_CHEMICAL)) ) // Chemical mode in L4D2 only needs to damage non-survivor, the spit already damages them.
-							{
-								// Hurt
-								// Cannot use SDKHooks_TakeDamage because it doesn't push in the correct direction.
-								FloatToString(fDamage, sTemp, sizeof(sTemp));
-								DispatchKeyValue(g_iEntityHurt, "Damage", sTemp);
-
-								if( index == INDEX_FLAK && ((team == 2 && g_iConfigDmgType & TARGET_SURVIVOR) || (team == 3 && g_iConfigDmgType & TARGET_SPECIAL) || (tank && g_iConfigDmgType & TARGET_TANK)) )
-								{
-									DispatchKeyValue(g_iEntityHurt, "DamageType", "8");
-								} else {
-									IntToString(damagetype, sTemp, sizeof(sTemp));
-									DispatchKeyValue(g_iEntityHurt, "DamageType", sTemp);
-								}
-								DispatchKeyValue(i, "targetname", "silvershot");
-
-								if( i == client ) // Otherwise can't hurt self. Also to avoid red flash on Flashbang
-									AcceptEntityInput(g_iEntityHurt, "Hurt");
-								else
-									AcceptEntityInput(g_iEntityHurt, "Hurt", client, client);
-
-								DispatchKeyValue(i, "targetname", "");
-							}
-						}
-					}
-
-					// Flashbang
-					if( index == INDEX_FLASHBANG && fDistance < g_GrenadeData[index][CONFIG_RANGE] )
-					{
-						clients[flashcount++] = i;
-					}
-				}
-
-				// GodMode
-				if( GetEntProp(i, Prop_Data, "m_takedamage") != 0 )
+			if( team == 3 )
+			{
+				if( GetEntProp(i, Prop_Send, "m_zombieClass") == g_iClassTank )
 				{
-					aGodMode.Push(i);
-					SetEntProp(i, Prop_Data, "m_takedamage", 0); // Prevent taking damage from env_explosion
+					tank = true;
+
+					if( targ & (1<<TARGET_TANK) )
+						fDamage = fDamage * g_fConfigTank * g_GrenadeData[index][CONFIG_DMG_TANK];
+					else
+						fDamage = 0.0;
+				}
+				else
+				{
+					tank = false;
+
+					fDamage = fDamage * g_fConfigSpecial * g_GrenadeData[index][CONFIG_DMG_SPECIAL];
+				}
+			} else {
+				fDamage = fDamage * g_fConfigSurvivors * g_GrenadeData[index][CONFIG_DMG_SURVIVORS];
+			}
+
+			// Round to 1 because damage fall off scaling can set the value to above 0 and below 1. So affected guaranteed to lose 1 HP.
+			if( fDamage > 0.0 && fDamage < 1.0 )
+				fDamage = 1.0;
+
+			if( fDamage > 0.0 )
+			{
+				// ==================================================
+				// Grenade mode specific things:
+				// ==================================================
+				if( GrenadeSpecificExplosion(i, client, entity, index + 1, TARGET_SURVIVOR, 0.0, fDistance, vPos, vEnd) == false )
+					fDamage = 0.0;
+
+				// Damage
+				if( fDamage != 0.0 && (!g_bLeft4Dead2 || (team == 3 || index != INDEX_CHEMICAL)) ) // Chemical mode in L4D2 only needs to damage non-survivor, the spit already damages them.
+				{
+					// Hurt
+					// Cannot use SDKHooks_TakeDamage because it doesn't push in the correct direction.
+					FloatToString(fDamage, sTemp, sizeof(sTemp));
+					DispatchKeyValue(g_iEntityHurt, "Damage", sTemp);
+
+					if( index == INDEX_FLAK && ((team == 2 && g_iConfigDmgType & TARGET_SURVIVOR) || (team == 3 && g_iConfigDmgType & TARGET_SPECIAL) || (tank && g_iConfigDmgType & TARGET_TANK)) )
+					{
+						DispatchKeyValue(g_iEntityHurt, "DamageType", "8");
+					} else {
+						IntToString(damagetype, sTemp, sizeof(sTemp));
+						DispatchKeyValue(g_iEntityHurt, "DamageType", sTemp);
+					}
+					DispatchKeyValue(i, "targetname", "silvershot");
+
+					if( i == client ) // Otherwise can't hurt self. Also to avoid red flash on Flashbang
+						AcceptEntityInput(g_iEntityHurt, "Hurt");
+					else
+						AcceptEntityInput(g_iEntityHurt, "Hurt", client, client);
+
+					DispatchKeyValue(i, "targetname", "");
 				}
 			}
+		}
+
+		// Flashbang
+		if( index == INDEX_FLASHBANG && fDistance < g_GrenadeData[index][CONFIG_RANGE] )
+		{
+			clients[flashcount++] = i;
+		}
+
+		// GodMode
+		if( GetEntProp(i, Prop_Data, "m_takedamage") != 0 )
+		{
+			aGodMode.Push(i);
+			SetEntProp(i, Prop_Data, "m_takedamage", 0); // Prevent taking damage from env_explosion
+		}
+	}
 		}
 
 		if( flashcount )

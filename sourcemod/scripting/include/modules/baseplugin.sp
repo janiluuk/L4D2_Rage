@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <sdktools>
+#include <rage/validation>
 
 #define CVAR_FLAGS				FCVAR_NONE
 #define IsValidClient(%1) 		((1 <= %1 <= MaxClients) && IsClientInGame(%1))
@@ -171,8 +172,7 @@ public void ConVarHooked_psOnPluginState(ConVar cvar, const char[] oldValue, con
 
 public void Event_psRoundStart(Event event, const char[] eventName, bool dontBroadcast)
 {
-	if(g_hTimerCheckGameMode != null)
-		KillTimer(g_hTimerCheckGameMode);
+	KillTimerSafe(g_hTimerCheckGameMode);
 	
 	g_hTimerCheckGameMode = CreateTimer(1.0, Timer_CheckGameMode);
 	ConVarHooked_psOnGameModeUpdate(null, "", "");

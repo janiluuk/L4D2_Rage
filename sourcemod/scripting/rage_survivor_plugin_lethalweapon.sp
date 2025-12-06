@@ -191,9 +191,9 @@ public void OnMapEnd()
 	{
 		KillTimerSafe(g_hClientTimer[i]);
 	}
-	ResetClientArray(g_iChargeEndTime);
-	ResetClientArray(g_iReleaseLock);
-	ResetClientArray(g_iChargeLock);
+	ResetClientArray(g_iChargeEndTime, 0);
+	ResetClientArray(g_iReleaseLock, 0);
+	ResetClientArray(g_iChargeLock, 0);
 }
 
 public void OnClientDisconnect(int client)
@@ -211,9 +211,9 @@ public void OnClientDisconnect(int client)
 void InitCharge()
 {
 	// Reset client arrays
-	ResetClientArray(g_iChargeEndTime);
-	ResetClientArray(g_iReleaseLock);
-	ResetClientArray(g_iChargeLock);
+	ResetClientArray(g_iChargeEndTime, 0);
+	ResetClientArray(g_iReleaseLock, 0);
+	ResetClientArray(g_iChargeLock, 0);
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		g_hClientTimer[i] = INVALID_HANDLE;

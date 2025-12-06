@@ -8,10 +8,10 @@
  * - Predicaments_OnCanStruggle: Called when a pinned survivor attempts to struggle
  */
 
-#if defined _rage_survivor_predicament_included
- #endinput
+#if defined _rage_survivor_plugin_predicaments_included
+#endinput
 #endif
-#define _rage_survivor_predicament_included
+#define _rage_survivor_plugin_predicaments_included
 
 /**
  * Called when a survivor attempts to heal another incapacitated survivor
@@ -49,10 +49,10 @@ native bool Predicaments_CanHealOthers(int client, int target);
  */
 native bool Predicaments_CanStruggle(int client);
 
-public SharedPlugin __pl_rage_survivor_predicament =
+public SharedPlugin __pl_rage_survivor_plugin_predicaments =
 {
-        name = "rage_survivor_predicament",
-        file = "rage_survivor_predicament.smx",
+        name = "rage_survivor_plugin_predicaments",
+        file = "rage_survivor_plugin_predicaments.smx",
 #if defined REQUIRE_PLUGIN
 	required = 1,
 #else
@@ -61,7 +61,7 @@ public SharedPlugin __pl_rage_survivor_predicament =
 };
 
 #if !defined REQUIRE_PLUGIN
-public void __pl_rage_survivor_predicament_SetNTVOptional()
+public void __pl_rage_survivor_plugin_predicaments_SetNTVOptional()
 {
 	MarkNativeAsOptional("Predicaments_CanHealOthers");
 	MarkNativeAsOptional("Predicaments_CanStruggle");

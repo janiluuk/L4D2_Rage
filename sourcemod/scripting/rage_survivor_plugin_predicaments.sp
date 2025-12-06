@@ -68,7 +68,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	EngineVersion evRetVal = GetEngineVersion();
 	if (evRetVal != Engine_Left4Dead && evRetVal != Engine_Left4Dead2)
 	{
-		strcopy(error, err_max, "[Predicaments] Plugin Supports L4D And L4D2 Only!");
+		strcopy(error, err_max, "Plugin Supports L4D And L4D2 Only!");
 		return APLRes_SilentFailure;
 	}
 	
@@ -76,10 +76,17 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	iSurvivorClass = (evRetVal == Engine_Left4Dead2) ? 9 : 6;
 	
 	// Create forwards for external plugins to hook into
-	CreateNative("Predicaments_CanHealOthers", Native_CanHealOthers);
-	CreateNative("Predicaments_CanStruggle", Native_CanStruggle);
+	// Only create natives if they don't already exist (prevents conflicts with old plugin versions)
+	if (GetFeatureStatus(FeatureType_Native, "Predicaments_CanHealOthers") == FeatureStatus_Unknown)
+	{
+		CreateNative("Predicaments_CanHealOthers", Native_CanHealOthers);
+	}
+	if (GetFeatureStatus(FeatureType_Native, "Predicaments_CanStruggle") == FeatureStatus_Unknown)
+	{
+		CreateNative("Predicaments_CanStruggle", Native_CanStruggle);
+	}
 	
-	RegPluginLibrary("rage_survivor_predicament");
+	RegPluginLibrary("rage_survivor_plugin_predicaments");
 	
 	return APLRes_Success;
 }
@@ -95,48 +102,76 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-	hSHGameData = LoadGameConfigFile("rage_survivor_predicament");
+	hSHGameData = LoadGameConfigFile("rage_survivor_plugin_predicaments");
 	if (hSHGameData == null)
 	{
-		SetFailState("[Predicaments] Game Data Missing!");
+		SetFailState("Game Data Missing!");
 	}
 	
 	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "OnStaggered");
-	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
-	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Pointer);
-	hSHStagger = EndPrepSDKCall();
-	if (hSHStagger == null)
+	if (!PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "OnStaggered"))
 	{
-		SetFailState("[Predicaments] Signature 'OnStaggered' Broken!");
+		LogError("Failed to load signature 'OnStaggered' - staggering will be disabled");
+		hSHStagger = null;
+	}
+	else
+	{
+		PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+		PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Pointer);
+		hSHStagger = EndPrepSDKCall();
+		if (hSHStagger == null)
+		{
+			LogError("Failed to create SDK call for 'OnStaggered' - staggering will be disabled");
+		}
 	}
 	
 	if (!bIsL4D)
 	{
 		StartPrepSDKCall(SDKCall_Player);
-		PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "OnRevived");
-		hSHOnRevived = EndPrepSDKCall();
-		if (hSHOnRevived == null)
+		if (!PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "OnRevived"))
 		{
-			SetFailState("[Predicaments] Signature 'OnRevived' Broken!");
+			LogError("Failed to load signature 'OnRevived' - revival functionality will be disabled");
+			hSHOnRevived = null;
+		}
+		else
+		{
+			hSHOnRevived = EndPrepSDKCall();
+			if (hSHOnRevived == null)
+			{
+				LogError("Failed to create SDK call for 'OnRevived' - revival functionality will be disabled");
+			}
 		}
 		
 		StartPrepSDKCall(SDKCall_Player);
-		PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "SetHealthBuffer");
-		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
-		hSHSetTempHP = EndPrepSDKCall();
-		if (hSHSetTempHP == null)
+		if (!PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "SetHealthBuffer"))
 		{
-			SetFailState("[Predicaments] Signature 'SetHealthBuffer' Broken!");
+			LogError("Failed to load signature 'SetHealthBuffer' - temporary health setting will be disabled");
+			hSHSetTempHP = null;
+		}
+		else
+		{
+			PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+			hSHSetTempHP = EndPrepSDKCall();
+			if (hSHSetTempHP == null)
+			{
+				LogError("Failed to create SDK call for 'SetHealthBuffer' - temporary health setting will be disabled");
+			}
 		}
 		
 		StartPrepSDKCall(SDKCall_Player);
-		PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "OnAdrenalineUsed");
-		PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
-		hSHAdrenalineRush = EndPrepSDKCall();
-		if (hSHAdrenalineRush == null)
+		if (!PrepSDKCall_SetFromConf(hSHGameData, SDKConf_Signature, "OnAdrenalineUsed"))
 		{
-			SetFailState("[Predicaments] Signature 'OnAdrenalineUsed' Broken!");
+			LogError("Failed to load signature 'OnAdrenalineUsed' - adrenaline functionality will be disabled");
+			hSHAdrenalineRush = null;
+		}
+		else
+		{
+			PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+			hSHAdrenalineRush = EndPrepSDKCall();
+			if (hSHAdrenalineRush == null)
+			{
+				LogError("Failed to create SDK call for 'OnAdrenalineUsed' - adrenaline functionality will be disabled");
+			}
 		}
 		
 		delete hSHGameData;
@@ -163,27 +198,27 @@ public void OnPluginStart()
 		cvarAdrenalineDuration.AddChangeHook(OnSHCVarsChanged);
 	}
 	
-    CreateConVar("rage_survivor_predicament_version", PLUGIN_VERSION, "Self-Help (Reloaded) Version", FCVAR_NOTIFY|FCVAR_SPONLY|FCVAR_DONTRECORD);
-    shEnable = CreateConVar("rage_survivor_predicament_enable", "1", "Enable/Disable Plugin", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-    shUse = CreateConVar("rage_survivor_predicament_use", "3", "Use: 0=None, 1=Pills And Adrenalines, 2=First Aid Kits Only, 3=Both", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 3.0);
-    shIncapPickup = CreateConVar("rage_survivor_predicament_incap_pickup", "1", "Enable/Disable Item Pick-Ups While Incapacitated", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-    shDelay = CreateConVar("rage_survivor_predicament_delay", "1.0", "Delay Before Plugin Mechanism Kicks In", FCVAR_NOTIFY|FCVAR_SPONLY);
-    shKillAttacker = CreateConVar("rage_survivor_predicament_kill_attacker", "2", "0=Unpin using gear 1=Unpin and kill attacker 2=Unpin disabled", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
-    shBot = CreateConVar("rage_survivor_predicament_bot", "1", "Enable/Disable Bot Self-Help", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-    shBotChance = CreateConVar("rage_survivor_predicament_bot_chance", "4", "Chance Of Bot Self-Helping: 1=Sometimes, 2=Often, 3=Seldom 4=Always", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0, true, 4.0);
-    shHardHP = CreateConVar("rage_survivor_predicament_hard_hp", "50", "Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
-    shTempHP = CreateConVar("rage_survivor_predicament_temp_hp", "50.0", "Temporary Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
-    shCrawlEnable = CreateConVar("rage_survivor_predicament_crawl_enable", "1", "Enable/Disable Incapped Crawling", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-    shCrawlSpeed = CreateConVar("rage_survivor_predicament_crawl_speed", "0.15", "Crawling Speed Multiplier (0.0 - 1.0)", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-    shStruggleMode = CreateConVar("rage_survivor_predicament_struggle_mode", "0", "0=Disabled, 1=Automatic escape, 2=Manual struggle", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
-    shStruggleGain = CreateConVar("rage_survivor_predicament_struggle_gain", "10.0", "Progress gained per struggle input", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.1);
-    shStrugglePushback = CreateConVar("rage_survivor_predicament_struggle_pushback", "5.0", "Progress lost when attacker counters", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
-    shStruggleAlertInterval = CreateConVar("rage_survivor_predicament_struggle_alert_interval", "3.0", "Seconds between alerting attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
-    shStruggleEscapeEffect = CreateConVar("rage_survivor_predicament_struggle_escape_effect", "0", "0=Stagger attacker, 1=Kill attacker, 2=Incap attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
+    CreateConVar("rage_survivor_plugin_predicaments_version", PLUGIN_VERSION, "Self-Help (Reloaded) Version", FCVAR_NOTIFY|FCVAR_SPONLY|FCVAR_DONTRECORD);
+    shEnable = CreateConVar("rage_survivor_plugin_predicaments_enable", "1", "Enable/Disable Plugin", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shUse = CreateConVar("rage_survivor_plugin_predicaments_use", "3", "Use: 0=None, 1=Pills And Adrenalines, 2=First Aid Kits Only, 3=Both", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 3.0);
+    shIncapPickup = CreateConVar("rage_survivor_plugin_predicaments_incap_pickup", "1", "Enable/Disable Item Pick-Ups While Incapacitated", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shDelay = CreateConVar("rage_survivor_plugin_predicaments_delay", "1.0", "Delay Before Plugin Mechanism Kicks In", FCVAR_NOTIFY|FCVAR_SPONLY);
+    shKillAttacker = CreateConVar("rage_survivor_plugin_predicaments_kill_attacker", "2", "0=Unpin using gear 1=Unpin and kill attacker 2=Unpin disabled", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
+    shBot = CreateConVar("rage_survivor_plugin_predicaments_bot", "1", "Enable/Disable Bot Self-Help", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shBotChance = CreateConVar("rage_survivor_plugin_predicaments_bot_chance", "4", "Chance Of Bot Self-Helping: 1=Sometimes, 2=Often, 3=Seldom 4=Always", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0, true, 4.0);
+    shHardHP = CreateConVar("rage_survivor_plugin_predicaments_hard_hp", "50", "Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
+    shTempHP = CreateConVar("rage_survivor_plugin_predicaments_temp_hp", "50.0", "Temporary Health Given After Self-Helping", FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
+    shCrawlEnable = CreateConVar("rage_survivor_plugin_predicaments_crawl_enable", "1", "Enable/Disable Incapped Crawling", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shCrawlSpeed = CreateConVar("rage_survivor_plugin_predicaments_crawl_speed", "0.15", "Crawling Speed Multiplier (0.0 - 1.0)", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+    shStruggleMode = CreateConVar("rage_survivor_plugin_predicaments_struggle_mode", "0", "0=Disabled, 1=Automatic escape, 2=Manual struggle", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
+    shStruggleGain = CreateConVar("rage_survivor_plugin_predicaments_struggle_gain", "10.0", "Progress gained per struggle input", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.1);
+    shStrugglePushback = CreateConVar("rage_survivor_plugin_predicaments_struggle_pushback", "5.0", "Progress lost when attacker counters", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
+    shStruggleAlertInterval = CreateConVar("rage_survivor_plugin_predicaments_struggle_alert_interval", "3.0", "Seconds between alerting attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
+    shStruggleEscapeEffect = CreateConVar("rage_survivor_plugin_predicaments_struggle_escape_effect", "0", "0=Stagger attacker, 1=Kill attacker, 2=Incap attacker", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
 	
 	if (bIsL4D)
 	{
-            shMaxCount = CreateConVar("rage_survivor_predicament_max_count", "3", "Maximum Attempts of Revival", FCVAR_NOTIFY|FCVAR_SPONLY, true, 3.0);
+            shMaxCount = CreateConVar("rage_survivor_plugin_predicaments_max_count", "3", "Maximum Attempts of Revival", FCVAR_NOTIFY|FCVAR_SPONLY, true, 3.0);
 		iMaxCount = shMaxCount.IntValue;
 		shMaxCount.AddChangeHook(OnSHCVarsChanged);
 	}
@@ -224,7 +259,7 @@ public void OnPluginStart()
 	shStruggleAlertInterval.AddChangeHook(OnSHCVarsChanged);
 	shStruggleEscapeEffect.AddChangeHook(OnSHCVarsChanged);
 	
-	AutoExecConfig(true, "rage_survivor_predicament");
+    AutoExecConfig(true, "rage_survivor_plugin_predicaments");
 	
 	HookEvent("round_start", OnRoundEvents);
 	HookEvent("round_end", OnRoundEvents);
@@ -555,12 +590,12 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 	{
 		shsBit[client] = SHS_NONE;
 		
-		if (hSHTime[client] != null)
+		if (!bIsL4D)
 		{
-			if (!bIsL4D)
-			{
-				KillTimer(hSHTime[client]);
-			}
+			KillTimerSafe(hSHTime[client]);
+		}
+		else
+		{
 			hSHTime[client] = null;
 		}
 		return Plugin_Stop;
@@ -577,12 +612,12 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 		{
 			iAttacker[client] = 0;
 			
-			if (hSHTime[client] != null)
+			if (!bIsL4D)
 			{
-				if (!bIsL4D)
-				{
-					KillTimer(hSHTime[client]);
-				}
+				KillTimerSafe(hSHTime[client]);
+			}
+			else
+			{
 				hSHTime[client] = null;
 			}
 			return Plugin_Stop;
@@ -899,7 +934,10 @@ public Action SelfReviveDelay(Handle timer, Handle dpSHReviveDelay)
 	
 	if (!bIsL4D)
 	{
-		SDKCall(hSHOnRevived, client);
+		if (hSHOnRevived != null)
+		{
+			SDKCall(hSHOnRevived, client);
+		}
 	}
 	else
 	{
@@ -1844,7 +1882,10 @@ void SHStatsFixer(int client, bool bDoNotTamper, bool bUseItem = true, bool &bMe
 					eAdrenalineUsed.SetInt("userid", GetClientUserId(client));
 					eAdrenalineUsed.Fire();
 					
-					SDKCall(hSHAdrenalineRush, client, fAdrenalineDuration);
+					if (hSHAdrenalineRush != null)
+					{
+						SDKCall(hSHAdrenalineRush, client, fAdrenalineDuration);
+					}
 					CPrintToChatAll("{olive}%N {default}Helped Themselves With{green} Adrenaline{default}!", client);
 				}
 				else
@@ -1904,7 +1945,10 @@ void DoSelfHelp(int client, bool bWasMedkitUsed = false)
 		}
 		else
 		{
-			SDKCall(hSHSetTempHP, client, 0.0);
+			if (hSHSetTempHP != null)
+			{
+				SDKCall(hSHSetTempHP, client, 0.0);
+			}
 		}
 	}
 	else
@@ -1912,7 +1956,10 @@ void DoSelfHelp(int client, bool bWasMedkitUsed = false)
 		SetEntProp(client, Prop_Send, "m_iHealth", iHardHP);
 		if (!bIsL4D)
 		{
-			SDKCall(hSHSetTempHP, client, fTempHP);
+			if (hSHSetTempHP != null)
+			{
+				SDKCall(hSHSetTempHP, client, fTempHP);
+			}
 		}
 		else
 		{
@@ -2004,8 +2051,11 @@ void RemoveHindrance(int client, bool bFromStruggle = false)
                                 {
                                         float fStaggerPos[3];
                                         GetEntPropVector(client, Prop_Send, "m_vecOrigin", fStaggerPos);
-                                        SDKCall(hSHStagger, dominator, client, fStaggerPos);
-                                        SDKCall(hSHStagger, client, dominator, fStaggerPos);
+                                        if (hSHStagger != null)
+                                        {
+                                            SDKCall(hSHStagger, dominator, client, fStaggerPos);
+                                            SDKCall(hSHStagger, client, dominator, fStaggerPos);
+                                        }
                                 }
                         }
                 }

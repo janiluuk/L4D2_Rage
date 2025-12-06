@@ -45,10 +45,27 @@ char g_sModel[64];
 float g_fTimeout = 8.0;
 float g_fMaxDistance = 750.0;
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+#if !HTTPCLIENT_AVAILABLE
+    strcopy(error, err_max, "This plugin requires the httpclient extension. Install it from https://github.com/alliedmodders/sourcemod/tree/master/extensions/httpclient");
+    return APLRes_Failure;
+#else
+    // Check if HTTPRequest native is available at runtime
+    if (GetFeatureStatus(FeatureType_Native, "HTTPRequest.HTTPRequest") != FeatureStatus_Available)
+    {
+        strcopy(error, err_max, "HTTPRequest native not found. Please ensure httpclient extension is loaded.");
+        return APLRes_Failure;
+    }
+    return APLRes_Success;
+#endif
+}
+
 public void OnPluginStart()
 {
 #if !HTTPCLIENT_AVAILABLE
-    SetFailState("This plugin requires the httpclient extension. Install it from https://github.com/alliedmodders/sourcemod/tree/master/extensions/httpclient");
+    // Should not reach here if AskPluginLoad2 failed, but just in case
+    SetFailState("This plugin requires the httpclient extension.");
     return;
 #endif
 

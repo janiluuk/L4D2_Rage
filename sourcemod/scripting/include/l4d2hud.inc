@@ -2,6 +2,8 @@
 //Created by https://github.com/Jackzmc
 //See it here: https://github.com/Jackzmc/sourcemod-plugins/blob/master/scripting/include/l4d2hud.inc
 
+#include <rage/validation>
+
 enum hudPosition {
     HUD_POSITION_FAR_LEFT, 
     HUD_POSITION_FAR_RIGHT,
@@ -184,8 +186,8 @@ void SetupMessageHud(hudPosition position, int flags, float xpos=0.0, float ypos
     }
 
     SetupHUD(MSG_HUD_POS, flags , xpos, ypos, width, height);
-    if (isEnabled == true && msgTimer != null) {
-        KillTimer(msgTimer);
+    if (isEnabled == true) {
+        KillTimerSafe(msgTimer);
     }
     isEnabled = true;
 

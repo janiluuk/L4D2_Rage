@@ -144,9 +144,12 @@ public void OnPluginStart()
 		g_hCookie = RegClientCookie("rage_multiequip_mode", "Rage multiple equipment mode preference", CookieAccess_Public);
 	}
 	
-	// Register native for menu system to sync state
-	CreateNative("MultiEquip_SyncFromCookie", Native_SyncFromCookie);
-	RegPluginLibrary("rage_plugin_multiple_equipment");
+	// Register native for menu system to sync state (only if not already registered)
+	if (GetFeatureStatus(FeatureType_Native, "MultiEquip_SyncFromCookie") == FeatureStatus_Unknown)
+	{
+		CreateNative("MultiEquip_SyncFromCookie", Native_SyncFromCookie);
+	}
+	// RegPluginLibrary already called in AskPluginLoad2, no need to call again
 
 	// Cache ammo offset for performance (expensive lookup)
 	g_iAmmoOffset = FindSendPropInfo("CTerrorPlayer", "m_iAmmo");

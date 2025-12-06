@@ -143,16 +143,10 @@ public void OnRaceModChanged(ConVar convar, const char[] oldValue, const char[] 
 void ResetRaceMod()
 {
 	// Kill all timers
-	if(infoTimer != INVALID_HANDLE) {
-		KillTimer(infoTimer);
-		infoTimer = INVALID_HANDLE;
-	}
+	KillTimerSafe(infoTimer);
 	
 	for(int i = 1; i <= MaxClients; i++) {
-		if(snareTimer[i] != INVALID_HANDLE) {
-			KillTimer(snareTimer[i]);
-			snareTimer[i] = INVALID_HANDLE;
-		}
+		KillTimerSafe(snareTimer[i]);
 		snareCount[i] = 0;
 		snarerId[i] = 0;
 	}

@@ -4,7 +4,7 @@ public void OnConfigsExecuted() {
 }
 
 public void OnMapStart() {
-	if(hBotReverseFFDefend.IntValue > 0) hSbFriendlyFire.BoolValue = true;
+	if(hBotReverseFFDefend != null && hBotReverseFFDefend.IntValue > 0 && hSbFriendlyFire != null) hSbFriendlyFire.BoolValue = true;
 	AddFileToDownloadsTable("sound/custom/meow1.mp3");
 	PrecacheSound("custom/meow1.mp3");	
 	AddFileToDownloadsTable("sound/custom/woof1.mp3");
@@ -20,7 +20,10 @@ public void OnMapStart() {
 
 	PrecacheModel(MODEL_CAR);
 
-	g_spSpawnQueue.Clear();
+	if (g_spSpawnQueue != null)
+	{
+		g_spSpawnQueue.Clear();
+	}
 	spIsActive = false;
 	//CreateTimer(30.0, Timer_AutoPunishCheck, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -754,8 +757,8 @@ public Action Event_TakeDamage(int victim, int& attacker, int& inflictor, float&
 			if(IsFakeClient(attacker)) return Plugin_Handled;
 			else return Plugin_Continue;
 		}
-		if(hBotReverseFFDefend.IntValue > 0 && IsFakeClient(attacker) && pdata[attacker].shootAtTarget == 0 && GetClientTeam(attacker) == 2 && GetClientTeam(victim) == 2) return Plugin_Stop;
-		if(attacker != victim && hBotReverseFFDefend.IntValue > 0 && hBotReverseFFDefend.IntValue == 2 || GetUserAdmin(attacker) == INVALID_ADMIN_ID) {
+		if(hBotReverseFFDefend != null && hBotReverseFFDefend.IntValue > 0 && IsFakeClient(attacker) && pdata[attacker].shootAtTarget == 0 && GetClientTeam(attacker) == 2 && GetClientTeam(victim) == 2) return Plugin_Stop;
+		if(attacker != victim && hBotReverseFFDefend != null && hBotReverseFFDefend.IntValue > 0 && hBotReverseFFDefend.IntValue == 2 || GetUserAdmin(attacker) == INVALID_ADMIN_ID) {
 			if(IsFakeClient(victim) && !IsFakeClient(attacker) && GetClientTeam(attacker) == 2 && GetClientTeam(victim) == 2) {
 				if(hBotDefendChance.IntValue >= GetRandomFloat()) {
 					if(pdata[victim].shootAtTarget == attacker) {

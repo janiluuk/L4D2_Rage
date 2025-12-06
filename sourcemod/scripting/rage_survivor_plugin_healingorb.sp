@@ -51,7 +51,7 @@ public void OnPluginStart()
         {
                 HealingBallTimer[i] = INVALID_HANDLE;
         }
-        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0, MAXPLAYERS+1);
+        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0);
 }
 
 public void OnHealingOrbCooldownChanged(Handle convar, const char[] oldValue, const char[] newValue)
@@ -107,7 +107,7 @@ public void OnMapEnd()
         {
                 KillTimerSafe(HealingBallTimer[i]);
         }
-        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0, MAXPLAYERS+1);
+        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0);
 }
 
 public void OnClientDisconnect(int client)
@@ -188,7 +188,6 @@ public Action HealingBallTimerFunction(Handle timer, Handle pack)
 		{
 			if(!IsValidAliveClient(i) || GetClientTeam(i) != team)
 				continue;
-			}
 			
 			GetEntPropVector(i, Prop_Send, "m_vecOrigin", entpos);
 			SubtractVectors(entpos, pos, distance);

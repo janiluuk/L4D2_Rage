@@ -407,7 +407,7 @@ void ApplyPerk(int player, const char[] name, int activator, perkModifier modifi
         isActive = Perks[perkIndex].activeFlagClients[player] > -1;
         
         // Notify if perk was removed
-        if(wasActive && !isActive) {
+        if(wasActive && !isActive && g_PerkRemovedForward != null) {
             Call_StartForward(g_PerkRemovedForward);
             Call_PushCell(player);
             Call_PushString(perk.name);
@@ -430,12 +430,14 @@ void ApplyPerk(int player, const char[] name, int activator, perkModifier modifi
             bool hasFlagName;
             
             // Call forward for perk applied notification
-            Call_StartForward(g_PerkAppliedForward);
-            Call_PushCell(player);
-            Call_PushString(perk.name);
-            Call_PushCell(flags);
-            Call_PushCell(activator);
-            Call_Finish();
+            if (g_PerkAppliedForward != null) {
+                Call_StartForward(g_PerkAppliedForward);
+                Call_PushCell(player);
+                Call_PushString(perk.name);
+                Call_PushCell(flags);
+                Call_PushCell(activator);
+                Call_Finish();
+            }
             
             // Get flag name using helper function
             FormatPerkFlagName(perk, flags, flagName, sizeof(flagName), hasFlagName);

@@ -246,44 +246,17 @@ void ResetGamemode() {
 	isStarting = false;
 	
 	// Kill all timers
-	if(spawningTimer != null) {
-		KillTimer(spawningTimer);
-		spawningTimer = null;
-	}
-	if(hiderCheckTimer != null) {
-		KillTimer(hiderCheckTimer);
-		hiderCheckTimer = null;
-	}
-	if(doorToggleTimer != null) {
-		KillTimer(doorToggleTimer);
-		doorToggleTimer = null;
-	}
-	if(recordTimer != null) {
-		KillTimer(recordTimer);
-		recordTimer = null;
-	}
-	if(timesUpTimer != null) {
-		KillTimer(timesUpTimer);
-		timesUpTimer = null;
-	}
-	if(waitTimer != null) {
-		KillTimer(waitTimer);
-		waitTimer = null;
-	}
-	if(waitForStartTimer != null) {
-		KillTimer(waitForStartTimer);
-		waitForStartTimer = null;
-	}
-	if(acquireLocationsTimer != null) {
-		KillTimer(acquireLocationsTimer);
-		acquireLocationsTimer = null;
-	}
+	KillTimerSafe(spawningTimer);
+	KillTimerSafe(hiderCheckTimer);
+	KillTimerSafe(doorToggleTimer);
+	KillTimerSafe(recordTimer);
+	KillTimerSafe(timesUpTimer);
+	KillTimerSafe(waitTimer);
+	KillTimerSafe(waitForStartTimer);
+	KillTimerSafe(acquireLocationsTimer);
 	
 	for(int i = 1; i <= MaxClients; i++) {
-		if(moveTimers[i] != null) {
-			KillTimer(moveTimers[i]);
-			moveTimers[i] = null;
-		}
+		KillTimerSafe(moveTimers[i]);
 		hasBeenSeeker[i] = false;
 		hiderSwapTime[i] = 0;
 		hiderSwapCount[i] = 0;

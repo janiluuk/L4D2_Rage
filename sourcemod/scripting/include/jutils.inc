@@ -439,10 +439,14 @@ stock bool DoesClientHaveMelee(int client) {
 	}
 }
 
+// IsValidClient is defined in rage/validation.inc
+// This version with checkTeam parameter is only defined if rage/validation is not included
+#if !defined _rage_validation_included
 stock bool IsValidClient(int client, int checkTeam = 0) {
 	int team = checkTeam > 0 ? GetClientTeam(client) : 0;
 	return IsClientConnected(client) && IsClientInGame(client) && IsPlayerAlive(client) && team == checkTeam; 
-} 
+}
+#endif 
 
 stock bool IsClientInSightRange(int client, int target, float angle = 90.0, float distance = 0.0, bool heightcheck = true, bool negativeangle = false) {
 	if(angle > 360.0 || angle < 0.0)

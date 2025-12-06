@@ -139,9 +139,9 @@ public void OnMapStart()
 {
     SetGlowColor();
     // Reset client arrays
-    ResetClientArrayBool(g_rageActive, false, MAXPLAYERS+1);
-    ResetClientArrayBool(g_rageExtended, false, MAXPLAYERS+1);
-    ResetClientArrayBool(g_rageForever, false, MAXPLAYERS+1);
+    ResetClientArrayBool(g_rageActive, false);
+    ResetClientArrayBool(g_rageExtended, false);
+    ResetClientArrayBool(g_rageForever, false);
 }
 
 public void OnMapEnd()
@@ -434,26 +434,24 @@ void NotifyPlayers()
 		if(g_rageActive[iClient] && !g_rageExtended[iClient])
 		{
 			if(GetConVarInt(g_rageCvarNotify)==1)
-						PrintHintText(iClient, "%t", "ACTIVATED");
-					else
-						PrintToChat(iClient, "%t", "ACTIVATED");
-				}
-				else if(g_rageExtended[iClient])
-				{
-					if(GetConVarInt(g_rageCvarNotify)==1)
-						PrintHintText(iClient, "%t", "DURATIONEXTENDED");
-					else
-						PrintToChat(iClient, "%t", "DURATIONEXTENDED");
-				}
-				else
-				{	
-					if(GetConVarInt(g_rageCvarNotify)==1)
-						PrintHintText(iClient, "%t", "DEACTIVATED");
-					else
-						PrintToChat(iClient, "%t", "DEACTIVATED");
-				}
-			}
-		}	
+				PrintHintText(iClient, "%t", "ACTIVATED");
+			else
+				PrintToChat(iClient, "%t", "ACTIVATED");
+		}
+		else if(g_rageExtended[iClient])
+		{
+			if(GetConVarInt(g_rageCvarNotify)==1)
+				PrintHintText(iClient, "%t", "DURATIONEXTENDED");
+			else
+				PrintToChat(iClient, "%t", "DURATIONEXTENDED");
+		}
+		else
+		{	
+			if(GetConVarInt(g_rageCvarNotify)==1)
+				PrintHintText(iClient, "%t", "DEACTIVATED");
+			else
+				PrintToChat(iClient, "%t", "DEACTIVATED");
+		}
 	}
 }
 
