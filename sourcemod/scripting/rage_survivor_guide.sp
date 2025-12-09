@@ -97,7 +97,7 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
             {
                 PrintGuideLine(param1, "Rage Edition is a modular class overhaul with perk-driven abilities.");
                 PrintGuideLine(param1, "Open this tutorial anytime with !guide, !ragetutorial or the Rage menu.");
-                PrintGuideLine(param1, "Press X (voice menu) to show the quick menu and use WASD to select.");
+                PrintGuideLine(param1, "Hold SHIFT to show the quick menu and use WASD to select.");
                 PrintGuideLine(param1, "Pick a class, bind the four actions, and coordinate before leaving the saferoom.");
                 PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + CROUCH + SHOVE.");
                 DisplayGuideMainMenu(param1);
@@ -153,7 +153,7 @@ void DisplayControlsMenu(int client)
 {
     Menu menu = CreateMenu(MenuHandler_Controls);
     SetMenuTitle(menu, "Controls & Core Features");
-    AddMenuItem(menu, "menu", "Quick menu (V + WASD)");
+    AddMenuItem(menu, "menu", "Quick menu (SHIFT + WASD)");
     AddMenuItem(menu, "skillkeys", "Skill & deploy buttons");
     AddMenuItem(menu, "thirdperson", "Third-person camera");
     AddMenuItem(menu, "hudmusic", "HUD & music toggles");
@@ -174,8 +174,8 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             GetMenuItem(menu, param2, info, sizeof(info));
             if (StrEqual(info, "menu"))
             {
-                PrintGuideLine(param1, "Press X (voice menu) to show the quick menu and navigate with WASD.");
-                PrintGuideLine(param1, "Release the key to exit the menu. You can trigger class actions from the menu too.");
+                PrintGuideLine(param1, "Hold SHIFT to show the quick menu and navigate with WASD.");
+                PrintGuideLine(param1, "Release SHIFT to exit the menu. You can trigger class actions from the menu too.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "skillkeys"))

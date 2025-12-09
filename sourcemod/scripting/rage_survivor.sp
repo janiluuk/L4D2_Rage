@@ -52,6 +52,7 @@ ConVar HEALTH_MODIFIERS_ENABLED;
 bool LeftSafeAreaMessageShown;
 bool g_bIntroFinished = false;
 bool g_bFirstMission = true;
+bool g_bWasHoldingShift[MAXPLAYERS+1] = {false, ...};
 // Note: g_BeamSprite and g_HaloSprite are declared as stock in rage/effects.inc
 // We initialize them in OnMapStart() but don't redeclare them here to avoid duplicates
 
@@ -1334,6 +1335,9 @@ any Native_OnSpecialSkillFail(Handle plugin, int numParams)
 
 public OnMapStart()
 {
+	// Enable HUD system (required for custom HUD elements to be visible)
+	GameRules_SetProp("m_bChallengeModeActive", true, _, _, true);
+	
 	// Initialize cooldown notification system
 	CooldownNotify_Init();
 	
@@ -1463,6 +1467,7 @@ public OnClientPutInServer(client)
         return;
 
         g_iQueuedClass[client] = 0;
+        g_bWasHoldingShift[client] = false;
         ResetClientVariables(client);
         RebuildCache();
         HookPlayer(client);
@@ -1646,6 +1651,12 @@ public Action:OnWeaponEquip(client, weapon)
 public OnClientDisconnect(client)
 {
 	CooldownNotify_OnClientDisconnect(client);
+        // Close menu if client was holding shift
+        if (g_bWasHoldingShift[client])
+        {
+                FakeClientCommand(client, "-rage_menu");
+                g_bWasHoldingShift[client] = false;
+        }
         UnhookPlayer(false);
         RebuildCache();
         ResetClientVariables(client);
@@ -3961,7 +3972,15 @@ public setDebugMode(int mode) {
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon)
 {
         if (!IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2)
-        return Plugin_Continue;
+        {
+                // Reset shift state if client is not valid
+                if (g_bWasHoldingShift[client])
+                {
+                        FakeClientCommand(client, "-rage_menu");
+                        g_bWasHoldingShift[client] = false;
+                }
+                return Plugin_Continue;
+        }
 
         new flags = GetEntityFlags(client);
 
@@ -3972,23 +3991,23 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
                 ClientData[client].HealStartTime= GetGameTime();
         }
 
-        if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
-        return Plugin_Continue;
-
-        // SHIFT (IN_SPEED) shows RAGE menu
-        static bool g_bWasHoldingShift[MAXPLAYERS+1] = {false, ...};
+        // SHIFT (IN_SPEED) shows RAGE menu - check this before early returns
         bool holdingShift = (buttons & IN_SPEED) != 0;
         if (holdingShift && !g_bWasHoldingShift[client])
         {
                 // SHIFT just pressed - show RAGE menu
                 FakeClientCommand(client, "+rage_menu");
+                g_bWasHoldingShift[client] = true;
         }
         else if (!holdingShift && g_bWasHoldingShift[client])
         {
                 // SHIFT released - close RAGE menu
                 FakeClientCommand(client, "-rage_menu");
+                g_bWasHoldingShift[client] = false;
         }
-        g_bWasHoldingShift[client] = holdingShift;
+
+        if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
+        return Plugin_Continue;
 
         // Ensure IN_USE (T key) is not blocked for voice chat
         // Don't interfere with IN_USE - let it work normally for voice chat
