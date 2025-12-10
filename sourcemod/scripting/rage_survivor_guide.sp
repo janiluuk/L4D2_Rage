@@ -342,7 +342,7 @@ void DisplaySoldierMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Soldier);
     SetMenuTitle(menu, "Soldier Guide");
     AddMenuItem(menu, "overview", "Role overview");
-    AddMenuItem(menu, "airstrike", "Skill 1: Satellite Strike");
+    AddMenuItem(menu, "satellite", "Skill 1: Satellite Strike");
     AddMenuItem(menu, "chainlightning", "Skill 2: Chain Lightning");
     AddMenuItem(menu, "zedtime", "Skill 3: Zed Time");
     AddMenuItem(menu, "weapons", "Passives: Weapons & toughness");
@@ -367,7 +367,7 @@ public int MenuHandler_Soldier(Menu menu, MenuAction action, int param1, int par
                 PrintGuideLine(param1, "Increased health pool makes you the team tank. Lead the charge and draw fire.");
                 DisplaySoldierMenu(param1);
             }
-            else if (StrEqual(info, "airstrike"))
+            else if (StrEqual(info, "satellite"))
             {
                 char line[256];
                 Format(line, sizeof(line), "Aim at a target and press %s to call the Satellite Strike. Warn teammates before painting.", action1);
