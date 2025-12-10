@@ -1,3 +1,6 @@
+// Include sceneprocessor for IsActorBusy and PerformScene functions
+#tryinclude <sceneprocessor>
+
 public void OnConfigsExecuted() {
 	hSbFixEnabled = FindConVar("sb_fix_enabled");
 	hAbmAutoHard = FindConVar("abm_autohard");
@@ -663,8 +666,10 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 	if(pdata[client].shootAtTarget > 0 && (buttons & IN_ATTACK) == 0)  {
 		if(GetClientAimTarget(client, true) == pdata[client].shootAtTarget) {
+			#if defined _sceneprocessor_included
 			if(!IsActorBusy(client))
 				PerformScene(client, "PlayerLaugh");
+			#endif
 			buttons |= IN_ATTACK &~ (IN_RELOAD);
 			return Plugin_Changed;
 		} else {
