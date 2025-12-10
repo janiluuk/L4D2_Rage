@@ -1,18 +1,20 @@
-1# Getting Started
+# Getting Started
 
 ## For Players
 
 ### Quick Start
 1. Join a server running L4D2 Rage Edition
-2. Hold **SHIFT** to open the class selection menu
-3. Choose your class
+2. Hold **SHIFT** to open the class selection menu (or it will auto-open if you don't have a class)
+3. Choose your class - your previous choice is remembered and auto-selected
 4. Abilities auto-bind to **mouse3**, **mouse4**, and **mouse5**
-5. Type `!guide` for in-game help
+5. Hold **SHOVE + USE** for 1 second to open quick action menu
+6. Type `!guide` for in-game help
 
 ### Basic Controls
 - **SHIFT**: Hold to open/close main menu (release to close)
 - **CTRL**: Hold to open deployment menu (release to close)
-- **Mouse3/4/5**: Use class abilities
+- **SHOVE + USE** (hold for 1 second): Open quick action menu to deploy or use any skill
+- **Mouse3/4/5**: Use class abilities directly
 
 ## For Server Administrators
 
