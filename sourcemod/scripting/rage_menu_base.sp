@@ -61,7 +61,7 @@
 // Include the extra_menu API definitions (this plugin provides them)
 // Make dependency optional since this plugin IS the extra_menu provider
 #undef REQUIRE_PLUGIN
-#include <extra_menu>
+#include <rage_menu>
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
