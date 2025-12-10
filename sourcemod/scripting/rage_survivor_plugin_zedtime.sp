@@ -174,6 +174,7 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 
 void ActivateZedTime(int client)
 {
+	#pragma unused client
 	float duration = g_cvarDuration.FloatValue;
 	float slowFactor = g_cvarSlowFactor.FloatValue;
 	

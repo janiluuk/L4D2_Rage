@@ -638,7 +638,7 @@ bool TryTriggerClassSkillAction(int client, ClassTypes classType, ClassSkillInpu
 // Track deployment menu state per client
 static bool g_bDeployMenuOpen[MAXPLAYERS+1] = {false, ...};
 
-void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, bool pressedPlant, bool lookingDown, bool onGround, bool canDrop, int elapsed)
+void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, bool pressedPlant, bool onGround, bool canDrop, int elapsed)
 {
 	// Check if deployment is configured for this class
 	if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
