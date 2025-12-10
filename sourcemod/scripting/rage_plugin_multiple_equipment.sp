@@ -604,6 +604,7 @@ public Action ePlayerFirstSpawn(Handle event, const char[] name, bool dont_broad
 
  	if(GetConVarInt(l4d_me_afk_save) == 1)
 		SaveEquipment(client);
+	return Plugin_Continue;
 }
 
 public Action ePlayerSpawn(Handle event, const char[] name, bool dont_broadcast)
@@ -612,6 +613,7 @@ public Action ePlayerSpawn(Handle event, const char[] name, bool dont_broadcast)
 	sm_givewp(client, 0);
 	TeamDeath[client] = false;
 	CreateTimer(0.5, FixWeaponView, client, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Continue;
 }
 
 public Action:sm_givewp(client,args)
@@ -639,6 +641,7 @@ public Action Listener_CallVote(int client, const char[] command, int argc)
 
 	if (StrEqual(VoteFix[client], "restartgame", false) || StrEqual(VoteFix[client], "changemission", false) || StrEqual(VoteFix[client], "returntolobby", false))
 		ResetClientStateAll();
+	return Plugin_Continue;
 }
 
 void Activate_ME(int client)
@@ -654,10 +657,11 @@ void Activate_ME(int client)
 public Action FixWeaponView(Handle timer, any client)
 {
 	if(!IsSurvivor(client))
-		return;
+		return Plugin_Stop;
 
 	RemoveItemAttach(client, -1);
 	AttachAllEquipment(client);
+	return Plugin_Stop;
 }
 
 public Action ME_Notify_Client(Handle timer, any client)
@@ -723,7 +727,7 @@ public void OnGameFrame()
 public Action sm_s0(int client, int args)
 {
 	if (!IsSurvivor(client) || !IsPlayerAlive(client))
-		return; // Plugin_Continue;
+		return Plugin_Handled;
 
 	float time = GetEngineTime();
 	int buttons = GetClientButtons(client);
@@ -733,7 +737,7 @@ public Action sm_s0(int client, int args)
 
 	PressStartTime[client] = time;
 
-    //return Plugin_Continue;
+    return Plugin_Handled;
 }
 
 public Action eWeaponFire(Handle event, const char[] name, bool dontBroadcast)
@@ -741,13 +745,13 @@ public Action eWeaponFire(Handle event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 
 	if (!IsSurvivor(client) || !IsPlayerAlive(client))
-		return; // Plugin_Continue;
+		return Plugin_Continue;
 
 	char item[10];
 	GetEventString(event, "weapon", item, sizeof(item));
 
 	if(item[0] != 'p' && item[0] != 'm' && item[0] != 'v')
-		return; // Plugin_Continue;
+		return Plugin_Continue;
 
 	switch(item[0])
 	{
@@ -768,7 +772,7 @@ public Action eWeaponFire(Handle event, const char[] name, bool dontBroadcast)
 		}
 	}
 
-	//return Plugin_Continue;
+	return Plugin_Continue;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
@@ -1480,6 +1484,7 @@ int GetModelFromClass_l4d2(char[] weapon, char model[LEN64], int slot = 0)
 			else model="";
 		}
 	}
+	return 0;
 }
 
 #define model1_weapon_rifle "models/w_models/weapons/w_rifle_m16a2.mdl"
@@ -1533,6 +1538,7 @@ int GetModelFromClass_l4d1(char[] weapon, char model[LEN64], int slot = 0)
 			else model="";
 		}
 	}
+	return 0;
 }
 
 int GetItemClass(int ent, char classname[LEN64])
@@ -1566,6 +1572,7 @@ int GetItemClass(int ent, char classname[LEN64])
 			else classname="";
 		}
 	}
+	return 0;
 }
 
 int CreateWeaponEnt(char[] classname)
@@ -1718,20 +1725,27 @@ public Action ePlayerTeam(Handle event, const char[] name, bool dontBroadcast)
 			RemoveItemAttach(client, -1);
 		}
 	}
+	return Plugin_Continue;
+}
 
+public Action ePlayerDisconnect(Handle event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	
 	if(GetEventBool(event, "disconnected"))
 		ResetClientState(client);
 
 	if(!IsValidClient(client))
-		return;
+		return Plugin_Continue;
 
 	int iEntity = MEIndex[client];
 
 	if(!IsValidEntRef(iEntity))
-		return;
+		return Plugin_Continue;
 
 	AcceptEntityInput(iEntity, "kill");
 	MEIndex[client] = -1;
+	return Plugin_Continue;
 }
 
 public Action ePlayerDeath(Handle event, const char[] name, bool dontBroadcast)
@@ -1739,12 +1753,12 @@ public Action ePlayerDeath(Handle event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 
 	if(!IsValidClient(client))
-		return;
+		return Plugin_Continue;
 
 	int iEntity = MEIndex[client];
 
 	if(!IsValidEntRef(iEntity))
-		return;
+		return Plugin_Continue;
 
 	AcceptEntityInput(iEntity, "kill");
 	MEIndex[client] = -1;
@@ -1753,33 +1767,27 @@ public Action ePlayerDeath(Handle event, const char[] name, bool dontBroadcast)
 	DropSecondaryItem(client);
 	ResetClientState(client);
 	TeamDeath[client] = true;
-	//}
+	return Plugin_Continue;
 }
 
 public Action eMissionLost(Handle event, const char[] name, bool dontBroadcast)
 {
 	LoadEquipmentAll();
+	return Plugin_Continue;
 }
 
 public Action eMapTransition(Handle event, const char[] name, bool dontBroadcast)
 {
 	SaveEquipmentAll();
+	return Plugin_Continue;
 }
 
 public Action eFinaleWin(Handle event, const char[] name, bool dontBroadcast)
 {	
 	ResetClientStateAll();
+	return Plugin_Continue;
 }
 
-public Action ePlayerDisconnect(Handle event, const char[] name, bool dontBroadcast)
-{
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	
-	if (client > 0 && client <= MaxClients)
-	{
-		ResetClientState(client);
-	}
-}
 
 void SetClientWeaponInfo_l4d1(int client, int ent, int ammo, int clip)
 {
@@ -1979,48 +1987,56 @@ public Action eHealBegin(Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	InHeal[player] = GetEngineTime();
+	return Plugin_Continue;
 }
 
 public Action eHealEnd(Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	InHeal[player] = 0.0;
+	return Plugin_Continue;
 }
 
 public Action eReviveBegin(Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	InRevive[player] = GetEngineTime();
+	return Plugin_Continue;
 }
 
 public Action eReviveEnd(Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	InRevive[player] = 0.0;
+	return Plugin_Continue;
 }
 
 public Action eHealSuccess(Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	CreateTimer(0.1, DelayRestore, player, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Continue;
 }
 
 public Action eMolotovThrown(Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	CreateTimer(1.5, DelayRestore, player, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Continue;
 }
 
 public Action eAdrenalineUsed(Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	CreateTimer(0.1, DelayRestore, player, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Continue;
 }
 
 public Action ePillsUsed (Handle event, const char[] name, bool dontBroadcast)
 {
 	int player = GetClientOfUserId(GetEventInt(event, "userid"));
 	CreateTimer(0.1, DelayRestore, player, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Continue;
 }
 
 static bool IsValidEnt(int ent)

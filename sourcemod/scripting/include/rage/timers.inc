@@ -188,12 +188,12 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 	bool holdingCTRL = (buttons & IN_DUCK) != 0;
 	if (holdingCTRL)
 	{
-		HandleDeployInput(client, classType, holdingCTRL, pressedPlant, lookingDown, onGround, CanDrop, iDropTime);
+		HandleDeployInput(client, classType, holdingCTRL, pressedPlant, onGround, CanDrop, iDropTime);
 	}
 	else
 	{
 		// CTRL released - close deployment menu
-		HandleDeployInput(client, classType, false, false, lookingDown, onGround, CanDrop, iDropTime);
+		HandleDeployInput(client, classType, false, false, onGround, CanDrop, iDropTime);
 	}
 
 	ClientData[client].LastButtons = buttons;
