@@ -254,9 +254,11 @@ ConVar parachuteEnabled;
 #include <rage/const>
 #include <rage/debug>
 #include <rage/timers>
+#if defined RAGE_SURVIVOR_PLUGIN
 #include <rage/commands>
 #include <rage/perks>
 //#include <rage/classes>
 #include <rage/effects>
 #include <rage/hud>
 #include <rage/menus>
+#endif

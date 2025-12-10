@@ -13,6 +13,18 @@
 #include <rage_menus/rage_survivor_menu_keybinds>
 #include <rage_menus/rage_survivor_menu_thirdperson>
 #include <rage_menus/rage_survivor_menu_multiequip>
+#include <rage/const>
+#include <RageCore>
+
+// Define PRINT_PREFIX since we're not including talents.inc
+#define PRINT_PREFIX 	"\x04[RAGE]\x01"
+
+// Forward declarations for functions from rage_survivor.sp that we need
+// These are implemented in rage_survivor.sp and available at runtime
+// Note: We use FakeClientCommand to trigger class selection instead of calling functions directly
+
+// ClientData is not accessible from this plugin, so we'll use GetSavedClassIndex instead
+// which reads from cookies and is available
 
 #define GAMEMODE_OPTION_COUNT 13
 #define CLASS_OPTION_COUNT 8
@@ -124,6 +136,9 @@ bool g_bMenuHeld[MAXPLAYERS + 1];
 int g_iLastButtons[MAXPLAYERS + 1];
 int g_iLastSelectedOption[MAXPLAYERS + 1] = {-1, ...};
 int g_iLastSelectedMenuId[MAXPLAYERS + 1] = {-1, ...};
+bool g_bQuickActionMenuOpen[MAXPLAYERS + 1] = {false, ...};
+float g_fQuickActionHoldStart[MAXPLAYERS + 1] = {0.0, ...};
+Handle g_hQuickActionMenu[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
 ArrayList g_hMenuOptionsSurvivor = null;
 ArrayList g_hMenuOptionsInfected = null;
 int g_iAdminMenuOptionIndexSurvivor = -1;  // Index of admin menu option in survivor menu
@@ -156,6 +171,68 @@ enum RageMenuOption
     Menu_AdminMenu,  // Link to admin menu (only shown for admins)
     Menu_Guide
 };
+
+// Forward declarations for types and functions from rage_survivor.sp
+// These enums must match the definitions in rage_survivor.sp
+enum ClassSkillInput
+{
+        ClassSkill_Special = 0,
+        ClassSkill_Secondary,
+        ClassSkill_Tertiary,
+        ClassSkill_Deploy,
+        ClassSkill_Count
+};
+
+enum ClassActionMode
+{
+	ActionMode_None = 0,
+	ActionMode_Skill,
+	ActionMode_Command,
+	ActionMode_Builtin
+};
+
+enum BuiltinAction
+{
+	Builtin_None = 0,
+	Builtin_MedicSupplies,
+	Builtin_EngineerSupplies,
+	Builtin_SaboteurMines
+};
+
+// Forward declarations for functions (these are implemented in rage_survivor.sp)
+// Note: These need to be available at compile time, so we'll use stock functions
+// that call the actual implementations if available, or provide fallbacks
+stock bool TryExecuteSkillInput(int client, ClassSkillInput input)
+{
+    // This will be resolved at runtime - the actual function is in rage_survivor.sp
+    // For now, we'll use FakeClientCommand as a workaround
+    switch (input)
+    {
+        case ClassSkill_Special:
+        {
+            FakeClientCommand(client, "skill_action_1");
+        }
+        case ClassSkill_Secondary:
+        {
+            FakeClientCommand(client, "skill_action_2");
+        }
+        case ClassSkill_Tertiary:
+        {
+            FakeClientCommand(client, "skill_action_3");
+        }
+        case ClassSkill_Deploy:
+        {
+            FakeClientCommand(client, "deployment_action");
+        }
+    }
+    return true;
+}
+
+// These functions are available through rage/menus include
+// They're implemented in rage_survivor.sp but accessible via the include
+// Forward declarations for functions that may not be available
+forward int GetMaxWithClass(int classIndex);
+forward int CountPlayersWithClass(int classIndex);
 
 void AddGameModeOptions(int menu_id);
 void AddClassOptions(int menu_id);
@@ -235,6 +312,13 @@ public void OnClientPutInServer(int client)
     g_iTeamSwitchCount[client] = 0;
     g_iVoteSelection[client] = -1;
     g_bVoteTypeIsMap[client] = false;
+    g_bQuickActionMenuOpen[client] = false;
+    g_fQuickActionHoldStart[client] = 0.0;
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
+    }
     ThirdPerson_OnClientPutInServer(client);
     MultiEquip_OnClientPutInServer(client);
     Kits_OnClientPutInServer(client);
@@ -247,6 +331,13 @@ public void OnClientDisconnect(int client)
     g_iTeamSwitchCount[client] = 0;
     g_iVoteSelection[client] = -1;
     g_bVoteTypeIsMap[client] = false;
+    g_bQuickActionMenuOpen[client] = false;
+    g_fQuickActionHoldStart[client] = 0.0;
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
+    }
     ThirdPerson_OnClientDisconnect(client);
     MultiEquip_OnClientDisconnect(client);
     Kits_OnClientDisconnect(client);
@@ -268,6 +359,47 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
     {
         return Plugin_Continue;
+    }
+
+    // Check for SHOVE+USE held for 1 second to open quick action menu
+    if (GetClientTeam(client) == 2 && IsPlayerAlive(client))
+    {
+        bool holdingShove = (buttons & IN_ATTACK2) != 0;
+        bool holdingUse = (buttons & IN_USE) != 0;
+        bool holdingBoth = holdingShove && holdingUse;
+        
+        if (holdingBoth && !g_bQuickActionMenuOpen[client])
+        {
+            if (g_fQuickActionHoldStart[client] == 0.0)
+            {
+                g_fQuickActionHoldStart[client] = GetGameTime();
+            }
+            else
+            {
+                float holdTime = GetGameTime() - g_fQuickActionHoldStart[client];
+                if (holdTime >= 1.0)
+                {
+                    DisplayQuickActionMenu(client);
+                    g_fQuickActionHoldStart[client] = 0.0;
+                }
+            }
+        }
+        else if (!holdingBoth)
+        {
+            g_fQuickActionHoldStart[client] = 0.0;
+            if (g_bQuickActionMenuOpen[client])
+            {
+                CloseQuickActionMenu(client);
+            }
+        }
+    }
+    else
+    {
+        g_fQuickActionHoldStart[client] = 0.0;
+        if (g_bQuickActionMenuOpen[client])
+        {
+            CloseQuickActionMenu(client);
+        }
     }
 
     // Removed redundant SHIFT button detection - console commands (+rage_menu) handle this now
@@ -409,6 +541,11 @@ public void OnPluginEnd()
 
 Action CmdRageMenu(int client, int args)
 {
+    // This function handles both sm_rage (regular menu) and sm_ragem (admin menu)
+    // Check if user has admin access - if so, they might be calling sm_ragem
+    // For now, always show the main menu - admin menu is accessed via CreateRageMenu directly
+    // The admin command registration in admin_commands.inc will call this, but we'll
+    // show the main menu for consistency. Admins can use CreateRageMenu directly if needed.
     DisplayRageMenu(client, true);
     return Plugin_Handled;
 }
@@ -1153,10 +1290,31 @@ public bool DisplayRageMenu(int client, bool showHint)
     }
 
     // Check if survivor player has selected a class - if not, show class selection menu
-    if (GetClientTeam(client) == 2 && GetSavedClassIndex(client) == 0)
+    if (GetClientTeam(client) == 2)
     {
-        FakeClientCommand(client, "sm_class");
-        return true;
+        // Get class from saved cookie since we can't access ClientData from this plugin
+        int savedClassIndex = GetSavedClassIndex(client);
+        ClassTypes currentClass = (savedClassIndex > 0) ? view_as<ClassTypes>(savedClassIndex) : NONE;
+        
+        // If no class selected, show class selection menu
+        if (currentClass == NONE && savedClassIndex == 0)
+        {
+            FakeClientCommand(client, "sm_class");
+            return true;
+        }
+        
+        // If player has a saved class but current class is NONE, try to auto-select it
+        if (currentClass == NONE && savedClassIndex > 0)
+        {
+            ClassTypes savedClass = view_as<ClassTypes>(savedClassIndex);
+            // Auto-select the saved class - trigger the class selection command
+            // This will use the standard class selection system which will check if class is full
+            char cmd[32];
+            Format(cmd, sizeof(cmd), "sm_class %d", savedClassIndex);
+            FakeClientCommand(client, cmd);
+            PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected.", 
+                       PRINT_PREFIX, MENU_OPTIONS[savedClass]);
+        }
     }
 
     int menuId = (GetClientTeam(client) == 2) ? g_iMenuIDSurvivor : g_iMenuIDInfected;
@@ -1177,4 +1335,103 @@ public bool DisplayRageMenu(int client, bool showHint)
     ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);
     return true;
 }
+
+public void DisplayQuickActionMenu(int client)
+{
+    if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+    {
+        return;
+    }
+
+    // Get class from saved cookie since we can't access ClientData from this plugin
+    int savedClassIndex = GetSavedClassIndex(client);
+    ClassTypes classType = (savedClassIndex > 0) ? view_as<ClassTypes>(savedClassIndex) : NONE;
+    if (classType == NONE)
+    {
+        PrintHintText(client, "Select a class first!");
+        return;
+    }
+
+    // Close any existing menu
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
+    }
+
+    Menu menu = CreateMenu(MenuHandler_QuickAction);
+    char title[128];
+    Format(title, sizeof(title), "Quick Actions - %s", MENU_OPTIONS[classType]);
+    SetMenuTitle(menu, title);
+    
+    // Add menu items - use generic names since we can't access private variables from rage_survivor.sp
+    // The actual skill names will be shown when the skill is used
+    AddMenuItem(menu, "deploy", "1. Deploy");
+    AddMenuItem(menu, "skill1", "2. Skill Action 1");
+    AddMenuItem(menu, "skill2", "3. Skill Action 2");
+    AddMenuItem(menu, "skill3", "4. Skill Action 3");
+    
+    SetMenuExitButton(menu, false);
+    DisplayMenu(menu, client, 10);
+    g_hQuickActionMenu[client] = menu;
+    g_bQuickActionMenuOpen[client] = true;
+}
+
+public int MenuHandler_QuickAction(Menu menu, MenuAction action, int param1, int param2)
+{
+    switch (action)
+    {
+        case MenuAction_Select:
+        {
+            char info[32];
+            GetMenuItem(menu, param2, info, sizeof(info));
+            
+            // Get class from saved cookie since we can't access ClientData from this plugin
+            int savedClassIndex = GetSavedClassIndex(param1);
+            ClassTypes classType = (savedClassIndex > 0) ? view_as<ClassTypes>(savedClassIndex) : NONE;
+            if (classType == NONE)
+            {
+                CloseQuickActionMenu(param1);
+                return 0;
+            }
+            
+            if (StrEqual(info, "deploy"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Deploy);
+            }
+            else if (StrEqual(info, "skill1"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Special);
+            }
+            else if (StrEqual(info, "skill2"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Secondary);
+            }
+            else if (StrEqual(info, "skill3"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Tertiary);
+            }
+            
+            CloseQuickActionMenu(param1);
+        }
+        case MenuAction_End:
+        {
+            CloseHandle(menu);
+        }
+    }
+    return 0;
+}
+
+public void CloseQuickActionMenu(int client)
+{
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
+    }
+    g_bQuickActionMenuOpen[client] = false;
+}
+
+// GetActionDisplayName removed - cannot access private variables from rage_survivor.sp
+// Using generic menu item names instead
 

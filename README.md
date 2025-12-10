@@ -53,6 +53,26 @@ This is what happens when players get tired of vanilla and decide to turn everyt
 
 That's it. Seriously. Everything else you'll figure out by playing.
 
+---
+
+## ⚡ New Abilities (Because More Power = More Fun)
+
+We just added some seriously cool abilities that make each class even more unique:
+
+**⚡ Chain Lightning (Soldier)** – Aim at an enemy and watch lightning jump between up to 5 targets, dealing devastating damage. Perfect for clearing groups of infected in style. Each chain jumps to the nearest enemy, so position yourself well and watch the show.
+
+**⏱️ Zed Time (Soldier)** – Activate slow motion that affects everyone on the server. Time slows to 30% speed for 5 seconds, giving you and your team a massive tactical advantage. Perfect for clutch escapes, precise shots, or just looking cool while you wreck everything.
+
+**💨 Blink (Athlete)** – Short-range teleport that lets you instantly reposition or escape danger. Aim where you want to go and blink forward - perfect for quick escapes, repositioning during fights, or just looking like a ninja.
+
+**🧗 Wall Run & Climb (Athlete)** – Automatically stick to walls when you jump near them. Run along walls with W/S, climb upward with JUMP. It's parkour at its finest - reach places other classes can't, traverse obstacles in style, and make mobility your weapon.
+
+**☠️ Poison Melee (Saboteur)** – Your melee attacks automatically apply toxic damage over time. Enemies glow green and take continuous damage every second. Hit-and-run tactics just got a whole lot deadlier - strike, cloak away, and let the poison finish them off.
+
+**👁️ Extended Sight (Saboteur)** – Already had this, but it's worth mentioning: see special infected through walls for 20 seconds. Call out targets, scout ahead, and be the team's eyes.
+
+---
+
 **Running a Server?** Here's the setup:
 1. Drop the `sourcemod/` folder into your server directory
 2. (Optional) Edit `configs/rage_class_skills.cfg` to customize classes
@@ -97,8 +117,8 @@ bind mouse5 skill_action_3
 
 **What you do:**
 - **Satellite Strike** – Call down death from above (outdoor areas only, but it's worth it)
-- **Homing Missile** – Fire a rocket that chases targets
-- **Decoy Missile** – Launch a fake to distract infected
+- **Chain Lightning** – Aim at an enemy and unleash lightning that jumps between up to 5 targets, dealing devastating area damage
+- **Zed Time** – Activate slow motion that affects everyone, giving you and your team a tactical advantage in clutch moments
 
 **What you get:**
 - 300 HP (double the normal amount)
@@ -119,6 +139,8 @@ bind mouse5 skill_action_3
 - **Ninja Kick** – Sprint + Jump to flying-kick enemies into oblivion
 - **Parachute** – Hold Use mid-air to glide down safely
 - **Anti-gravity Grenades** – Throw grenades that mess with physics (because normal grenades are boring)
+- **Blink** – Short-range teleport that lets you instantly reposition or escape danger
+- **Wall Run** – Automatically stick to walls and run along them (or climb upward) - parkour at its finest
 
 **What you get:**
 - 20% faster movement (fastest class)
@@ -189,7 +211,8 @@ bind mouse5 skill_action_3
 
 **What you do:**
 - **Dead Ringer Cloak** – Go invisible and drop a fake corpse to fool infected (it's as cool as it sounds)
-- **Extended Sight** – Reveal special infected positions for 20 seconds (every 2 minutes)
+- **Extended Sight** – Reveal special infected positions for 20 seconds (every 2 minutes) - see through walls!
+- **Poison Melee** – Your melee attacks automatically apply toxic damage over time - enemies glow green and take continuous damage
 - **Deploy Mines** – Plant 20 different mine types with unique effects
 
 **What you get:**

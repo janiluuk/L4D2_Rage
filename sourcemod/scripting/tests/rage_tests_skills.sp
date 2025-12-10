@@ -39,6 +39,11 @@ public void OnPluginStart()
     RegAdminCmd("sm_test_lethalweapon", Command_TestLethalWeapon, ADMFLAG_ROOT, "Test Lethal Weapon skill");
     RegAdminCmd("sm_test_unvomit", Command_TestUnvomit, ADMFLAG_ROOT, "Test Unvomit skill");
     RegAdminCmd("sm_test_berzerk", Command_TestBerzerk, ADMFLAG_ROOT, "Test Berzerk skill");
+    RegAdminCmd("sm_test_chainlightning", Command_TestChainLightning, ADMFLAG_ROOT, "Test Chain Lightning skill");
+    RegAdminCmd("sm_test_zedtime", Command_TestZedTime, ADMFLAG_ROOT, "Test Zed Time skill");
+    RegAdminCmd("sm_test_blink", Command_TestBlink, ADMFLAG_ROOT, "Test Blink teleport skill");
+    RegAdminCmd("sm_test_wallrun", Command_TestWallRun, ADMFLAG_ROOT, "Test Wall Run skill");
+    RegAdminCmd("sm_test_poisonmelee", Command_TestPoisonMelee, ADMFLAG_ROOT, "Test Poison Melee skill");
     RegAdminCmd("sm_test_all_skills", Command_TestAllSkills, ADMFLAG_ROOT, "Run all skill tests");
 }
 
@@ -410,6 +415,11 @@ public Action Command_TestAllSkills(int client, int args)
     CreateTimer(3.0, Timer_RunTest, GetClientUserId(client) | (6 << 16)); // Lethal Weapon
     CreateTimer(3.5, Timer_RunTest, GetClientUserId(client) | (7 << 16)); // Unvomit
     CreateTimer(4.0, Timer_RunTest, GetClientUserId(client) | (8 << 16)); // Berzerk
+    CreateTimer(4.5, Timer_RunTest, GetClientUserId(client) | (9 << 16)); // Chain Lightning
+    CreateTimer(5.0, Timer_RunTest, GetClientUserId(client) | (10 << 16)); // Zed Time
+    CreateTimer(5.5, Timer_RunTest, GetClientUserId(client) | (11 << 16)); // Blink
+    CreateTimer(6.0, Timer_RunTest, GetClientUserId(client) | (12 << 16)); // Wall Run
+    CreateTimer(6.5, Timer_RunTest, GetClientUserId(client) | (13 << 16)); // Poison Melee
     
     ReplyToCommand(client, "[Tests] All tests scheduled. Results will appear over the next few seconds.");
     return Plugin_Handled;
@@ -435,6 +445,11 @@ public Action Timer_RunTest(Handle timer, int data)
         case 6: Command_TestLethalWeapon(client, 0);
         case 7: Command_TestUnvomit(client, 0);
         case 8: Command_TestBerzerk(client, 0);
+        case 9: Command_TestChainLightning(client, 0);
+        case 10: Command_TestZedTime(client, 0);
+        case 11: Command_TestBlink(client, 0);
+        case 12: Command_TestWallRun(client, 0);
+        case 13: Command_TestPoisonMelee(client, 0);
     }
     
     return Plugin_Stop;
@@ -611,6 +626,208 @@ public Action Command_TestBerzerk(int client, int args)
     }
     
     ReplyToCommand(client, "[Tests] Berzerk tests completed.");
+    return Plugin_Handled;
+}
+
+public Action Command_TestChainLightning(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Chain Lightning...");
+    
+    bool pluginLoaded = LibraryExists("rage_survivor_chainlightning");
+    ReplyToCommand(client, "[Tests] Chain Lightning Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Chain Lightning plugin not found.");
+        return Plugin_Handled;
+    }
+    
+    char skillName[32];
+    GetPlayerSkillName(client, skillName, sizeof(skillName));
+    bool hasSkill = StrEqual(skillName, "ChainLightning", false);
+    ReplyToCommand(client, "[Tests] Has Chain Lightning Skill: %s (Current: %s)", hasSkill ? "✓ PASS" : "✗ FAIL", skillName);
+    
+    if (hasSkill)
+    {
+        ReplyToCommand(client, "[Tests] Aim at an enemy and activate skill to test chain jumping.");
+        ReplyToCommand(client, "[Tests] Expected: Lightning jumps between multiple enemies dealing damage.");
+    }
+    
+    ReplyToCommand(client, "[Tests] Chain Lightning tests completed.");
+    return Plugin_Handled;
+}
+
+public Action Command_TestZedTime(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Zed Time (Slow Motion)...");
+    
+    bool pluginLoaded = LibraryExists("rage_survivor_zedtime");
+    ReplyToCommand(client, "[Tests] Zed Time Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Zed Time plugin not found.");
+        return Plugin_Handled;
+    }
+    
+    char skillName[32];
+    GetPlayerSkillName(client, skillName, sizeof(skillName));
+    bool hasSkill = StrEqual(skillName, "ZedTime", false);
+    ReplyToCommand(client, "[Tests] Has Zed Time Skill: %s (Current: %s)", hasSkill ? "✓ PASS" : "✗ FAIL", skillName);
+    
+    if (hasSkill)
+    {
+        int result = OnSpecialSkillUsed(client, 0, 0);
+        ReplyToCommand(client, "[Tests] Skill Activation Result: %d", result);
+        if (result == 1)
+        {
+            ReplyToCommand(client, "[Tests] ✓ Zed Time activated - check for slow motion effect!");
+        }
+        else
+        {
+            ReplyToCommand(client, "[Tests] ✗ Skill activation failed or on cooldown");
+        }
+    }
+    
+    ReplyToCommand(client, "[Tests] Zed Time tests completed.");
+    return Plugin_Handled;
+}
+
+public Action Command_TestBlink(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Blink Teleport...");
+    
+    bool pluginLoaded = LibraryExists("rage_survivor_blink");
+    ReplyToCommand(client, "[Tests] Blink Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Blink plugin not found.");
+        return Plugin_Handled;
+    }
+    
+    char skillName[32];
+    GetPlayerSkillName(client, skillName, sizeof(skillName));
+    bool hasSkill = StrEqual(skillName, "Blink", false);
+    ReplyToCommand(client, "[Tests] Has Blink Skill: %s (Current: %s)", hasSkill ? "✓ PASS" : "✗ FAIL", skillName);
+    
+    if (hasSkill)
+    {
+        int result = OnSpecialSkillUsed(client, 0, 0);
+        ReplyToCommand(client, "[Tests] Skill Activation Result: %d", result);
+        if (result == 1)
+        {
+            ReplyToCommand(client, "[Tests] ✓ Blink activated - you should have teleported forward!");
+        }
+        else
+        {
+            ReplyToCommand(client, "[Tests] ✗ Skill activation failed or on cooldown");
+        }
+    }
+    
+    ReplyToCommand(client, "[Tests] Blink tests completed.");
+    return Plugin_Handled;
+}
+
+public Action Command_TestWallRun(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Wall Run & Climb...");
+    
+    bool pluginLoaded = LibraryExists("rage_survivor_wallrun");
+    ReplyToCommand(client, "[Tests] Wall Run Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Wall Run plugin not found.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Wall Run is a passive ability - jump near a wall to activate.");
+    ReplyToCommand(client, "[Tests] Expected: You should stick to walls and run along them.");
+    ReplyToCommand(client, "[Tests] Use W/S to move along wall, JUMP to climb upward.");
+    
+    ReplyToCommand(client, "[Tests] Wall Run tests completed.");
+    return Plugin_Handled;
+}
+
+public Action Command_TestPoisonMelee(int client, int args)
+{
+    if (!g_cvTestEnabled.BoolValue)
+    {
+        ReplyToCommand(client, "[Tests] Tests are disabled.");
+        return Plugin_Handled;
+    }
+    
+    if (!IsValidClient(client))
+    {
+        ReplyToCommand(client, "[Tests] You must be a valid client to run tests.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Testing Poison Melee...");
+    
+    bool pluginLoaded = LibraryExists("rage_survivor_poisonmelee");
+    ReplyToCommand(client, "[Tests] Poison Melee Plugin Loaded: %s", pluginLoaded ? "✓ PASS" : "✗ FAIL");
+    
+    if (!pluginLoaded)
+    {
+        ReplyToCommand(client, "[Tests] Poison Melee plugin not found.");
+        return Plugin_Handled;
+    }
+    
+    ReplyToCommand(client, "[Tests] Poison Melee is a passive ability - hit enemies with melee weapons.");
+    ReplyToCommand(client, "[Tests] Expected: Enemies should take poison damage over time with green glow effect.");
+    ReplyToCommand(client, "[Tests] Test by melee attacking an infected and watch for poison ticks.");
+    
+    ReplyToCommand(client, "[Tests] Poison Melee tests completed.");
     return Plugin_Handled;
 }
 

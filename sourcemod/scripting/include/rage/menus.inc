@@ -650,10 +650,14 @@ public void Admin_MainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObject 
 	}
 }
 
-public Action CmdRageMenu(int client, int args)
+// Admin menu handler for sm_ragem command
+public Action CmdRageAdminMenu(int client, int args)
 {
     if (IsAdmin(client))
-                CreateRageMenu(client);
+    {
+        CreateRageMenu(client);
+    }
+    return Plugin_Handled;
 }
 
 public bool CreateRageMenu(int client) {

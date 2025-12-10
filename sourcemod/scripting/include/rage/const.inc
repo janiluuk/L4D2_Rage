@@ -119,6 +119,7 @@ enum struct PlayerInfo
 	
 	bool SetPerk(const char[] name, int value)
 	{
+		#if defined RAGE_SURVIVOR_PLUGIN
 		PerkData data;
 		if(!FindPerk(name, data))
 			return false;
@@ -137,6 +138,10 @@ enum struct PlayerInfo
 			this.perks.SetValue(name, value);
 		
 		return true;
+		#else
+		// FindPerk not available when RAGE_SURVIVOR_PLUGIN is not defined
+		return false;
+		#endif
 	}
 }
 

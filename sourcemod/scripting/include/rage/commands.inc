@@ -3,6 +3,10 @@
 #endif
 #define _RAGE_COMMANDS_INC
 
+#if !defined RAGE_SURVIVOR_PLUGIN
+        #endinput
+#endif
+
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>

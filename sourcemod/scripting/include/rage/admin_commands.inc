@@ -6,6 +6,7 @@
 #include <sourcemod>
 
 forward Action CmdRageMenu(int client, int args);
+forward Action CmdRageAdminMenu(int client, int args);
 forward Action Cmd_PrintToHUD(int client, int args);
 forward Action Cmd_ClearHUD(int client, int args);
 forward Action Cmd_DeleteHUD(int client, int args);
@@ -21,7 +22,9 @@ forward Action HideCommand(int client, int args);
 
 stock void RegisterAdminCommands()
 {
-        RegAdminCmd("sm_ragem", CmdRageMenu, ADMFLAG_ROOT, "Debug & Manage");
+        // sm_ragem now calls CreateRageMenu directly instead of CmdRageMenu
+        // to avoid conflict with the main menu handler
+        RegAdminCmd("sm_ragem", CmdRageAdminMenu, ADMFLAG_ROOT, "Debug & Manage");
         RegAdminCmd("sm_hide", HideCommand, ADMFLAG_ROOT, "Hide player");
         RegAdminCmd("sm_rage_plugins", CmdPlugins, ADMFLAG_ROOT, "List plugins");
         RegAdminCmd("sm_yay", GrenadeCommand, ADMFLAG_ROOT, "Test grenades");

@@ -3,6 +3,10 @@
 #endif
 #define _rage_hud_included
 
+#if !defined RAGE_SURVIVOR_PLUGIN
+ #endinput
+#endif
+
 stock PrintToHud(char[] text) 
 {
 	static char buffer[64];

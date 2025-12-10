@@ -2281,17 +2281,21 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
                                         }
                         }
                         else
-                                {
-                                        // Class is full, show menu instead
-                                        PrintToChat(client, "%sYour previous \x04%s\x01 class is full. Please choose another class.", 
-                                                   PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
+                        {
+                                // Class is full, show menu instead
+                                PrintToChat(client, "%sYour previous \x04%s\x01 class is full. Please choose another class.", 
+                                           PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
                                 CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
-                                }
                         }
-                        else
+                }
+                else
+                {
+                        // No class selected - show class selection menu
+                        if (ClientData[client].ChosenClass == NONE)
                         {
                                 CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
                         }
+                }
 
                         CreateTimer(2.0, TimerAnnounceSelectedClassHint, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
                         ShowAthleteAbilityHint(client);

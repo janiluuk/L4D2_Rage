@@ -343,7 +343,8 @@ void DisplaySoldierMenu(int client)
     SetMenuTitle(menu, "Soldier Guide");
     AddMenuItem(menu, "overview", "Role overview");
     AddMenuItem(menu, "airstrike", "Skill 1: F-18 Airstrike");
-    AddMenuItem(menu, "missiles", "Skills 2 & 3: Missiles");
+    AddMenuItem(menu, "chainlightning", "Skill 2: Chain Lightning");
+    AddMenuItem(menu, "zedtime", "Skill 3: Zed Time");
     AddMenuItem(menu, "weapons", "Passives: Weapons & toughness");
     AddMenuItem(menu, "nightvision", "Utility: Night vision");
     SetMenuExitBackButton(menu, true);
@@ -374,14 +375,22 @@ public int MenuHandler_Soldier(Menu menu, MenuAction action, int param1, int par
                 PrintGuideLine(param1, "Keep sight on the mark until jets finish their run. Works best in outdoor areas.");
                 DisplaySoldierMenu(param1);
             }
-            else if (StrEqual(info, "missiles"))
+            else if (StrEqual(info, "chainlightning"))
             {
-                char line1[256], line2[256];
-                Format(line1, sizeof(line1), "Use %s to fire a homing missile that tracks infected targets.", action2);
-                Format(line2, sizeof(line2), "Use %s to launch a dummy distraction missile that draws attention.", action3);
-                PrintGuideLine(param1, line1);
-                PrintGuideLine(param1, line2);
-                PrintGuideLine(param1, "You'll be highlighted for infected when shooting missiles - they can be shot down mid-flight!");
+                char line[256];
+                Format(line, sizeof(line), "Aim at an enemy and press %s to unleash chain lightning that jumps between targets.", action2);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Lightning chains up to 5 times, dealing damage with falloff. Perfect for clearing groups!");
+                PrintGuideLine(param1, "Each chain jumps to the nearest enemy within range, creating devastating area damage.");
+                DisplaySoldierMenu(param1);
+            }
+            else if (StrEqual(info, "zedtime"))
+            {
+                char line[256];
+                Format(line, sizeof(line), "Press %s to activate Zed Time - slow motion that affects all players.", action3);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Time slows to 30% speed for 5 seconds, giving you and your team a tactical advantage.");
+                PrintGuideLine(param1, "Perfect for clutch moments, escaping tight situations, or landing precise shots.");
                 DisplaySoldierMenu(param1);
             }
             else if (StrEqual(info, "weapons"))
@@ -460,8 +469,13 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
             }
             else if (StrEqual(info, "movement"))
             {
+                char action1[64], action2[64], action3[64], deploy[64];
+                GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
                 PrintGuideLine(param1, "Athletes excel at parkour with double jump, long jump, high jump, and bunnyhop capabilities.");
-                PrintGuideLine(param1, "Wall run to traverse obstacles and reach elevated positions that other classes can't access.");
+                PrintGuideLine(param1, "Wall run automatically activates when you jump near walls - run along them with W/S, climb with JUMP.");
+                char line[256];
+                Format(line, sizeof(line), "Use %s to blink teleport forward - perfect for quick escapes and repositioning.", deploy);
+                PrintGuideLine(param1, line);
                 PrintGuideLine(param1, "Your superior mobility makes you perfect for objective runs and scouting ahead safely.");
                 DisplayAthleteMenu(param1);
             }
@@ -807,9 +821,10 @@ public int MenuHandler_Saboteur(Menu menu, MenuAction action, int param1, int pa
             }
             else if (StrEqual(info, "damage"))
             {
-                PrintGuideLine(param1, "Saboteurs deal reduced damage to survivors but increased damage to infected - focus on special infected.");
-                PrintGuideLine(param1, "Your role is reconnaissance and traps, not direct combat with the horde.");
-                PrintGuideLine(param1, "Use stealth to avoid confrontation and set up ambushes instead of face-to-face fights.");
+                PrintGuideLine(param1, "Saboteurs deal bonus damage with melee weapons and can finish off downed infected quickly.");
+                PrintGuideLine(param1, "Your melee attacks automatically apply poison damage over time - enemies glow green and take continuous damage.");
+                PrintGuideLine(param1, "Poison ticks every second, making your melee hits incredibly effective against special infected.");
+                PrintGuideLine(param1, "Perfect for hit-and-run tactics: strike, cloak away, and let the poison finish them off.");
                 DisplaySaboteurMenu(param1);
             }
         }
