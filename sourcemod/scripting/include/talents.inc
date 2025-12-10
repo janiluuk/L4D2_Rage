@@ -155,10 +155,8 @@ stock bool:ClassHint = false;
 Handle g_ReadyTimer[MAXPLAYERS+1] = {null, ...};
 new RndSession;
 
-// Parachute
-bool g_bParachute[MAXPLAYERS+1];
-int g_iVelocity = -1, g_iParaEntRef[MAXPLAYERS+1] = {INVALID_ENT_REFERENCE, ...};
-#pragma unused g_bParachute, g_iParaEntRef, g_iVelocity
+// Parachute - now handled by rage_survivor_plugin_parachute.sp
+// Old variables removed - parachute uses its own implementation
 
 // CLASS RELATED STUFF
 
@@ -247,8 +245,8 @@ new Handle:SPECIAL_SKILL_LIMIT;
 new Handle:MINIMUM_AIRSTRIKE_INTERVAL;
 
 ConVar healthModEnabled;
-ConVar parachuteEnabled;
-#pragma unused healthModEnabled, parachuteEnabled
+// parachuteEnabled removed - parachute plugin uses its own ConVar (talents_athlete_enable_parachute)
+#pragma unused healthModEnabled
 
 #include <sourcemod>
 #include <sdktools>

@@ -10,6 +10,7 @@ bool g_bNB;
 #include <sdktools>
 #include <sdkhooks>
 #include <talents>
+#include <rage/common>
 
 // Note: g_iQueuedClass is defined in rage_survivor.sp
 // This include file is included by rage_survivor.sp, so the variable should be accessible

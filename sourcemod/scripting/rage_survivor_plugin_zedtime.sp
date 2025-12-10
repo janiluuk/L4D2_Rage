@@ -172,6 +172,7 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 
 void ActivateZedTime(int client)
 {
+	// client parameter kept for API consistency but not used in this implementation
 	#pragma unused client
 	float duration = g_cvarDuration.FloatValue;
 	float slowFactor = g_cvarSlowFactor.FloatValue;

@@ -51,14 +51,12 @@ Handle l4d_me_view;
 Handle l4d_me_slot[5];
 Handle l4d_me_afk_save;
 Handle l4d_me_player_connect;
-#pragma unused l4d_me_player_connect
 Handle l4d_me_custom_notify;
 Handle l4d_me_custom_notify_msg;
 Handle ME_Notify[MAXPLAYERS+1];
 Handle AmmoLockSlot0 = INVALID_HANDLE;
 Handle AmmoLockSlot1 = INVALID_HANDLE;
 Handle AmmoUseDistance = INVALID_HANDLE;
-#pragma unused AmmoUseDistance
 Handle g_hCookie;
 
 int	g_iClientModePref[MAXPLAYERS+1];// Client cookie preferences - mode client last used
@@ -1559,6 +1557,7 @@ int GetItemClass(int ent, char classname[LEN64])
 			else classname="";
 		}
 	}
+	return 0;
 	return 0;
 }
 

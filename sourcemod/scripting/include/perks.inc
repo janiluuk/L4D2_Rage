@@ -107,18 +107,15 @@ float fAntiRushFrequencyCounter[MAXPLAYERS+1];
 #include <sdktools>
 #include <sdkhooks>
 #tryinclude <left4dhooks>
-// Note: jutils and rage/validation both define IsValidClient as stock with different signatures
-// Include jutils first, then rage/validation (which will be skipped due to include guard if jutils included it)
-// Actually, jutils doesn't include rage/validation, so we need both but they conflict
-// Solution: Include rage/validation, and define jutils functions we need inline
+// Note: We define utility functions inline here to avoid external dependencies
+// IsValidClient is provided by rage/validation.inc
 #include <rage/validation>
 #tryinclude <basecomm>
 // Note: multicolors includes colors/morecolors functionality, use it instead to avoid conflicts
 #tryinclude <multicolors>
 #tryinclude <sceneprocessor>
 
-// Define jutils functions we need (to avoid conflict with IsValidClient)
-#if !defined _jutils_included
+// Define utility functions we need
 stock int GetClientWeaponEntIndex(int client, int slot) {
 	if(slot >= 0 && slot <= 4) {
 		int wpnRef = GetPlayerWeaponSlot(client, slot);
@@ -240,7 +237,6 @@ stock bool DoesClientHaveMelee(int client) {
 	GetEntityClassname(wpnEnt, wpn, sizeof(wpn));
 	return (StrContains(wpn, "melee") != -1 || StrContains(wpn, "knife") != -1);
 }
-#endif
 
 // Constants
 #define MAIN_TIMER_INTERVAL_S 0.1

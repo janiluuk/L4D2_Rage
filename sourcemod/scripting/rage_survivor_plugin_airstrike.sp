@@ -646,7 +646,7 @@ Action CmdAirstrikeMake(int client, int args)
 				GetClientEyeAngles(target, vAng);
 				direction = vAng[1];
 
-				Handle hTrace = TR_TraceRayFilterEx(vPos, vAng, MASK_SHOT, RayType_Infinite, TraceFilter);
+				Handle hTrace = TR_TraceRayFilterEx(vPos, vAng, MASK_SHOT, RayType_Infinite, TraceFilter_Airstrike);
 
 				if( TR_DidHit(hTrace) )
 				{
@@ -728,7 +728,7 @@ int MainMenuHandler(Menu menu, MenuAction action, int client, int index)
 			GetClientEyeAngles(client, vAng);
 			direction = vAng[1];
 
-			Handle trace = TR_TraceRayFilterEx(vPos, vAng, MASK_SHOT, RayType_Infinite, TraceFilter);
+			Handle trace = TR_TraceRayFilterEx(vPos, vAng, MASK_SHOT, RayType_Infinite, TraceFilter_Airstrike);
 
 			if( TR_DidHit(trace) )
 			{
@@ -761,7 +761,7 @@ int MainMenuHandler(Menu menu, MenuAction action, int client, int index)
 	return 0;
 }
 
-bool TraceFilter(int entity, int contentsMask)
+bool TraceFilter_Airstrike(int entity, int contentsMask)
 {
 	return entity > MaxClients;
 }

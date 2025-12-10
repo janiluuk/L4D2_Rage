@@ -44,28 +44,38 @@ char g_sApiKey[256];
 char g_sModel[64];
 float g_fTimeout = 8.0;
 float g_fMaxDistance = 750.0;
+bool g_bHttpClientAvailable = false;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 #if !HTTPCLIENT_AVAILABLE
-    strcopy(error, err_max, "This plugin requires the httpclient extension. Install it from https://github.com/alliedmodders/sourcemod/tree/master/extensions/httpclient");
-    return APLRes_Failure;
-#else
-    // Check if HTTPRequest native is available at runtime
-    if (GetFeatureStatus(FeatureType_Native, "HTTPRequest.HTTPRequest") != FeatureStatus_Available)
-    {
-        strcopy(error, err_max, "HTTPRequest native not found. Please ensure httpclient extension is loaded.");
-        return APLRes_Failure;
-    }
+    // Plugin compiled without httpclient - allow it to load but it won't work
     return APLRes_Success;
+#else
+    // Plugin compiled with httpclient - allow it to load
+    // Runtime check will happen in OnPluginStart
+    return APLRes_Success;
+#endif
+}
+
+public void OnAllPluginsLoaded()
+{
+#if HTTPCLIENT_AVAILABLE
+    // Check if httpclient extension is actually loaded at runtime
+    g_bHttpClientAvailable = LibraryExists("httpclient");
+    if (!g_bHttpClientAvailable)
+    {
+        LogError("[RAGE AI Chat] httpclient extension is not loaded. AI features will be disabled.");
+        LogError("[RAGE AI Chat] Please install and load the httpclient extension to enable AI features.");
+    }
 #endif
 }
 
 public void OnPluginStart()
 {
 #if !HTTPCLIENT_AVAILABLE
-    // Should not reach here if AskPluginLoad2 failed, but just in case
-    SetFailState("This plugin requires the httpclient extension.");
+    LogError("[RAGE AI Chat] Plugin compiled without httpclient extension. AI functionality will be disabled.");
+    LogError("[RAGE AI Chat] Please recompile with httpclient extension available to enable AI features.");
     return;
 #endif
 
@@ -145,6 +155,13 @@ void SendAIRequest(int requester, int speaker, const char[] query)
     PrintToChat(requester, "\x04[AI]\x01 httpclient extension is not available.");
     return;
 #else
+    // Check if httpclient extension is loaded before trying to use it
+    if (!g_bHttpClientAvailable)
+    {
+        PrintToChat(requester, "\x04[AI]\x01 httpclient extension is not loaded. Please install and load the httpclient extension.");
+        return;
+    }
+    
     HTTPRequest request = new HTTPRequest(g_sApiUrl);
     if (request == null)
     {
@@ -226,16 +243,16 @@ public void OnAIResponse(HTTPResponse response, any data)
     }
 
     // Send response through overlay if available, otherwise use chat
-    bool sentViaOverlay = false;
+    bool bSentViaOverlay = false;
     if (LibraryExists("rage_overlay") && GetFeatureStatus(FeatureType_Native, "IsOverlayConnected") == FeatureStatus_Available)
     {
         if (IsOverlayConnected())
         {
-            sentViaOverlay = SendAIResponseViaOverlay(requester, speaker, content);
+            bSentViaOverlay = SendAIResponseViaOverlay(requester, speaker, content);
         }
     }
     
-    if (!sentViaOverlay)
+    if (!bSentViaOverlay)
     {
         // Fallback to chat
         if (speaker > 0 && IsClientInGame(speaker) && IsPlayerAlive(speaker))

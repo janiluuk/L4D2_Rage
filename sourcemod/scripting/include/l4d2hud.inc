@@ -3,6 +3,7 @@
 //See it here: https://github.com/Jackzmc/sourcemod-plugins/blob/master/scripting/include/l4d2hud.inc
 
 #include <rage/validation>
+#include <rage/common>
 
 enum hudPosition {
     HUD_POSITION_FAR_LEFT, 

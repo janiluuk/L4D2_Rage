@@ -17,15 +17,12 @@
  * @param client    Client index to validate
  * @return          True if valid client in-game, false otherwise
  * 
- * Note: jutils.inc also defines IsValidClient with a different signature.
- * We only define our version if jutils.inc is not included.
+ * Note: This is the standard Rage version of IsValidClient.
  */
-#if !defined _jutils_included
 stock bool IsValidClient(int client)
 {
     return (client > 0 && client <= MaxClients && IsClientInGame(client));
 }
-#endif
 
 /**
  * Validates if a client is valid, in-game, and alive.

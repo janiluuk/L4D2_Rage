@@ -58,6 +58,8 @@ void CooldownNotify_Cleanup()
 
 // Register a cooldown to track
 // Returns true if registered, false if already exists
+// NOTE: This function is used by multiple skill plugins (zedtime, chainlightning, blink, etc.)
+// The compiler warning about it being unused is a false positive - it's called from other plugins
 bool CooldownNotify_Register(int client, float endTime, const char[] skillName)
 {
     if (g_CooldownEntries == null)

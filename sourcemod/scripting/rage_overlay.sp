@@ -35,8 +35,7 @@ authState g_authState;
 // TODO: JSONObject needs to be defined or included from a library
 // For now, using a placeholder Handle
 // When JSON library is available, replace this with proper JSONObject type
-Handle g_globalVars = null;
-#pragma unused g_globalVars
+// Handle g_globalVars = null; // TODO: Initialize when JSON library is available
 
 StringMap actionFallbackHandlers; // namespace -> action name has no handler, falls to this.
 StringMap actionNamespaceHandlers; // { namespace: { [action name] -> handler } }
@@ -93,15 +92,15 @@ enum outRequest {
 	Request_Invalid
 }
 
-#pragma unused OUT_REQUEST_IDS
-char OUT_REQUEST_IDS[view_as<int>(Request_Invalid)][] = {
-	"player_joined",
-	"player_left",
-	"game_state",
-	"request_element",
-	"update_element",
-	"change_audio_state"
-};
+// TODO: Use OUT_REQUEST_IDS when JSON library is available
+// char OUT_REQUEST_IDS[view_as<int>(Request_Invalid)][] = {
+// 	"player_joined",
+// 	"player_left",
+// 	"game_state",
+// 	"request_element",
+// 	"update_element",
+// 	"change_audio_state"
+// };
 
 char steamidCache[MAXPLAYERS+1][32];
 
@@ -268,8 +267,9 @@ void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast) 
 }
 
 // TODO: Implement WebSocket callbacks when library is available
+// These will be registered as callbacks when WebSocket library is integrated
+/*
 void OnWSConnect(Handle ws, any arg) {
-	#pragma unused ws, arg
 	connectAttempts = 0;
 	g_authState = Auth_None;
 	PrintToServer("[Overlay] Connected, authenticating");
@@ -283,7 +283,6 @@ void OnWSConnect(Handle ws, any arg) {
 }
 
 void OnWSDisconnect(Handle ws, int attempt) {
-	#pragma unused ws, attempt
 	if(g_authState == Auth_Error) {
 		return;
 	}
@@ -297,17 +296,16 @@ void OnWSDisconnect(Handle ws, int attempt) {
 	PrintToServer("[Overlay] Disconnected, retrying in %.0f seconds", nextAttempt);
 	CreateTimer(nextAttempt, Timer_Reconnect);
 }
+*/
 
 Action Timer_Reconnect(Handle h) {
-	#pragma unused h
 	ConnectManager();
 	return Plugin_Handled;
 }
 
 // TODO: Implement JSON message handling when library is available
-// void OnWSJson(Handle ws, Handle message, any data) {
+/*
 void OnWSJson(Handle ws, any message, any data) {
-	#pragma unused ws, message, data
 	// TODO: Parse JSON message and handle actions
 	// JSONObject obj = view_as<JSONObject>(message);
 	// 
@@ -324,10 +322,11 @@ void OnWSJson(Handle ws, any message, any data) {
 	//     }
 	// }
 }
+*/
 
 // TODO: Implement action handler when JSON library is available
+/*
 void OnAction(Handle obj) {
-	#pragma unused obj
 	// ClientAction action;
 	// obj.GetString("steamid", action.steamid, sizeof(action.steamid));
 	// obj.GetString("namespace", action.ns, sizeof(action.ns));
@@ -342,6 +341,7 @@ void OnAction(Handle obj) {
 	// // Handle action through registered handlers
 	// // ...
 }
+*/
 
 int _FindClientBySteamId2(const char[] steamid) {
 	for(int i = 1; i <= MaxClients; i++) {
@@ -383,8 +383,8 @@ void DisconnectManager() {
 }
 
 bool Send_PlayerJoined(const char[] steamid) {
-	#pragma unused steamid
 	if(!isManagerReady()) return false;
+	#pragma unused steamid  // TODO: Use when JSON library is available
 
 	// TODO: Send player joined message when JSON library is available
 	// JSONObject obj = new JSONObject();
@@ -398,8 +398,8 @@ bool Send_PlayerJoined(const char[] steamid) {
 }
 
 bool Send_PlayerLeft(const char[] steamid) {
-	#pragma unused steamid
 	if(!isManagerReady()) return false;
+	#pragma unused steamid  // TODO: Use when JSON library is available
 
 	// TODO: Send player left message when JSON library is available
 	// JSONObject obj = new JSONObject();

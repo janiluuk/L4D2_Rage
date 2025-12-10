@@ -318,10 +318,17 @@ stock int GiveClientWeapon(int client, const char[] wpnName) {
 		return -1;
 	}
 }
+// GetNearestEntity moved to <rage/common> for better accessibility
+// This function is now available to all plugins that include <rage/common>
+#if !defined _rage_common_included
 stock int GetNearestEntity(int client, char[] classname)
 {
+	if (client <= 0 || client > MaxClients)
+		return -1;
+		
 	int nearestEntity = -1;
 	float clientVecOrigin[3], entityVecOrigin[3];
+	GetClientAbsOrigin(client, clientVecOrigin);
 	
 	//Get the distance between the first entity and client
 	float distance, nearestDistance = -1.0;
@@ -340,7 +347,8 @@ stock int GetNearestEntity(int client, char[] classname)
 		}
 	}
 	return nearestEntity;
-}  
+}
+#endif  
 
 stock bool IsValidPlayer(int i) {
 	return IsClientConnected(i) && IsClientInGame(i) && IsPlayerAlive(i);

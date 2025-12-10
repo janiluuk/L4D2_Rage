@@ -30,7 +30,6 @@ public Plugin myinfo =
 #include <sdktools>
 #include <clientprefs>
 #include <l4d2hud>
-#include <jutils>
 #include <l4d2>
 #tryinclude <LMCCore>
 #tryinclude <LMCL4D2SetTransmit>
@@ -39,6 +38,7 @@ public Plugin myinfo =
 #include <rage/cooldown_notify>
 #include <rage_menus/rage_menu_base>
 #include <rage/validation>
+#include <rage/common>
 
 // Global variables - MUST be declared before <talents> which includes <rage/menus>
 // Using hardcoded sizes since constants are defined later

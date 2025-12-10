@@ -23,23 +23,24 @@ static void TryShowAirstrike(float origin[3])
 }
 
 #if defined RAGE_SURVIVOR_PLUGIN
-static bool PressedSpecialSkillButton(int client, int buttons)
-{
-	// Check for mouse3 via IN_ZOOM (which is mouse wheel/middle button) or IN_ATTACK3
-	bool pressed = (buttons & IN_ZOOM) != 0 || (buttons & IN_ATTACK3) != 0;
-	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0 || (ClientData[client].LastButtons & IN_ATTACK3) != 0;
-	return pressed && !wasPressed;
-}
+// These functions are kept for potential future use but currently unused
+// static bool PressedSpecialSkillButton(int client, int buttons)
+// {
+// 	// Check for mouse3 via IN_ZOOM (which is mouse wheel/middle button) or IN_ATTACK3
+// 	bool pressed = (buttons & IN_ZOOM) != 0 || (buttons & IN_ATTACK3) != 0;
+// 	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0 || (ClientData[client].LastButtons & IN_ATTACK3) != 0;
+// 	return pressed && !wasPressed;
+// }
 
-static bool PressedSecondarySkillButton(int client, int buttons)
-{
-        bool pressedZoom = (buttons & IN_ZOOM) != 0;
-        bool pressedCombo = (buttons & IN_USE) != 0 && (buttons & IN_ATTACK) != 0;
-        bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0 ||
-                ((ClientData[client].LastButtons & IN_USE) != 0 && (ClientData[client].LastButtons & IN_ATTACK) != 0);
-
-        return (pressedZoom || pressedCombo) && !wasPressed;
-}
+// static bool PressedSecondarySkillButton(int client, int buttons)
+// {
+//         bool pressedZoom = (buttons & IN_ZOOM) != 0;
+//         bool pressedCombo = (buttons & IN_USE) != 0 && (buttons & IN_ATTACK) != 0;
+//         bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0 ||
+//                 ((ClientData[client].LastButtons & IN_USE) != 0 && (ClientData[client].LastButtons & IN_ATTACK) != 0);
+//
+//         return (pressedZoom || pressedCombo) && !wasPressed;
+// }
 
 static bool PressedPlantModifier(int client, int buttons)
 {
@@ -98,8 +99,8 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 	bool onGround = (entityFlags & FL_ONGROUND) != 0;
 	// Deployment requires CROUCH+SHOVE (IN_ATTACK2) to be held
 	bool holdingDeploy = (buttons & IN_ATTACK2) != 0 && (buttons & IN_DUCK) != 0;
-	bool lookingDown = IsLookingDown(client);
-	#pragma unused holdingDeploy, lookingDown
+	// bool lookingDown = IsLookingDown(client); // Unused - removed to fix warning
+	#pragma unused holdingDeploy
 
 	ClassTypes classType = ClientData[client].ChosenClass;
 
