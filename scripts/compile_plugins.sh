@@ -87,16 +87,21 @@ for sp_file in "${SP_FILES[@]}"; do
     
     echo -e "${BLUE}Compiling: ${NC}$plugin_name.sp"
     
-    # Compile the plugin (capture output and exit code)
-    if "$SPCOMP" $INCLUDES "$sp_file" -o "$output_file" &>/dev/null; then
+    # Compile the plugin and capture output (always show warnings)
+    COMPILE_OUTPUT=$("$SPCOMP" $INCLUDES "$sp_file" -o "$output_file" 2>&1)
+    EXIT_CODE=$?
+    
+    # Show compiler output (includes warnings)
+    echo "$COMPILE_OUTPUT"
+    
+    # Check exit code to determine success/failure
+    if [ $EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}  ✓ Success: $plugin_name.smx${NC}"
         SUCCESS=$((SUCCESS + 1))
     else
-        EXIT_CODE=$?
         echo -e "${RED}  ✗ Failed: $plugin_name.sp (exit code: $EXIT_CODE)${NC}"
         FAILED=$((FAILED + 1))
         FAILED_FILES+=("$plugin_name.sp")
-	"$SPCOMP" $INCLUDES "$sp_file" -o "$output_file"
     fi
     echo ""
 done

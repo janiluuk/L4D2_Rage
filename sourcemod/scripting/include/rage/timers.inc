@@ -99,6 +99,7 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 	// Deployment requires CROUCH+SHOVE (IN_ATTACK2) to be held
 	bool holdingDeploy = (buttons & IN_ATTACK2) != 0 && (buttons & IN_DUCK) != 0;
 	bool lookingDown = IsLookingDown(client);
+	#pragma unused holdingDeploy, lookingDown
 
 	ClassTypes classType = ClientData[client].ChosenClass;
 

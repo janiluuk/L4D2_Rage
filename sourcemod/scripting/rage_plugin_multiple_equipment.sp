@@ -10,7 +10,6 @@
 #define LEN64 64
 #define MAX_FRAMECHECK 20
 
-int GameMode;
 int L4D2Version;
 
 MEOwner[2048+1] = {0, ...};
@@ -52,19 +51,20 @@ Handle l4d_me_view;
 Handle l4d_me_slot[5];
 Handle l4d_me_afk_save;
 Handle l4d_me_player_connect;
+#pragma unused l4d_me_player_connect
 Handle l4d_me_custom_notify;
 Handle l4d_me_custom_notify_msg;
 Handle ME_Notify[MAXPLAYERS+1];
 Handle AmmoLockSlot0 = INVALID_HANDLE;
 Handle AmmoLockSlot1 = INVALID_HANDLE;
 Handle AmmoUseDistance = INVALID_HANDLE;
+#pragma unused AmmoUseDistance
 Handle g_hCookie;
 
 int	g_iClientModePref[MAXPLAYERS+1];// Client cookie preferences - mode client last used
 
 // Cached offsets for performance
-int g_iAmmoOffset = -1;
-int g_iAmmoOffsetL4D1 = -1; 
+int g_iAmmoOffset = -1; 
 
 public Plugin myinfo =
 {
@@ -168,14 +168,6 @@ void GameCheck()
 	char GameName[16];
 	GetConVarString(FindConVar("mp_gamemode"), GameName, sizeof(GameName));
 
-	if (StrEqual(GameName, "survival", false))
-		GameMode = 3;
-	else if (StrEqual(GameName, "versus", false) || StrEqual(GameName, "teamversus", false) || StrEqual(GameName, "scavenge", false) || StrEqual(GameName, "teamscavenge", false))
-		GameMode = 2;
-	else if (StrEqual(GameName, "coop", false) || StrEqual(GameName, "realism", false))
-		GameMode = 1;
-	else
-		GameMode = 0;
 
 	GetGameFolderName(GameName, sizeof(GameName));
 
@@ -183,8 +175,6 @@ void GameCheck()
 		L4D2Version = true;
 	else
 		L4D2Version = false;
-
-	GameMode += 0;
 }
 
 public void OnClientCookiesCached(int client)
@@ -1130,9 +1120,6 @@ int CreateItemAttach(int client, char[] classname, int slot)
 	char ModelName[PLATFORM_MAX_PATH];
 	GetEntPropString(client, Prop_Data, "m_ModelName", ModelName, sizeof(ModelName));
 
-	// Helper to check if model is Zoey/Rochelle
-	bool isZoeyRochelle = (StrContains(ModelName, "survivor_teenangst", false) != -1 || 
-	                       StrContains(ModelName, "survivor_producer", false) != -1);
 
 	switch(slot)
 	{
@@ -1921,6 +1908,7 @@ void DropPrimaryWeapon_l4d1(int client, char[] weapon, int ammo, int clip) //[LE
 
 void DropPrimaryWeapon_l4d2(int client, char[] weapon, int ammo, int clip, int upgradeBit, int upammo) //[LEN64]
 {
+	#pragma unused upgradeBit, upammo
 	bool Drop = false;
 
 	if (StrEqual(weapon, "weapon_rifle") || StrEqual(weapon, "weapon_rifle_ak47") || StrEqual(weapon, "weapon_rifle_sg552") || StrEqual(weapon, "weapon_rifle_desert"))
@@ -1947,9 +1935,6 @@ void DropPrimaryWeapon_l4d2(int client, char[] weapon, int ammo, int clip, int u
 
 		SetEntProp(index, Prop_Send, "m_iExtraPrimaryAmmo", ammo);
 		SetEntProp(index, Prop_Send, "m_iClip1", clip);
-
-		upgradeBit+=0;
-		upammo+=0;
 	}
 }
 

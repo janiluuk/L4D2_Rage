@@ -36,6 +36,7 @@ authState g_authState;
 // For now, using a placeholder Handle
 // When JSON library is available, replace this with proper JSONObject type
 Handle g_globalVars = null;
+#pragma unused g_globalVars
 
 StringMap actionFallbackHandlers; // namespace -> action name has no handler, falls to this.
 StringMap actionNamespaceHandlers; // { namespace: { [action name] -> handler } }
@@ -92,6 +93,7 @@ enum outRequest {
 	Request_Invalid
 }
 
+#pragma unused OUT_REQUEST_IDS
 char OUT_REQUEST_IDS[view_as<int>(Request_Invalid)][] = {
 	"player_joined",
 	"player_left",
@@ -267,6 +269,7 @@ void Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast) 
 
 // TODO: Implement WebSocket callbacks when library is available
 void OnWSConnect(Handle ws, any arg) {
+	#pragma unused ws, arg
 	connectAttempts = 0;
 	g_authState = Auth_None;
 	PrintToServer("[Overlay] Connected, authenticating");
@@ -280,6 +283,7 @@ void OnWSConnect(Handle ws, any arg) {
 }
 
 void OnWSDisconnect(Handle ws, int attempt) {
+	#pragma unused ws, attempt
 	if(g_authState == Auth_Error) {
 		return;
 	}
@@ -295,6 +299,7 @@ void OnWSDisconnect(Handle ws, int attempt) {
 }
 
 Action Timer_Reconnect(Handle h) {
+	#pragma unused h
 	ConnectManager();
 	return Plugin_Handled;
 }
@@ -302,6 +307,7 @@ Action Timer_Reconnect(Handle h) {
 // TODO: Implement JSON message handling when library is available
 // void OnWSJson(Handle ws, Handle message, any data) {
 void OnWSJson(Handle ws, any message, any data) {
+	#pragma unused ws, message, data
 	// TODO: Parse JSON message and handle actions
 	// JSONObject obj = view_as<JSONObject>(message);
 	// 
@@ -321,6 +327,7 @@ void OnWSJson(Handle ws, any message, any data) {
 
 // TODO: Implement action handler when JSON library is available
 void OnAction(Handle obj) {
+	#pragma unused obj
 	// ClientAction action;
 	// obj.GetString("steamid", action.steamid, sizeof(action.steamid));
 	// obj.GetString("namespace", action.ns, sizeof(action.ns));
@@ -376,6 +383,7 @@ void DisconnectManager() {
 }
 
 bool Send_PlayerJoined(const char[] steamid) {
+	#pragma unused steamid
 	if(!isManagerReady()) return false;
 
 	// TODO: Send player joined message when JSON library is available
@@ -390,6 +398,7 @@ bool Send_PlayerJoined(const char[] steamid) {
 }
 
 bool Send_PlayerLeft(const char[] steamid) {
+	#pragma unused steamid
 	if(!isManagerReady()) return false;
 
 	// TODO: Send player left message when JSON library is available

@@ -106,7 +106,7 @@ void SetupHUD(hudPosition position, int flags, float x, float y, float w, float 
 
 
         char flagBuffer[16];
-        for(int i = 0; i < sizeof(flagStrings); i++) {
+        for(int i = 0; i < flagStrings.Length; i++) {
             flagStrings.GetString(i, flagBuffer, sizeof(flagBuffer));
             PrintToServer("flag[%d] = %s", i, flagBuffer);
             if(i == flagStrings.Length - 1) {

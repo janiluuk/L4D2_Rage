@@ -238,19 +238,6 @@ public void OnAIResponse(HTTPResponse response, any data)
     if (!sentViaOverlay)
     {
         // Fallback to chat
-    // Send response through overlay if available, otherwise use chat
-    bool sentViaOverlay = false;
-    if (LibraryExists("rage_overlay") && GetFeatureStatus(FeatureType_Native, "IsOverlayConnected") == FeatureStatus_Available)
-    {
-        if (IsOverlayConnected())
-        {
-            sentViaOverlay = SendAIResponseViaOverlay(requester, speaker, content);
-        }
-    }
-    
-    if (!sentViaOverlay)
-    {
-        // Fallback to chat
         if (speaker > 0 && IsClientInGame(speaker) && IsPlayerAlive(speaker))
         {
             PrintToChatAll("\x04[AI]\x01 %N replies: %s", speaker, content);
@@ -259,7 +246,6 @@ public void OnAIResponse(HTTPResponse response, any data)
         {
             PrintToChat(requester, "\x04[AI]\x01 %s", content);
         }
-    }
     }
 #endif
 }
@@ -505,6 +491,7 @@ public void OnOverlayAIAny(int client, Handle data)
 
 bool SendAIResponseViaOverlay(int requester, int speaker, const char[] content)
 {
+    #pragma unused requester, speaker, content
     // TODO: Send AI response through overlay WebSocket when JSON library is available
     // This would send a message like:
     // {

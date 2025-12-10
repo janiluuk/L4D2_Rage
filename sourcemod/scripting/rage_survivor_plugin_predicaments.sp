@@ -239,7 +239,6 @@ public void OnPluginStart()
 	fDelay = shDelay.FloatValue;
 	fTempHP = shTempHP.FloatValue;
 	fCrawlSpeed = shCrawlSpeed.FloatValue;
-    fStruggleAlertInterval = shStruggleAlertInterval.FloatValue;
 	
 	shEnable.AddChangeHook(OnSHCVarsChanged);
 	shUse.AddChangeHook(OnSHCVarsChanged);
@@ -330,7 +329,7 @@ public void OnSHCVarsChanged(ConVar cvar, const char[] sOldValue, const char[] s
 	fDelay = shDelay.FloatValue;
 	fTempHP = shTempHP.FloatValue;
 	fCrawlSpeed = shCrawlSpeed.FloatValue;
-    fStruggleAlertInterval = shStruggleAlertInterval.FloatValue;
+	fStruggleAlertInterval = shStruggleAlertInterval.FloatValue;
 	
 	if (bIsL4D)
 	{
@@ -834,6 +833,91 @@ public Action AnalyzePlayerState(Handle timer, any userid)
 					}
 				}
 			}
+		}
+	}
+	
+	// Handle struggle system for pinned players (not incapacitated, but grabbed by infected)
+	if (iStruggleMode > 0 && iAttacker[client] != 0 && !bIsIncapped && !bIsHanging)
+	{
+		int attacker = iAttacker[client];
+		if (attacker > 0 && IsClientInGame(attacker) && IsPlayerAlive(attacker) && GetClientTeam(attacker) == 3)
+		{
+			float gameTime = GetGameTime();
+			bool isCrouching = (iButtons & IN_DUCK) != 0;
+			bool wasCrouching = bWasCrouching[client];
+			
+			// Check if player is struggling (pressing crouch)
+			if (isCrouching && !wasCrouching)
+			{
+				// New struggle input
+				fLastStruggleInput[client] = gameTime;
+			}
+			
+			if (isCrouching)
+			{
+				// Player is struggling - gain progress
+				if (iStruggleMode == 2) // Manual struggle mode
+				{
+					float struggleGain = shStruggleGain.FloatValue;
+					fStruggleProgress[client] += struggleGain;
+					
+					// Display struggle progress bar
+					if (!IsFakeClient(client))
+					{
+						int progressPercent = RoundToFloor(fStruggleProgress[client]);
+						if (progressPercent > 100) progressPercent = 100;
+						
+						char struggleMsg[64];
+						Format(struggleMsg, sizeof(struggleMsg), "STRUGGLING: %d%%", progressPercent);
+						DisplaySHProgressBar(client, attacker, 100, struggleMsg, true);
+					}
+					
+					// Check if enough progress to escape
+					if (fStruggleProgress[client] >= 100.0)
+					{
+						RemoveHindrance(client, true);
+						return Plugin_Continue;
+					}
+					
+					// Alert attacker periodically
+					if (fStruggleAlertInterval > 0.0 && (gameTime - fLastStruggleAlert[client]) >= fStruggleAlertInterval)
+					{
+						if (!IsFakeClient(attacker))
+						{
+							PrintHintText(attacker, "%N is struggling! Press SPRINT to counter!", client);
+						}
+						fLastStruggleAlert[client] = gameTime;
+					}
+				}
+			}
+			
+			// Check if attacker is countering (pressing sprint)
+			if (!IsFakeClient(attacker))
+			{
+				int attackerButtons = GetClientButtons(attacker);
+				bool isSprinting = (attackerButtons & IN_SPEED) != 0;
+				bool wasSprinting = bAttackerWasSprinting[attacker];
+				
+				if (isSprinting && !wasSprinting && fStruggleProgress[client] > 0.0)
+				{
+					// Attacker counters - reduce progress
+					float pushback = shStrugglePushback.FloatValue;
+					fStruggleProgress[client] -= pushback;
+					if (fStruggleProgress[client] < 0.0)
+					{
+						fStruggleProgress[client] = 0.0;
+					}
+					
+					if (!IsFakeClient(client))
+					{
+						PrintHintText(client, "Attacker countered your struggle!");
+					}
+				}
+				
+				bAttackerWasSprinting[attacker] = isSprinting;
+			}
+			
+			bWasCrouching[client] = isCrouching;
 		}
 	}
 	
