@@ -88,7 +88,7 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 **Skills**:
 - **Special**: Shield Grenade - Deployable shield
 - **Secondary**: Multiturret - Deploy multiple turrets
-- **Tertiary**: Airstrike - Call in air support
+- **Tertiary**: None
 - **Deploy**: Turret Selection Menu
 
 **Playstyle**: Defensive positioning, area control, and support structures.
