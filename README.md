@@ -137,9 +137,12 @@ bind mouse5 skill_action_3
 
 **What you do:**
 - **Ninja Kick** – Sprint + Jump to flying-kick enemies into oblivion
-- **Parachute** – Hold Use mid-air to glide down safely
+- **Blink** – Short-range teleport that lets you instantly reposition or escape danger (mouse4)
 - **Anti-gravity Grenades** – Throw grenades that mess with physics (because normal grenades are boring)
-- **Blink** – Short-range teleport that lets you instantly reposition or escape danger
+- **High Jump** – Enhanced jump ability for reaching elevated positions (mouse5)
+
+**Passive Features:**
+- **Parachute** – Hold Use mid-air to glide down safely (always available, no cooldown)
 - **Wall Run** – Automatically stick to walls and run along them (or climb upward) - parkour at its finest
 
 **What you get:**

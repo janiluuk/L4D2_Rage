@@ -428,7 +428,8 @@ void DisplayAthleteMenu(int client)
     SetMenuTitle(menu, "Athlete Guide");
     AddMenuItem(menu, "mobility", "Role & mobility perks");
     AddMenuItem(menu, "ninja", "Active skill: Ninja kick");
-    AddMenuItem(menu, "parachute", "Air control & parachute");
+    AddMenuItem(menu, "blink", "Skill: Blink teleport");
+    AddMenuItem(menu, "parachute", "Passive: Parachute");
     AddMenuItem(menu, "grenades", "Antigravity grenades");
     AddMenuItem(menu, "movement", "Advanced movement: jumps & parkour");
     SetMenuExitBackButton(menu, true);
@@ -443,6 +444,8 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
         {
             char info[32];
             GetMenuItem(menu, param2, info, sizeof(info));
+            char action1[64], action2[64], action3[64], deploy[64];
+            GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
             if (StrEqual(info, "mobility"))
             {
                 PrintGuideLine(param1, "Athletes sprint faster with bunnyhop, double jump, long jump and high jump tools for objective play.");
@@ -455,10 +458,18 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
                 PrintGuideLine(param1, "Perfect for crowd control and creating space for your team to push through hordes.");
                 DisplayAthleteMenu(param1);
             }
+            else if (StrEqual(info, "blink"))
+            {
+                char line[256];
+                Format(line, sizeof(line), "Press %s to blink teleport forward - perfect for quick escapes and repositioning.", action2);
+                PrintGuideLine(param1, line);
+                PrintGuideLine(param1, "Aim where you want to go and blink instantly. Great for dodging special infected or repositioning during fights.");
+                DisplayAthleteMenu(param1);
+            }
             else if (StrEqual(info, "parachute"))
             {
                 PrintGuideLine(param1, "Hold USE in mid-air to pop the parachute, glide safely and chain long jumps without fall damage.");
-                PrintGuideLine(param1, "Essential for escaping bad situations or reaching elevated positions the team needs.");
+                PrintGuideLine(param1, "This is a passive ability - always available when falling, no cooldown. Essential for escaping bad situations.");
                 DisplayAthleteMenu(param1);
             }
             else if (StrEqual(info, "grenades"))
@@ -469,13 +480,8 @@ public int MenuHandler_Athlete(Menu menu, MenuAction action, int param1, int par
             }
             else if (StrEqual(info, "movement"))
             {
-                char action1[64], action2[64], action3[64], deploy[64];
-                GetBindingStrings(action1, sizeof(action1), action2, sizeof(action2), action3, sizeof(action3), deploy, sizeof(deploy));
                 PrintGuideLine(param1, "Athletes excel at parkour with double jump, long jump, high jump, and bunnyhop capabilities.");
                 PrintGuideLine(param1, "Wall run automatically activates when you jump near walls - run along them with W/S, climb with JUMP.");
-                char line[256];
-                Format(line, sizeof(line), "Use %s to blink teleport forward - perfect for quick escapes and repositioning.", deploy);
-                PrintGuideLine(param1, line);
                 PrintGuideLine(param1, "Your superior mobility makes you perfect for objective runs and scouting ahead safely.");
                 DisplayAthleteMenu(param1);
             }

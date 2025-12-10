@@ -61,11 +61,12 @@ EXPECTED_SKILLS=(
     "UnVomit:medic"
     "Berzerk:commando"
     "Satellite:soldier"
-    "Parachute:athlete"
+    "Blink:athlete"
     "AthleteJump:athlete"
     "Multiturret:engineer"
 )
 # Note: Nightvision and Airstrike are not in the class config but may be available as plugins
+# Note: Parachute is a passive feature for Athlete, not a skill action, so it's not in the config
 
 for skill_class in "${EXPECTED_SKILLS[@]}"; do
     TOTAL=$((TOTAL + 1))
@@ -80,6 +81,17 @@ for skill_class in "${EXPECTED_SKILLS[@]}"; do
         FAILED=$((FAILED + 1))
     fi
 done
+
+# Test 2b: Passive features (not in config but should be tested)
+echo -e "\n${YELLOW}Testing: Passive features (not in config)...${NC}"
+TOTAL=$((TOTAL + 1))
+if [ -f "sourcemod/scripting/rage_survivor_plugin_parachute.sp" ]; then
+    echo -e "${GREEN}  ✓ Parachute plugin exists (passive feature for Athlete)${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}  ✗ Parachute plugin missing${NC}"
+    FAILED=$((FAILED + 1))
+fi
 
 # Test 3: Cooldown notification system
 echo -e "\n${YELLOW}Testing: Cooldown notification system...${NC}"

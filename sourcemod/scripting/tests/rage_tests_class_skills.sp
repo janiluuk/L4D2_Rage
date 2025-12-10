@@ -118,16 +118,16 @@ void InitializeClassConfigs()
     // Soldier
     strcopy(g_ClassConfigs[1].className, sizeof(ClassSkillConfig::className), "soldier");
     strcopy(g_ClassConfigs[1].special, sizeof(ClassSkillConfig::special), "Satellite");
-    strcopy(g_ClassConfigs[1].secondary, sizeof(ClassSkillConfig::secondary), "command:Missile:1");
-    strcopy(g_ClassConfigs[1].tertiary, sizeof(ClassSkillConfig::tertiary), "command:Missile:2");
-    strcopy(g_ClassConfigs[1].deploy, sizeof(ClassSkillConfig::deploy), "builtin:engineer_supply");
+    strcopy(g_ClassConfigs[1].secondary, sizeof(ClassSkillConfig::secondary), "skill:ZedTime");
+    strcopy(g_ClassConfigs[1].tertiary, sizeof(ClassSkillConfig::tertiary), "skill:ChainLightning");
+    strcopy(g_ClassConfigs[1].deploy, sizeof(ClassSkillConfig::deploy), "none");
     
     // Athlete
     strcopy(g_ClassConfigs[2].className, sizeof(ClassSkillConfig::className), "athlete");
     strcopy(g_ClassConfigs[2].special, sizeof(ClassSkillConfig::special), "command:Grenades:15");
-    strcopy(g_ClassConfigs[2].secondary, sizeof(ClassSkillConfig::secondary), "skill:Parachute");
+    strcopy(g_ClassConfigs[2].secondary, sizeof(ClassSkillConfig::secondary), "skill:Blink");
     strcopy(g_ClassConfigs[2].tertiary, sizeof(ClassSkillConfig::tertiary), "skill:AthleteJump");
-    strcopy(g_ClassConfigs[2].deploy, sizeof(ClassSkillConfig::deploy), "builtin:medic_supply");
+    strcopy(g_ClassConfigs[2].deploy, sizeof(ClassSkillConfig::deploy), "none");
     
     // Medic
     strcopy(g_ClassConfigs[3].className, sizeof(ClassSkillConfig::className), "medic");

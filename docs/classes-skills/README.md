@@ -15,9 +15,9 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 
 **Skills**:
 - **Special**: Satellite Strike - Call down an orbital strike from above (outdoor areas only)
-- **Secondary**: Chain Lightning - Aim at an enemy and unleash lightning that chains between up to 5 targets, dealing devastating area damage with falloff
-- **Tertiary**: Zed Time - Activate slow motion (30% speed) that affects all players for 5 seconds - perfect for clutch moments and tactical advantages
-- **Deploy**: Engineer Supply Menu (ammo packs)
+- **Secondary**: Zed Time - Activate slow motion (30% speed) that affects all players for 5 seconds - perfect for clutch moments and tactical advantages
+- **Tertiary**: Chain Lightning - Aim at an enemy and unleash lightning that chains between up to 5 targets, dealing devastating area damage with falloff
+- **Deploy**: None
 
 **Playstyle**: Aggressive frontline combat with area damage, crowd control, and missile support. Chain Lightning excels at clearing groups, while Zed Time gives you and your team a massive edge in dangerous situations.
 
@@ -28,11 +28,12 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 
 **Skills**:
 - **Special**: Anti-Gravity Grenade - Launch enemies into the air
-- **Secondary**: Parachute - Hold Use mid-air to glide down safely from any height
+- **Secondary**: Blink - Short-range teleport that lets you instantly reposition or escape danger. Perfect for quick escapes and tactical repositioning.
 - **Tertiary**: High Jump - Enhanced jump ability for reaching elevated positions
-- **Deploy**: Blink - Short-range teleport that lets you instantly reposition or escape danger. Perfect for quick escapes and tactical repositioning.
+- **Deploy**: None
 
 **Passive Abilities**:
+- **Parachute** - Hold USE mid-air to glide down safely from any height. No cooldown, always available when falling.
 - **Wall Run & Climb** - Automatically stick to walls when jumping near them. Run along walls with W/S, climb upward with JUMP. Reach places other classes can't access!
 
 **Playstyle**: High mobility, vertical movement, and escape capabilities. Wall running and blinking make you nearly impossible to pin down.
@@ -101,7 +102,7 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 - **Special**: (Currently none - see [Plugin Integration](../development/plugin-integration.md))
 - **Secondary**: (Currently none)
 - **Tertiary**: (Currently none)
-- **Deploy**: Medic Supply Menu (health packs)
+- **Deploy**: None
 
 **Playstyle**: High health pool, damage soaking, frontline tanking.
 
@@ -138,7 +139,7 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 - **Athlete**: 
   - Use Wall Run to reach elevated positions and escape tight spots
   - Blink through hordes or away from special infected
-  - Use Parachute before jumping from high places
+  - Hold USE mid-air to activate Parachute for safe landings
 - **Medic**: Save Healing Orb for critical moments
 - **Saboteur**: 
   - Use Poison Melee on special infected, then cloak away - let the poison finish them
