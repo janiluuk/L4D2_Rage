@@ -27,7 +27,6 @@ const int CLASS_SOLDIER = 1;
 float g_fNextUse[MAXPLAYERS+1] = {0.0, ...};
 bool g_bHasAbility[MAXPLAYERS+1] = {false, ...};
 bool g_bZedTimeActive = false;
-float g_fZedTimeEnd = 0.0;
 Handle g_hZedTimeTimer = INVALID_HANDLE;
 
 public Plugin myinfo = 
@@ -112,7 +111,6 @@ public int OnPlayerClassChange(int client, int newClass, int previousClass)
 public void OnMapStart()
 {
 	g_bZedTimeActive = false;
-	g_fZedTimeEnd = 0.0;
 	
 	if (g_hZedTimeTimer != INVALID_HANDLE)
 	{
@@ -179,7 +177,6 @@ void ActivateZedTime(int client)
 	float slowFactor = g_cvarSlowFactor.FloatValue;
 	
 	g_bZedTimeActive = true;
-	g_fZedTimeEnd = GetGameTime() + duration;
 
 	// Apply slow motion to all players
 	bool affectAll = g_cvarAffectAll.BoolValue;
@@ -224,7 +221,6 @@ void EndZedTime()
 		return;
 
 	g_bZedTimeActive = false;
-	g_fZedTimeEnd = 0.0;
 
 	// Restore normal speed for all players
 	for (int i = 1; i <= MaxClients; i++)

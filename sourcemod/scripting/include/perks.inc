@@ -16,6 +16,7 @@ GlobalForward g_PerkAppliedForward;
 GlobalForward g_PerkRemovedForward;
 Handle g_hWitchAttack;
 int g_iWitchAttackVictim;
+#pragma unused g_hWitchAttack, g_iWitchAttackVictim
 Handle hThrowTimer;
 
 ConVar hThrowItemInterval;
@@ -248,6 +249,7 @@ stock bool DoesClientHaveMelee(int client) {
 
 // Helper functions
 stock void ThrowAllItems(int client) {
+	#pragma unused client
 	// Implementation needed - placeholder for now
 	// This function should throw all items from the client
 }

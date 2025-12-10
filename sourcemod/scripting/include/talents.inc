@@ -158,6 +158,7 @@ new RndSession;
 // Parachute
 bool g_bParachute[MAXPLAYERS+1];
 int g_iVelocity = -1, g_iParaEntRef[MAXPLAYERS+1] = {INVALID_ENT_REFERENCE, ...};
+#pragma unused g_bParachute, g_iParaEntRef, g_iVelocity
 
 // CLASS RELATED STUFF
 
@@ -218,6 +219,7 @@ new Handle:SABOTEUR_BOMB_TYPES;
 new Handle:SABOTEUR_BOMB_DAMAGE_SURV;
 new Handle:SABOTEUR_BOMB_DAMAGE_INF;
 new Handle:SABOTEUR_BOMB_POWER;
+#pragma unused SABOTEUR_BOMB_POWER
 new Handle:SABOTEUR_ENABLE_NIGHT_VISION;
 
 // Commando
@@ -246,6 +248,7 @@ new Handle:MINIMUM_AIRSTRIKE_INTERVAL;
 
 ConVar healthModEnabled;
 ConVar parachuteEnabled;
+#pragma unused healthModEnabled, parachuteEnabled
 
 #include <sourcemod>
 #include <sdktools>

@@ -4138,6 +4138,7 @@ stock bool GetRandomBool()
 // Note: The shared CreateExplosion has a different signature, so we use a wrapper for compatibility
 stock int CreateExplosionCompat(const float vPos[3], const float vAng[3], int iDamage = 0, int iRadius = 500, int iFlags = 0)
 {
+	#pragma unused vAng
 	// The shared CreateExplosion doesn't support all these parameters, so we create a custom version
 	// for this plugin's specific needs
 	int iExplosion = CreateEntityByName("env_explosion");

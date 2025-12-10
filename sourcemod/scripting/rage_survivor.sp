@@ -640,6 +640,7 @@ static bool g_bDeployMenuOpen[MAXPLAYERS+1] = {false, ...};
 
 void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, bool pressedPlant, bool onGround, bool canDrop, int elapsed)
 {
+	#pragma unused pressedPlant
 	// Check if deployment is configured for this class
 	if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
 	{

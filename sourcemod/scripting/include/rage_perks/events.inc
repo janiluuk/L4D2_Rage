@@ -971,6 +971,7 @@ public Action OnAntiRush(int client, int &type, float distance) {
 }
 
 Action Timer_DecreaseAntiRush(Handle h) {
+	#pragma unused h
 	for(int i = 1; i <= MaxClients; i++) {
 		if(fAntiRushFrequencyCounter[i] > 1.0) {
 			fAntiRushFrequencyCounter[i]--;
@@ -1023,6 +1024,7 @@ public void Event_BotPlayerSwap(Event event, const char[] name, bool dontBroadca
 }
 
 void Event_HealSuccess(Event event, const char[] name, bool dontBroadcast) {
+	#pragma unused event, name, dontBroadcast
 	int userid = event.GetInt("subject");
 	int client = GetClientOfUserId(userid);
 	if(client > 0 && userid == healTargetPlayer) {

@@ -18,6 +18,7 @@ void ActivateAutoPunish(int client) {
 
 // NOTE: Only supports one target at a time, stored globally
 bool SetWitchTarget(int witch, int target) {
+	#pragma unused witch, target
 	#if defined _actions_included
 		g_iWitchAttackVictim = target;
 		BehaviorAction action = ActionsManager.GetAction(witch, "WitchBehavior");
@@ -388,7 +389,8 @@ stock void ExplodeProjectile(int entity, bool smoke = true) {
 		SetEntProp(entity, Prop_Data, "m_nNextThinkTick", 1); //for smoke
 }  
 
-stock bool IsAreaClear(const float pos[3], const float ang[3]) { 
+stock bool IsAreaClear(const float pos[3], const float ang[3]) {
+	#pragma unused ang 
 	float min[3] = { -30.0, -30.0, -2.0};
 	float max[3] = { 30.0, 30.0, 50.0 };
 
