@@ -98,7 +98,7 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 	bool onGround = (entityFlags & FL_ONGROUND) != 0;
 	// Note: Deployment now only requires CTRL (IN_DUCK) to be held - see line 189
 	bool lookingDown = IsLookingDown(client);
-	#pragma unused lookingDown
+	#pragma unused holdingDeploy, lookingDown
 
 	ClassTypes classType = ClientData[client].ChosenClass;
 
