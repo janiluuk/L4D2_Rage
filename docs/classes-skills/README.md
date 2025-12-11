@@ -33,6 +33,7 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 - **Deploy**: None
 
 **Passive Abilities**:
+- **Ninja Kick** - Sprint + JUMP to launch a flying kick into infected. No cooldown, always available when sprinting.
 - **Parachute** - Hold USE mid-air to glide down safely from any height. No cooldown, always available when falling.
 - **Wall Run & Climb** - Automatically stick to walls when jumping near them. Run along walls with W/S, climb upward with JUMP. Reach places other classes can't access!
 
@@ -88,7 +89,7 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 **Skills**:
 - **Special**: Shield Grenade - Deployable shield
 - **Secondary**: Multiturret - Deploy multiple turrets
-- **Tertiary**: Airstrike - Call in air support
+- **Tertiary**: None
 - **Deploy**: Turret Selection Menu
 
 **Playstyle**: Defensive positioning, area control, and support structures.

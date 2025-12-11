@@ -99,7 +99,7 @@ public int MenuHandler_GuideMain(Menu menu, MenuAction action, int param1, int p
                 PrintGuideLine(param1, "Open this tutorial anytime with !guide, !ragetutorial or the Rage menu.");
                 PrintGuideLine(param1, "Hold SHIFT to show the quick menu and use WASD to select.");
                 PrintGuideLine(param1, "Pick a class, bind the four actions, and coordinate before leaving the saferoom.");
-                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + CROUCH + SHOVE.");
+                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, Hold CTRL.");
                 DisplayGuideMainMenu(param1);
             }
             else if (StrEqual(info, "classes"))
@@ -181,7 +181,7 @@ public int MenuHandler_Controls(Menu menu, MenuAction action, int param1, int pa
             else if (StrEqual(info, "skillkeys"))
             {
                 PrintGuideLine(param1, "Bind skill_action_1/2/3 + deployment_action so you can react without typing.");
-                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, look down + CROUCH + SHOVE.");
+                PrintGuideLine(param1, "Defaults: middle mouse, Use+Fire, Crouch+Use+Fire, Hold CTRL.");
                 DisplayControlsMenu(param1);
             }
             else if (StrEqual(info, "thirdperson"))
@@ -342,7 +342,7 @@ void DisplaySoldierMenu(int client)
     Menu menu = CreateMenu(MenuHandler_Soldier);
     SetMenuTitle(menu, "Soldier Guide");
     AddMenuItem(menu, "overview", "Role overview");
-    AddMenuItem(menu, "airstrike", "Skill 1: F-18 Airstrike");
+    AddMenuItem(menu, "satellite", "Skill 1: Satellite Strike");
     AddMenuItem(menu, "chainlightning", "Skill 2: Chain Lightning");
     AddMenuItem(menu, "zedtime", "Skill 3: Zed Time");
     AddMenuItem(menu, "weapons", "Passives: Weapons & toughness");
@@ -367,12 +367,12 @@ public int MenuHandler_Soldier(Menu menu, MenuAction action, int param1, int par
                 PrintGuideLine(param1, "Increased health pool makes you the team tank. Lead the charge and draw fire.");
                 DisplaySoldierMenu(param1);
             }
-            else if (StrEqual(info, "airstrike"))
+            else if (StrEqual(info, "satellite"))
             {
                 char line[256];
-                Format(line, sizeof(line), "Aim at a target and press %s to call the F-18 barrage. Warn teammates before painting.", action1);
+                Format(line, sizeof(line), "Aim at a target and press %s to call the Satellite Strike. Warn teammates before painting.", action1);
                 PrintGuideLine(param1, line);
-                PrintGuideLine(param1, "Keep sight on the mark until jets finish their run. Works best in outdoor areas.");
+                PrintGuideLine(param1, "Massive orbital strike with devastating area damage. Works best in outdoor areas.");
                 DisplaySoldierMenu(param1);
             }
             else if (StrEqual(info, "chainlightning"))
@@ -507,7 +507,7 @@ void DisplayCommandoMenu(int client)
     SetMenuTitle(menu, "Commando Guide");
     AddMenuItem(menu, "damage", "Role & damage tuning");
     AddMenuItem(menu, "berserk", "Berserk meter & rage mode");
-    AddMenuItem(menu, "satellite", "Satellite cannon skill");
+    AddMenuItem(menu, "missiles", "Dummy & Homing Missiles");
     AddMenuItem(menu, "reload", "Passives: Reload & finishers");
     AddMenuItem(menu, "tank", "Tank knockdowns");
     SetMenuExitBackButton(menu, true);
@@ -538,12 +538,12 @@ public int MenuHandler_Commando(Menu menu, MenuAction action, int param1, int pa
                 PrintGuideLine(param1, "Berserk grants huge speed boost and tank immunity - use it to melt specials and tanks.");
                 DisplayCommandoMenu(param1);
             }
-            else if (StrEqual(info, "satellite"))
+            else if (StrEqual(info, "missiles"))
             {
                 char line[256];
-                Format(line, sizeof(line), "Use %s for the satellite cannon strike instead of the F-18 airstrike.", action1);
+                Format(line, sizeof(line), "Use %s for Dummy Missile (decoy) and %s for Homing Missile (tracking).", action2, action3);
                 PrintGuideLine(param1, line);
-                PrintGuideLine(param1, "Warn teammates before painting the target zone - the satellite does massive area damage.");
+                PrintGuideLine(param1, "Dummy Missiles distract enemies while Homing Missiles track and eliminate threats.");
                 DisplayCommandoMenu(param1);
             }
             else if (StrEqual(info, "reload"))
@@ -876,12 +876,12 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             if (StrEqual(info, "sheet"))
             {
                 PrintGuideLine(param1, "Quick skill sheet:");
-                PrintGuideLine(param1, "Soldier: skill_action_1 (middle mouse by default) marks an F-18 airstrike where you aim. Hold sight until jets finish.");
-                PrintGuideLine(param1, "Commando: build rage with damage, then press skill_action_1 for the satellite cannon or !berserker for a speed burst.");
+                PrintGuideLine(param1, "Soldier: skill_action_1 (middle mouse by default) calls a Satellite Strike where you aim. Massive orbital bombardment.");
+                PrintGuideLine(param1, "Commando: build rage with damage, then press skill_action_1 or !berserker to activate Berserk mode for speed and damage boost.");
                 PrintGuideLine(param1, "Athlete: sprint + jump together for the ninja kick gap opener; hold USE mid-air to deploy the parachute.");
                 PrintGuideLine(param1, "Medic: tap skill_action_2 (Use+Fire) to throw a healing orb; stay near teammates for the healing aura.");
                 PrintGuideLine(param1, "Engineer: press skill_action_1 (middle mouse) to pick a turret and ammo, left-click to place, USE to pack it up.");
-                PrintGuideLine(param1, "Saboteur: skill_action_1 drops a fake corpse and cloaks you; look down + CROUCH + SHOVE to plant mines, and !extendedsight pings specials for 20s.");
+                PrintGuideLine(param1, "Saboteur: skill_action_1 drops a fake corpse and cloaks you; Hold CTRL to plant mines, and !extendedsight pings specials for 20s.");
             }
             else if (StrEqual(info, "grenades"))
             {
@@ -897,7 +897,7 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "mines"))
             {
-                PrintGuideLine(param1, "Saboteurs look down + CROUCH + SHOVE to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.");
+                PrintGuideLine(param1, "Saboteurs Hold CTRL to plant up to twenty mine types ranging from freeze traps to airstrikes. Mines glow to warn teammates.");
             }
             else if (StrEqual(info, "recon"))
             {
@@ -905,7 +905,7 @@ public int MenuHandler_Skills(Menu menu, MenuAction action, int param1, int para
             }
             else if (StrEqual(info, "airsupport"))
             {
-                PrintGuideLine(param1, "Soldiers press skill_action_1 to mark an F-18 airstrike, while Commandos use skill_action_1 for the satellite cannon once rage is ready.");
+                PrintGuideLine(param1, "Soldiers press skill_action_1 to call a Satellite Strike, while Commandos use skill_action_1 to activate Berserk mode once rage is ready.");
             }
             else if (StrEqual(info, "support"))
             {
