@@ -4,6 +4,8 @@
 
 #include <sourcemod>
 #include <rage/validation>
+#include <rage/skills>
+#include <rage/cooldown_notify>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -27,18 +29,8 @@ int g_rageFadeStep[MAXPLAYERS+1] = {0, ...}; // Current fade step for each clien
 char g_rageGameName[64] = "";
 int g_rageHasAbility[MAXPLAYERS+1] = {-1, ...};
 const int CLASS_SABOTEUR = 4;
-/****************************************************/
-#tryinclude <RageCore>
-#if !defined _RageCore_included
-	// Optional native from Rage Survivor
-	native void OnSpecialSkillSuccess(int client, char[] skillName);
-	native void OnSpecialSkillFail(int client, char[] skillName, char[] reason);
-	native void GetPlayerSkillName(int client, char[] skillName, int size);
-	native int FindSkillIdByName(char[] skillName);
-	native int RegisterRageSkill(char[] skillName, int type);
-	#define Rage_PLUGIN_NAME	"rage_survivor"
-#endif
-/****************************************************/
+int g_iClassID = -1;
+bool g_bRageAvailable = false;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -49,12 +41,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	}
 
 	RegPluginLibrary("extended_sight");
-	MarkNativeAsOptional("OnSpecialSkillFail");	
-	MarkNativeAsOptional("OnSpecialSkillSuccess");		
-	MarkNativeAsOptional("OnPlayerClassChange");
-	MarkNativeAsOptional("GetPlayerSkillName");	
-	MarkNativeAsOptional("RegisterRageSkill");
-	MarkNativeAsOptional("Rage_OnPluginState");	
+	RageSkills_MarkNativesOptional();
 	return APLRes_Success;
 
 }
@@ -95,6 +82,46 @@ public void OnPluginStart()
 	HookConVarChange(g_rageCvarGlow, Changed_PluginCvarGlow);
 }
 
+public void OnAllPluginsLoaded()
+{
+    RageSkills_Refresh(PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+    RageSkills_OnLibraryAdded(name, PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if (StrEqual(name, RAGE_PLUGIN_NAME, false))
+    {
+        g_iClassID = -1;
+    }
+
+    RageSkills_OnLibraryRemoved(name, g_bRageAvailable);
+}
+
+public void Rage_OnPluginState(char[] plugin, int state)
+{
+    if (!StrEqual(plugin, RAGE_PLUGIN_NAME, false))
+        return;
+
+    if (state == 1)
+    {
+        g_bRageAvailable = true;
+        if (g_iClassID == -1)
+        {
+            g_iClassID = RegisterRageSkill(PLUGIN_SKILL_NAME, 0);
+        }
+    }
+    else if (state == 0)
+    {
+        g_bRageAvailable = false;
+        g_iClassID = -1;
+    }
+}
+
 
 public void OnPluginEnd() {
         DisableGlow();
@@ -111,16 +138,74 @@ public int OnPlayerClassChange(int client, int newClass, int previousClass)
 public void OnMapStart()
 {
     SetGlowColor();
+    // Reset client arrays
+    ResetClientArrayBool(g_rageActive, false);
+    ResetClientArrayBool(g_rageExtended, false);
+    ResetClientArrayBool(g_rageForever, false);
+}
+
+public void OnMapEnd()
+{
+    // Clean up all timers on map end to prevent leaks
     for(int i = 1; i <= MaxClients; ++i)
     {
-        g_rageActive[i] = false;
-        g_rageExtended[i] = false;
-        g_rageForever[i] = false;
+        KillTimerSafe(g_rageTimer[i]);
+        KillTimerSafe(g_rageRemoveTimer[i]);
+    }
+}
+
+public void OnClientDisconnect(int client)
+{
+    // Clean up timers when client disconnects to prevent memory leaks
+    if (client > 0 && client <= MaxClients)
+    {
+        KillTimerSafe(g_rageTimer[client]);
+        KillTimerSafe(g_rageRemoveTimer[client]);
+        g_rageActive[client] = false;
+        g_rageExtended[client] = false;
+        g_rageForever[client] = false;
+        g_rageNextUse[client] = 0.0;
+        g_rageFadeStep[client] = 0;
     }
 }
 
 
 
+
+public int OnSpecialSkillUsed(int client, int skill, int type)
+{
+        if (g_rageHasAbility[client] <= 0)
+        {
+                OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "not_saboteur");
+                return 0;
+        }
+
+        if (g_rageActive[client])
+        {
+                PrintHintText(client, "Extended sight already active");
+                OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "active");
+                return 1;
+        }
+
+        float now = GetGameTime();
+        float cooldown = GetConVarFloat(g_rageCvarCooldown);
+        if (now < g_rageNextUse[client])
+        {
+                int remain = RoundToCeil(g_rageNextUse[client] - now);
+                PrintHintText(client, "Extended sight ready in %d seconds", remain);
+                OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "cooldown");
+                return 1;
+        }
+
+        g_rageNextUse[client] = now + cooldown;
+        // Register cooldown for notification
+        CooldownNotify_Register(client, g_rageNextUse[client], PLUGIN_SKILL_NAME);
+        AddExtendedSight(GetConVarFloat(g_rageCvarDuration), client);
+        PrintHintText(client, "✓ Extended sight activated!");
+        OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
+
+        return 1;
+}
 
 public Action Command_ExtendedSight(int client, int args)
 {
@@ -144,7 +229,10 @@ public Action Command_ExtendedSight(int client, int args)
         }
 
         g_rageNextUse[client] = now + cooldown;
+        // Register cooldown for notification
+        CooldownNotify_Register(client, g_rageNextUse[client], PLUGIN_SKILL_NAME);
         AddExtendedSight(GetConVarFloat(g_rageCvarDuration), client);
+        PrintHintText(client, "✓ Extended sight activated!");
         OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
 
         return Plugin_Handled;
@@ -179,10 +267,9 @@ public Action TimerChangeGlow(Handle timer, Handle hPack)
 		int color = CalculateFadeColor(fadeStep);
 		SetGlow(color, client);
 	}
-	else if (g_rageTimer[client] != INVALID_HANDLE)
+	else
 	{
-		KillTimer(g_rageTimer[client]);
-		g_rageTimer[client] = INVALID_HANDLE;
+		KillTimerSafe(g_rageTimer[client]);
 	}
 
 	CloseHandle(hPack);
@@ -240,10 +327,9 @@ public Action TimerGlowFading(Handle timer, int userId)
 		int color = CalculateFadeColor(g_rageFadeStep[client]);
 		SetGlow(color, client);
 	}
-	else if (g_rageTimer[client] != INVALID_HANDLE)
+	else
 	{
-		KillTimer(g_rageTimer[client]);
-		g_rageTimer[client] = INVALID_HANDLE;
+		KillTimerSafe(g_rageTimer[client]);
 		return Plugin_Stop;
 	}
 	return Plugin_Continue;
@@ -260,11 +346,7 @@ void AddExtendedSight(float time, int client)
 
 	if(g_rageActive[client])
 	{		
-		if (g_rageRemoveTimer[client] != INVALID_HANDLE)
-		{
-			KillTimer(g_rageRemoveTimer[client]);
-			g_rageRemoveTimer[client] = INVALID_HANDLE;	
-		}
+		KillTimerSafe(g_rageRemoveTimer[client]);
 		g_rageExtended[client] = true;
 	}
 	
@@ -295,15 +377,14 @@ void RemoveExtendedSight()
 {
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(g_rageActive[iClient])
-		{
-			g_rageActive[iClient] = false;
-			g_rageExtended[iClient] = false;
-			g_rageForever[iClient] = false;
-			
-			DisableGlow();
-		}
+		if(!g_rageActive[iClient])
+			continue;
+		
+		g_rageActive[iClient] = false;
+		g_rageExtended[iClient] = false;
+		g_rageForever[iClient] = false;
 	}
+	DisableGlow(); // Only need to call once
 }
 
 void SetGlow(any color, int client)
@@ -312,12 +393,15 @@ void SetGlow(any color, int client)
 
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(IsClientInGame(iClient) && IsPlayerAlive(iClient) && GetClientTeam(iClient) == 3 && g_rageActive[client] == true && color != 0 && GetEntData(iClient, g_ragePropGhost, 1)!=1)
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		if(IsValidInfected(iClient) && g_rageActive[client] == true && color != 0 && GetEntData(iClient, g_ragePropGhost, 1)!=1)
 		{
 			SetEntProp(iClient, Prop_Send, "m_iGlowType", 3);
 			SetEntProp(iClient, Prop_Send, "m_glowColorOverride", color);
 		}
-		else if(IsClientInGame(iClient))
+		else
 		{
 			SetEntProp(iClient, Prop_Send, "m_iGlowType", 0);
 			SetEntProp(iClient, Prop_Send, "m_glowColorOverride", 0);	
@@ -329,11 +413,11 @@ void DisableGlow()
 {
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(IsClientInGame(iClient))
-		{
-			SetEntProp(iClient, Prop_Send, "m_iGlowType", 0);
-			SetEntProp(iClient, Prop_Send, "m_glowColorOverride", 0);	
-		}
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		SetEntProp(iClient, Prop_Send, "m_iGlowType", 0);
+		SetEntProp(iClient, Prop_Send, "m_glowColorOverride", 0);	
 	}	
 }
 
@@ -341,33 +425,33 @@ void NotifyPlayers()
 {
 	for(int iClient = 1; iClient <= MaxClients; iClient++)
 	{
-		if(IsClientInGame(iClient))
+		if(!IsClientInGame(iClient))
+			continue;
+		
+		if(!IsSurvivor(iClient))
+			continue;
+		
+		if(g_rageActive[iClient] && !g_rageExtended[iClient])
 		{
-			if(GetClientTeam(iClient) == 2)
-			{
-				if(g_rageActive[iClient] && !g_rageExtended[iClient])
-				{
-					if(GetConVarInt(g_rageCvarNotify)==1)
-						PrintHintText(iClient, "%t", "ACTIVATED");
-					else
-						PrintToChat(iClient, "%t", "ACTIVATED");
-				}
-				else if(g_rageExtended[iClient])
-				{
-					if(GetConVarInt(g_rageCvarNotify)==1)
-						PrintHintText(iClient, "%t", "DURATIONEXTENDED");
-					else
-						PrintToChat(iClient, "%t", "DURATIONEXTENDED");
-				}
-				else
-				{	
-					if(GetConVarInt(g_rageCvarNotify)==1)
-						PrintHintText(iClient, "%t", "DEACTIVATED");
-					else
-						PrintToChat(iClient, "%t", "DEACTIVATED");
-				}
-			}
-		}	
+			if(GetConVarInt(g_rageCvarNotify)==1)
+				PrintHintText(iClient, "%t", "ACTIVATED");
+			else
+				PrintToChat(iClient, "%t", "ACTIVATED");
+		}
+		else if(g_rageExtended[iClient])
+		{
+			if(GetConVarInt(g_rageCvarNotify)==1)
+				PrintHintText(iClient, "%t", "DURATIONEXTENDED");
+			else
+				PrintToChat(iClient, "%t", "DURATIONEXTENDED");
+		}
+		else
+		{	
+			if(GetConVarInt(g_rageCvarNotify)==1)
+				PrintHintText(iClient, "%t", "DEACTIVATED");
+			else
+				PrintToChat(iClient, "%t", "DEACTIVATED");
+		}
 	}
 }
 

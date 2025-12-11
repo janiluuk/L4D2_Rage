@@ -11,9 +11,16 @@ bool g_bNB;
 #include <sdkhooks>
 #include <talents>
 
+// Note: g_iQueuedClass is defined in rage_survivor.sp
+// This include file is included by rage_survivor.sp, so the variable should be accessible
+// If compilation fails, ensure g_iQueuedClass is declared before this include
+
 ///////////////////////////////////////////////////////////////////////////////////
 // Class menu
 ///////////////////////////////////////////////////////////////////////////////////
+
+forward void ShowClassSkillBindings(int client, ClassTypes classType);
+forward void ShowClassSelectionInfo(int client, ClassTypes classType);
 
 stock void ShowClassHud(int client, bool skillReady, const char[] readyText = "")
 {
@@ -22,8 +29,14 @@ stock void ShowClassHud(int client, bool skillReady, const char[] readyText = ""
                 return;
         }
 
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                return;
+        }
+
         char className[32];
-        Format(className, sizeof(className), "%s", MENU_OPTIONS[ClientData[client].ChosenClass]);
+        Format(className, sizeof(className), "%s", MENU_OPTIONS[classType]);
 
         if (skillReady)
         {
@@ -78,6 +91,10 @@ public bool ApplyClassSelection(int client, int classIndex)
         PrintToConsole(client, "Class is setting up");
 
         SetupClasses(client, classIndex);
+        
+        // Apply model to ensure it persists
+        ApplyClassModel(client, view_as<ClassTypes>(classIndex));
+        
         EmitSoundToClient(client, SOUND_CLASS_SELECTED);
         RebuildCache();
 
@@ -92,6 +109,9 @@ public bool ApplyClassSelection(int client, int classIndex)
 
         PrintToChat(client, "%sSelected %s. You can use the Rage menu to change again; mid-round changes take effect next round.", PRINT_PREFIX, MENU_OPTIONS[classIndex]);
         ShowClassHud(client, false);
+        
+        // Show comprehensive class information with description and skill bindings
+        ShowClassSelectionInfo(client, view_as<ClassTypes>(classIndex));
         return true;
 }
 
@@ -187,6 +207,9 @@ public void PanelHandler_SelectClass(Handle menu, MenuAction action, int client,
                                 PrintToConsole(client, "Class is setting up");
 
                                 SetupClasses(client, param);
+                                
+                                // Apply model to ensure it persists
+                                ApplyClassModel(client, newClass);
                                 EmitSoundToClient(client, SOUND_CLASS_SELECTED);
                                 RebuildCache();
                                 if(view_as<int>(OldClass) == 0)
@@ -198,6 +221,10 @@ public void PanelHandler_SelectClass(Handle menu, MenuAction action, int client,
                                         PrintToChatAll("\x04%N\x01 : class changed from \x05%s\x01 to \x05%s\x01",client,MENU_OPTIONS[OldClass],MENU_OPTIONS[param]);
                                 }
                                 PrintToChat(client, "%sClass selected. Use the Rage menu to change it again.", PRINT_PREFIX);
+                                
+                                // Show comprehensive class information with description and skill bindings
+                                ShowClassHud(client, false);
+                                ShowClassSelectionInfo(client, newClass);
                         }
                 }
                 case MenuAction_Cancel:
@@ -623,10 +650,14 @@ public void Admin_MainMenu(TopMenu topmenu, TopMenuAction action, TopMenuObject 
 	}
 }
 
-public Action CmdRageMenu(int client, int args)
+// Admin menu handler for sm_ragem command
+public Action CmdRageAdminMenu(int client, int args)
 {
     if (IsAdmin(client))
-                CreateRageMenu(client);
+    {
+        CreateRageMenu(client);
+    }
+    return Plugin_Handled;
 }
 
 public bool CreateRageMenu(int client) {

@@ -4,6 +4,11 @@
 #define _rage_timers_included
 
 #include <l4d2_airstrike>
+#include <rage/effects>
+
+// Plugin-specific code is wrapped in #if defined RAGE_SURVIVOR_PLUGIN blocks
+// Basic timer callbacks are always available, but code that depends on rage_survivor.sp
+// symbols will only compile when RAGE_SURVIVOR_PLUGIN is defined
 
 #if !defined _f18airstrike_included
 native void F18_ShowAirstrike(float origin[3], float direction);
@@ -17,10 +22,12 @@ static void TryShowAirstrike(float origin[3])
         }
 }
 
+#if defined RAGE_SURVIVOR_PLUGIN
 static bool PressedSpecialSkillButton(int client, int buttons)
 {
-	bool pressed = (buttons & IN_ZOOM) != 0;
-	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0;
+	// Check for mouse3 via IN_ZOOM (which is mouse wheel/middle button) or IN_ATTACK3
+	bool pressed = (buttons & IN_ZOOM) != 0 || (buttons & IN_ATTACK3) != 0;
+	bool wasPressed = (ClientData[client].LastButtons & IN_ZOOM) != 0 || (ClientData[client].LastButtons & IN_ATTACK3) != 0;
 	return pressed && !wasPressed;
 }
 
@@ -36,12 +43,26 @@ static bool PressedSecondarySkillButton(int client, int buttons)
 
 static bool PressedPlantModifier(int client, int buttons)
 {
-	bool pressed = (buttons & IN_SPEED) != 0;
-	bool wasPressed = (ClientData[client].LastButtons & IN_SPEED) != 0;
-	return pressed && !wasPressed;
+	// Deployment requires CROUCH+SHOVE (IN_ATTACK2) specifically
+	bool shovePressed = (buttons & IN_ATTACK2) != 0;
+	bool crouchPressed = (buttons & IN_DUCK) != 0;
+	bool wasShovePressed = (ClientData[client].LastButtons & IN_ATTACK2) != 0;
+	bool wasCrouchPressed = (ClientData[client].LastButtons & IN_DUCK) != 0;
+	
+	// Require both CROUCH and SHOVE to be pressed together
+	if (shovePressed && crouchPressed)
+	{
+		// Trigger on initial press when both buttons are pressed (at least one wasn't pressed before)
+		if (!wasShovePressed || !wasCrouchPressed)
+		{
+			return true;
+		}
+	}
+	
+	return false;
 }
 
-static bool IsLookingDown(int client, float minPitch = 30.0)
+static bool IsLookingDown(int client, float minPitch = 45.0)
 {
 	float ang[3];
 	GetClientEyeAngles(client, ang);
@@ -71,25 +92,18 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 	decl Float:pos[3];
 	GetClientAbsOrigin(client, pos);
 	int iDropTime = RoundToFloor(fCanDropTime);
-	bool pressedSpecial = PressedSpecialSkillButton(client, buttons);
-	bool pressedSecondary = PressedSecondarySkillButton(client, buttons);
+	// Removed redundant button detection for skill actions - console commands handle this now
 	bool pressedPlant = PressedPlantModifier(client, buttons);
 	int entityFlags = GetEntityFlags(client);
 	bool onGround = (entityFlags & FL_ONGROUND) != 0;
-	bool holdingShift = (buttons & IN_SPEED) != 0;
+	// Note: Deployment now only requires CTRL (IN_DUCK) to be held - see line 189
 	bool lookingDown = IsLookingDown(client);
+	#pragma unused lookingDown
 
 	ClassTypes classType = ClientData[client].ChosenClass;
 
-	if (pressedSpecial)
-	{
-		TryTriggerClassSkillAction(client, classType, ClassSkill_Special);
-	}
-
-	if (pressedSecondary)
-	{
-		TryTriggerClassSkillAction(client, classType, ClassSkill_Secondary);
-	}
+	// Skill actions are now handled via console commands (+skill_action_1/2/3)
+	// No need for redundant button detection here
 
 	switch (classType)
 	{
@@ -171,13 +185,24 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 		}
 	}
 
-	HandleDeployInput(client, classType, holdingShift, pressedPlant, lookingDown, onGround, CanDrop, iDropTime);
+	// Check deployment when holding CTRL (IN_DUCK) - no longer requires SHOVE or looking down
+	bool holdingCTRL = (buttons & IN_DUCK) != 0;
+	if (holdingCTRL)
+	{
+		HandleDeployInput(client, classType, holdingCTRL, pressedPlant, onGround, CanDrop, iDropTime);
+	}
+	else
+	{
+		// CTRL released - close deployment menu
+		HandleDeployInput(client, classType, false, false, onGround, CanDrop, iDropTime);
+	}
 
 	ClientData[client].LastButtons = buttons;
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
-
+#if defined RAGE_SURVIVOR_PLUGIN
 public Action:TimerLoadClient(Handle:hTimer, any:client)
 {
 	if (!client ||  !IsValidEntity(client) || !IsClientInGame(client)) 
@@ -273,7 +298,28 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 
 	if (btns & IN_DUCK)
 	{
+		// Enhanced medic glow effect on the medic themselves
 		CreateParticle(client, MEDIC_GLOW, true, 1.0);
+		
+		// Add pulsing healing aura effect around medic
+		decl Float:medicPos[3], Float:medicEyePos[3];
+		GetClientAbsOrigin(client, medicPos);
+		GetClientEyePosition(client, medicEyePos);
+		medicPos[2] += 40.0; // Raise effect slightly above ground
+		
+		// Create healing aura ring effect
+		if (g_BeamSprite != -1 && g_HaloSprite != -1)
+		{
+			decl greenColorAura[4];
+			greenColorAura[0] = 0;
+			greenColorAura[1] = 255;
+			greenColorAura[2] = 100;
+			greenColorAura[3] = 200;
+			
+			float healRadius = GetConVarFloat(MEDIC_HEAL_DIST);
+			TE_SetupBeamRingPoint(medicPos, healRadius - 10.0, healRadius, g_BeamSprite, g_HaloSprite, 0, 15, 0.5, 5.0, 2.0, greenColorAura, 10, 0);
+			TE_SendToAll();
+		}
 
 		decl Float:pos[3];
 		decl String:sMessage[256];	
@@ -283,11 +329,31 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 		{
 			if (IsValidEntity(i) && IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && i != client)
 			{
-				decl Float:tpos[3];
+				decl Float:tpos[3], Float:targetEyePos[3];
 				GetClientAbsOrigin(i, tpos);
+				GetClientEyePosition(i, targetEyePos);
 				
 				if (GetVectorDistance(pos, tpos) <= GetConVarFloat(MEDIC_HEAL_DIST))
 				{
+					// Enhanced visual effects: healing beam between medic and target
+					if (g_BeamSprite != -1)
+					{
+						decl greenBeamColor[4];
+						greenBeamColor[0] = 100;
+						greenBeamColor[1] = 255;
+						greenBeamColor[2] = 150;
+						greenBeamColor[3] = 255;
+						
+						// Create healing beam from medic to target
+						medicEyePos[2] -= 20.0; // Lower beam start point
+						targetEyePos[2] -= 20.0; // Lower beam end point
+						TE_SetupBeamPoints(medicEyePos, targetEyePos, g_BeamSprite, 0, 0, 0, 0.3, 3.0, 3.0, 1, 0.0, greenBeamColor, 0);
+						TE_SendToAll();
+						
+						// Add healing particles at target location using CreateParticle
+						CreateParticle(i, MEDIC_GLOW, true, 0.5);
+					}
+					
 					// pre-heal set values
 					new MaxHealth = GetEntProp(i, Prop_Send, "m_iMaxHealth");
 					new TempHealth = GetClientTempHealth(i);
@@ -301,12 +367,34 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 					// post-heal set values
 					new newHp = GetClientHealth(i);
 					new totalHp = newHp + TempHealth;
-					GlowPlayer(i, "Green", FX:FxEnvRain);
+					
+					// Enhanced glow effect with pulsing
+					GlowPlayer(i, "Green", FX:FxPulseFast);
+					
+					// Add healing sparkle effect with beam ring
+					if (g_BeamSprite != -1 && g_HaloSprite != -1)
+					{
+						decl Float:sparklePos[3];
+						sparklePos[0] = tpos[0];
+						sparklePos[1] = tpos[1];
+						sparklePos[2] = tpos[2] + 30.0;
+						
+						decl sparkleColor[4];
+						sparkleColor[0] = 150;
+						sparkleColor[1] = 255;
+						sparkleColor[2] = 200;
+						sparkleColor[3] = 255;
+						
+						// Create healing pulse ring around healed player
+						TE_SetupBeamRingPoint(sparklePos, 5.0, 50.0, g_BeamSprite, g_HaloSprite, 0, 10, 0.3, 2.0, 1.0, sparkleColor, 10, 0);
+						TE_SendToAll();
+					}
+					
 					new Handle:hPack = CreateDataPack();
 					WritePackCell(hPack, i);
 					WritePackCell(hPack, totalHp);
 
-					CreateTimer(1.0, GlowTimer, hPack, TIMER_FLAG_NO_MAPCHANGE ); 	
+					CreateTimer(1.0, GlowTimer, hPack, TIMER_FLAG_NO_MAPCHANGE); 	
 					
 					if (totalHp > MaxHealth)
 					{
@@ -331,7 +419,9 @@ public Action:TimerDetectHealthChanges(Handle:hTimer, any:client)
 	
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
+#if defined RAGE_SURVIVOR_PLUGIN
 public Action:TimerAirstrike(Handle timer, Handle:hPack)
 {
 	new Float:pos[3];
@@ -450,7 +540,9 @@ public Action:TimerCheckBombSensors(Handle:hTimer, Handle:hPack)
 	}
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
+#if defined RAGE_SURVIVOR_PLUGIN
 /**
  * @note Validates if the current client is valid to run the plugin.
  *
@@ -466,8 +558,9 @@ stock bool IsTank(int client)
 	
 	return false;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
-
+// Basic timer callbacks - always available (used by rage/effects.inc)
 public Action:TimerRemovePrecacheParticle(Handle:timer, any:Particle)
 {
 	if (IsValidEdict(Particle))
@@ -530,27 +623,19 @@ public Action:TimerActivateBombParticle(Handle:timer, any:entity)
 
 }
 
-public Action:TimerStopAndRemoveParticle(Handle:timer, any:entity)
-{
-	if (entity > 0 && IsValidEntity(entity))
-	{
-		if (BombActive == true) {
-			CreateTimer(3.0, TimerStopAndRemoveParticle, entity, TIMER_FLAG_NO_MAPCHANGE);			
-		} else {
-			AcceptEntityInput(entity, "Kill");
-		}
-	}		
-}
-
+// Basic timer callbacks - always available (used by rage/effects.inc)
 public Action:TimerStopAndRemoveBombParticle(Handle:timer, Handle:pack)
 {
 	ResetPack(pack);
 	int entity = ReadPackCell(pack);
+	#if defined RAGE_SURVIVOR_PLUGIN
 	int index = ReadPackCell(pack);
 	int mine = ReadPackCell(pack);	
+	#endif
 	CloseHandle(pack);
 	if (entity > 0 && IsValidEntity(entity)) 
 	{
+		#if defined RAGE_SURVIVOR_PLUGIN
 		if (BombActive == false) {
 			AcceptEntityInput(entity, "Kill");
 		} else {
@@ -574,6 +659,23 @@ public Action:TimerStopAndRemoveBombParticle(Handle:timer, Handle:pack)
 			WritePackCell(hPack, mine);
 
 			CreateTimer(15.0, TimerDeleteBombs, hPack, TIMER_FLAG_NO_MAPCHANGE);			
+		}
+		#else
+		// Fallback: just kill the entity if plugin-specific code not available
+		AcceptEntityInput(entity, "Kill");
+		#endif
+	}
+}
+
+#if defined RAGE_SURVIVOR_PLUGIN
+public Action:TimerStopAndRemoveParticle(Handle:timer, any:entity)
+{
+	if (entity > 0 && IsValidEntity(entity))
+	{
+		if (BombActive == true) {
+			CreateTimer(3.0, TimerStopAndRemoveParticle, entity, TIMER_FLAG_NO_MAPCHANGE);			
+		} else {
+			AcceptEntityInput(entity, "Kill");
 		}
 	}
 }
@@ -616,6 +718,7 @@ public Action:TimerDeleteBombs(Handle:timer, Handle:pack)
 	} 
 	return Plugin_Continue;
 }
+#endif // RAGE_SURVIVOR_PLUGIN
 
 public Action Timer_Parachute( Handle timer, any iEntity)
 {

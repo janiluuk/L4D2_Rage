@@ -56,25 +56,97 @@ jobs:
           fi
           includes="-i $GITHUB_WORKSPACE/sourcemod/scripting/include -i $GITHUB_WORKSPACE/sm/addons/sourcemod/scripting/include"
 
-          package_plugins_dir="$GITHUB_WORKSPACE/package/addons/sourcemod/plugins"
-          repo_plugins_dir="$GITHUB_WORKSPACE/sourcemod/plugins"
+          plugins_dir="$GITHUB_WORKSPACE/plugins"
 
-          mkdir -p "$package_plugins_dir" "$repo_plugins_dir"
+          mkdir -p "$plugins_dir"
 
           # Ensure previous outputs do not linger between runs
-          rm -f "$package_plugins_dir"/rage*.smx "$repo_plugins_dir"/rage*.smx
+          rm -f "$plugins_dir"/rage*.smx
 
           shopt -s nullglob
           for sp in sourcemod/scripting/rage*.sp; do
             output_name="$(basename "${sp%.sp}.smx")"
-            "$spcomp" $includes -v0 "$sp" -o "$package_plugins_dir/$output_name"
-            cp "$package_plugins_dir/$output_name" "$repo_plugins_dir/$output_name"
+            "$spcomp" $includes -v0 "$sp" -o "$plugins_dir/$output_name"
           done
 
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: l4d2_dlr-sm1.11.0-git6453-${{ matrix.os_short }}-${{ env.GITHUB_SHA_SHORT }}
-          path: |
-            package
-            sourcemod/plugins
+          name: plugins-${{ matrix.os_short }}
+          path: plugins
+          retention-days: 30
+
+  release:
+    name: Create Release Package
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create package directory
+        run: |
+          mkdir -p package/addons/sourcemod/plugins
+      
+      - name: Combine plugins from all builds
+        run: |
+          # Copy plugins from Linux build
+          if [ -d "artifacts/plugins-oldlinux" ]; then
+            cp artifacts/plugins-oldlinux/*.smx package/addons/sourcemod/plugins/ 2>/dev/null || true
+          fi
+          # Copy plugins from Windows build (should be same files, but ensure we have them)
+          if [ -d "artifacts/plugins-win" ]; then
+            cp artifacts/plugins-win/*.smx package/addons/sourcemod/plugins/ 2>/dev/null || true
+          fi
+          # Remove duplicates (keep first occurrence)
+          cd package/addons/sourcemod/plugins
+          declare -A seen
+          for file in *.smx; do
+            if [ -f "$file" ]; then
+              if [ -z "${seen[$file]}" ]; then
+                seen[$file]=1
+              else
+                rm "$file"
+              fi
+            fi
+          done
+      
+      - name: Create zip package
+        run: |
+          cd package
+          zip -r ../L4D2_Rage_Plugins_${GITHUB_REF#refs/tags/}.zip .
+          cd ..
+      
+      - name: Get tag name
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: L4D2_Rage_Plugins_*.zip
+          name: Release ${{ steps.tag.outputs.tag }}
+          body: |
+            ## L4D2 Rage Edition - Compiled Plugins
+            
+            This release contains compiled SourceMod plugins for Left 4 Dead 2.
+            
+            ### Installation
+            1. Extract the zip file
+            2. Copy the `addons` folder to your L4D2 server directory
+            3. Restart your server or use `sm plugins reload` to load the plugins
+            
+            ### Plugins Included
+            - All rage_*.smx plugins compiled with SourceMod 1.12.0-git7219
+            
+            ### SourceMod Version
+            Compiled with SourceMod 1.12.0-git7219
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

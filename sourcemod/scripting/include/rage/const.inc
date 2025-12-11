@@ -119,6 +119,7 @@ enum struct PlayerInfo
 	
 	bool SetPerk(const char[] name, int value)
 	{
+		#if defined RAGE_SURVIVOR_PLUGIN
 		PerkData data;
 		if(!FindPerk(name, data))
 			return false;
@@ -137,6 +138,10 @@ enum struct PlayerInfo
 			this.perks.SetValue(name, value);
 		
 		return true;
+		#else
+		// FindPerk not available when RAGE_SURVIVOR_PLUGIN is not defined
+		return false;
+		#endif
 	}
 }
 
@@ -162,37 +167,37 @@ stock const String:MENU_OPTIONS[][] =
 stock const String:ClassCustomModels[][64] = 
 {
 	"models/survivors/survivor_gambler.mdl",        // None - Nick
-	"models/survivors/survivor_namvet.mdl",         // Soldier - Bill (military veteran)
-	"models/survivors/survivor_mechanic.mdl",       // Athlete - Ellis (athletic mechanic)
+	"models/infected/common_male_riot.mdl",         // Soldier - Riot Cop
+	"models/infected/common_male_ceda.mdl",        // Athlete - CEDA
 	"models/survivors/survivor_producer.mdl",       // Medic - Rochelle (supportive producer)
-	"models/survivors/survivor_teenangst.mdl",      // Saboteur - Zoey (stealthy teen)
-	"models/survivors/survivor_biker.mdl",          // Commando - Francis (tough biker)
-	"models/survivors/survivor_coach.mdl",          // Engineer - Coach (builder/support)
+	"models/infected/common_male_jimmy.mdl",       // Saboteur - Jimmy Gibs
+	"models/npcs/rescue_pilot_01.mdl",             // Commando - Helicopter Pilot
+	"models/infected/common_male_mud.mdl",          // Engineer - MudMan
 	"models/survivors/survivor_manager.mdl"         // Brawler - Louis (resilient manager)
 };
 
 stock String:ClassTips[][] =
 {
-	", He can't do shit.",
-	", He has high attack melee & shoot rate, takes less damage and moves faster.",
-	", He can Jump high",
-	", He can heal nearby players, revive others faster, drop supplies. Speciality: Healing orbs.",
-	", He can go invisible, drop variety of mines. Speciality: Nightvision.",
-	", He has increased damage, fast reload and immune to Tank knockdowns! Speciality: Berzerk mode!",
-	", He can drop auto turrets and ammo supplies. Speciality: Protective shield granades.",
-	", He has lots of health."
+        ", He can't do shit.",
+        ", He has high attack melee & shoot rate, takes less damage and moves faster. Speciality: Satellite Strike.",
+        ", He can Jump high",
+        ", He can heal nearby players, revive others faster, drop supplies. Speciality: Healing orbs.",
+        ", He can go invisible, drop variety of mines. Speciality: Nightvision.",
+        ", He has increased damage, fast reload and immune to Tank knockdowns! Speciality: Berzerk mode!",
+        ", He can drop auto turrets and ammo supplies. Speciality: Experimental grenades.",
+        ", He has lots of health."
 };
 
 stock String:SpecialReadyTips[][] =
 {
-	"No go",
-	"Airstrike is ready!",
-	"Anti-Gravity grenade is ready!",
-	"You can deploy and throw healing grenades again",
-	"You can plant mines or use cloak again",
-	"Berzerk mode is ready!",
-	"You can deploy or throw armoring grenades again",
-	"Brute force is ready to unleash again"
+        "No go",
+        "Satellite strike is ready!",
+        "Anti-Gravity grenade is ready!",
+        "You can deploy and throw healing grenades again",
+        "You can plant mines or use cloak again",
+        "Berzerk mode is ready!",
+        "Experimental grenades are ready again",
+        "You're healthy and ready to tank—no special to trigger"
 };
 
 enum BombType {

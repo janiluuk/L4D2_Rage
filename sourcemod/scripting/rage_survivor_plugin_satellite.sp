@@ -8,7 +8,12 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <l4d2_simple_combat>
+// Include rage/timers first - it includes rage/effects.inc which provides the timer callbacks
+#include <rage/timers>
+#include <rage/skills>
+#include <rage/validation>
 #define PLUGIN_VERSION "1.3"
+#define PLUGIN_SKILL_NAME "Satellite"
 
 #define MODE_JUDGEMENT	1
 #define MODE_BLIZZARD	2
@@ -78,8 +83,8 @@ ConVar sm_satellite_adminonly;
 /* Global */
 int m_iClip1;
 int hActiveWeapon;
-int g_BeamSprite;
-int g_HaloSprite;
+// Note: g_BeamSprite and g_HaloSprite are declared as stock in rage/effects.inc
+// Do not redeclare them here - they will be initialized in OnMapStart()
 int g_GlowSprite;
 int tEntity;
 
@@ -91,10 +96,12 @@ int energy[MAXPLAYERS+1][4];
 float trsPos[MAXPLAYERS+1][3];
 
 bool g_SimpleCombatAvailable = false;
+int g_iClassID = -1;
+bool g_bRageAvailable = false;
 
 public Plugin myinfo = 
 {
-	name = "Satellite Cannon",
+	name = "[RAGE] Satellite Cannon",
 	author = "ztar",
 	description = "Three kind of vertical laser launches by shooting magnum.",
 	version = PLUGIN_VERSION,
@@ -149,6 +156,7 @@ public void OnLibraryAdded(const char[] name)
         {
                 g_SimpleCombatAvailable = true;
         }
+        RageSkills_OnLibraryAdded(name, PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
 }
 
 public void OnLibraryRemoved(const char[] name)
@@ -157,6 +165,50 @@ public void OnLibraryRemoved(const char[] name)
         {
                 g_SimpleCombatAvailable = false;
         }
+        RageSkills_OnLibraryRemoved(name, g_bRageAvailable);
+        if (StrEqual(name, RAGE_PLUGIN_NAME, false))
+        {
+                g_iClassID = -1;
+        }
+}
+
+public void OnAllPluginsLoaded()
+{
+        RageSkills_Refresh(PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+}
+
+public void Rage_OnPluginState(char[] plugin, int pluginstate)
+{
+        if (!StrEqual(plugin, RAGE_PLUGIN_NAME, false))
+                return;
+
+        if (pluginstate == 1)
+        {
+                g_bRageAvailable = true;
+                if (g_iClassID == -1)
+                {
+                        g_iClassID = RegisterRageSkill(PLUGIN_SKILL_NAME, 0);
+                }
+        }
+        else if (pluginstate == 0)
+        {
+                g_bRageAvailable = false;
+                g_iClassID = -1;
+        }
+}
+
+public int OnSpecialSkillUsed(int client, int skill, int type)
+{
+        char szSkillName[32];
+        GetPlayerSkillName(client, szSkillName, sizeof(szSkillName));
+
+        if (StrEqual(szSkillName, PLUGIN_SKILL_NAME, false))
+        {
+                SatelliteAttack(client);
+                OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
+                return 1;
+        }
+        return 0;
 }
 
 int GetSimpleCombatLevel(int client)
@@ -246,7 +298,7 @@ public Action:TraceTimerEx(Handle:timer, any:client)
 
 public Action:SatelliteTimerEx(Handle:timer, any:client)
 {
-	if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if(!IsValidAliveClient(client))
 		return;
 	
 	/* Mode: JUDGEMENT */
@@ -402,7 +454,7 @@ public Action:Event_Item_Pickup(Handle:event, const String:name[], bool:dontBroa
 /*
 public Action:OnPlayerRunCmd(client, &buttons)
 {
-	if(IsClientInGame(client) && IsPlayerAlive(client))
+	if(IsValidAliveClient(client))
 	{
 		if(GetClientTeam(client) != SURVIVOR)
 			return;
@@ -507,7 +559,7 @@ public Action:TraceTimer(Handle:timer, any:client)
 
 public Action:SatelliteTimer(Handle:timer, any:client)
 {
-	if(!IsValidEntity(client) || !IsClientInGame(client) || !IsPlayerAlive(client))
+	if(!IsValidAliveClient(client))
 		return;
 	
 	if (operation[client] != MODE_JUDGEMENT &&
@@ -564,7 +616,7 @@ public Judgement(client)
 	/* Damage to special infected */
 	for(new i = 1; i <= MaxClients; i++)
 	{
-		if(!IsClientInGame(i) || GetClientTeam(i) != 3)
+		if(!IsValidInfected(i))
 			continue;
 		
 		GetClientAbsOrigin(i, pos);
@@ -671,8 +723,13 @@ public Inferno(client)
 	
 	/* Laser effect */
 	CreateLaserEffect(client, 230, 40, 40, 230, 6.0, 1.0, VARTICAL);
-	ShowParticle(trsPos[client], PARTICLE_FIRE01, 3.0);
-	ShowParticle(trsPos[client], PARTICLE_FIRE02, 3.0);
+	// Updated to use shared ShowParticle from rage/effects.inc (requires angle parameter)
+	decl Float:nullAng[3];
+	nullAng[0] = 0.0;
+	nullAng[1] = 0.0;
+	nullAng[2] = 0.0;
+	ShowParticle(trsPos[client], nullAng, PARTICLE_FIRE01, 3.0);
+	ShowParticle(trsPos[client], nullAng, PARTICLE_FIRE02, 3.0);
 	
         float radius = ((GetSimpleCombatLevel(client) + 1) * 5) + sm_satellite_radius_03.FloatValue;
         float damage = ((GetSimpleCombatLevel(client) + 1) * 10) + sm_satellite_damage_03.FloatValue;
@@ -952,49 +1009,10 @@ public FreezePlayer(entity, Float:pos[3], Float:time)
 
 /******************************************************
 *	Particle control functions
+*	Note: ShowParticle and DeleteParticles are now provided by rage/effects.inc
+*	The shared versions are used instead of these duplicates.
 *******************************************************/
-public ShowParticle(Float:pos[3], String:particlename[], Float:time)
-{
-	/* Show particle effect you like */
-	new particle = CreateEntityByName("info_particle_system");
-	if (IsValidEdict(particle))
-	{
-		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(time, DeleteParticles, particle);
-	}  
-}
-
-public Action:DeleteParticles(Handle:timer, any:particle)
-{
-	/* Delete particle */
-    if (IsValidEntity(particle))
-	{
-		char classname[64];
-		GetEdictClassname(particle, classname, sizeof(classname));
-		if (StrEqual(classname, "info_particle_system", false))
-            RemoveEdict(particle);
-	}
-}
-
-public PrecacheParticle(String:particlename[])
-{
-	/* Precache particle */
-	new particle = CreateEntityByName("info_particle_system");
-	if (IsValidEdict(particle))
-	{
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(0.01, DeleteParticles, particle);
-	}  
-}
+// ShowParticle and DeleteParticles removed - use shared versions from rage/effects.inc
 
 /******************************************************
 *	Display hint functions

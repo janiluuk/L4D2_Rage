@@ -16,11 +16,16 @@
  * 
  * @param client    Client index to validate
  * @return          True if valid client in-game, false otherwise
+ * 
+ * Note: jutils.inc also defines IsValidClient with a different signature.
+ * We only define our version if jutils.inc is not included.
  */
+#if !defined _jutils_included
 stock bool IsValidClient(int client)
 {
     return (client > 0 && client <= MaxClients && IsClientInGame(client));
 }
+#endif
 
 /**
  * Validates if a client is valid, in-game, and alive.
@@ -34,14 +39,38 @@ stock bool IsValidAliveClient(int client)
 }
 
 /**
- * Validates if a client is valid, in-game, alive, and on survivor team.
+ * Validates if a client is valid, in-game, and on survivor team.
+ * Optionally checks if the client is alive.
  * 
  * @param client    Client index to validate
+ * @param isAlive   If true, also requires client to be alive (default: true)
  * @return          True if valid survivor, false otherwise
  */
-stock bool IsValidSurvivor(int client)
+stock bool IsValidSurvivor(int client, bool isAlive = true)
 {
-    return IsValidAliveClient(client) && GetClientTeam(client) == 2;
+    if (isAlive)
+    {
+        return IsValidAliveClient(client) && GetClientTeam(client) == 2;
+    }
+    else
+    {
+        return IsValidClient(client) && GetClientTeam(client) == 2;
+    }
+}
+
+/**
+ * Checks if a client is on the survivor team (does not require alive status).
+ * This is a simpler check than IsValidSurvivor which also requires the client to be alive.
+ * 
+ * @param client    Client index to check
+ * @return          True if client is on survivor team, false otherwise
+ */
+stock bool IsSurvivor(int client)
+{
+    if (!IsValidClient(client))
+        return false;
+    
+    return (GetClientTeam(client) == 2);
 }
 
 /**
@@ -231,4 +260,125 @@ stock bool IsPlayerPinned(int client)
 stock bool IsWithinRadius(const float pos1[3], const float pos2[3], float radius)
 {
     return (GetVectorDistance(pos1, pos2) <= radius);
+}
+
+/**
+ * Safely kills a timer handle and sets it to null.
+ * Prevents memory leaks and double-kill errors.
+ * 
+ * @param timer     Timer handle to kill (passed by reference)
+ * @return          True if timer was killed, false if already null/invalid
+ */
+stock bool KillTimerSafe(Handle &timer)
+{
+    if (timer != null && timer != INVALID_HANDLE)
+    {
+        KillTimer(timer);
+        timer = null;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Cleans up an array of timer handles for a client.
+ * Useful in OnClientDisconnect to prevent memory leaks.
+ * 
+ * @param timers    Array of timer handles
+ * @param client    Client index
+ * @param size      Size of the timer array
+ * @return          Number of timers cleaned up
+ */
+stock int CleanupClientTimers(Handle[] timers, int client, int size = MAXPLAYERS+1)
+{
+    if (client <= 0 || client >= size)
+        return 0;
+    
+    int cleaned = 0;
+    if (KillTimerSafe(timers[client]))
+    {
+        cleaned++;
+    }
+    return cleaned;
+}
+
+/**
+ * Validates an entity index is within safe bounds for array access.
+ * 
+ * @param entity    Entity index to validate
+ * @param maxLimit  Maximum allowed entity index (default: 2048)
+ * @return          True if entity is within bounds, false otherwise
+ */
+stock bool IsValidEntityIndexSafe(int entity, int maxLimit = 2048)
+{
+    return (entity > 0 && entity <= maxLimit && IsValidEdict(entity));
+}
+
+/**
+ * Validates array bounds before access.
+ * 
+ * @param index     Array index to check
+ * @param arraySize Size of the array
+ * @return          True if index is valid, false otherwise
+ */
+stock bool IsValidArrayIndex(int index, int arraySize)
+{
+    return (index >= 0 && index < arraySize);
+}
+
+/**
+ * Gets a client's active weapon entity.
+ * 
+ * @param client    Client index
+ * @return          Entity index of active weapon, or -1 if invalid
+ */
+stock int GetClientActiveWeapon(int client)
+{
+    if (!IsValidClient(client))
+        return -1;
+    
+    return GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+}
+
+/**
+ * Resets an array to a default value for all client indices.
+ * Useful in OnMapEnd/OnClientDisconnect cleanup.
+ * 
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1])
+ * @param value     Value to set (default: 0)
+ */
+stock void ResetClientArray(int array[MAXPLAYERS+1], int value = 0)
+{
+    for (int i = 0; i <= MAXPLAYERS; i++)
+    {
+        array[i] = value;
+    }
+}
+
+/**
+ * Resets a float array to a default value for all client indices.
+ * 
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1])
+ * @param value     Value to set (default: 0.0)
+ */
+stock void ResetClientArrayFloat(float array[MAXPLAYERS+1], float value = 0.0)
+{
+    for (int i = 0; i <= MAXPLAYERS; i++)
+    {
+        array[i] = value;
+    }
+}
+
+/**
+ * Resets a bool array to a default value for all client indices.
+ * 
+ * @param array     Array to reset (must be declared with [MAXPLAYERS+1])
+ * @param value     Value to set (default: false)
+ */
+stock void ResetClientArrayBool(bool array[MAXPLAYERS+1], bool value = false)
+{
+    for (int i = 0; i <= MAXPLAYERS; i++)
+    {
+        array[i] = value;
+    }
 }

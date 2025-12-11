@@ -568,12 +568,13 @@ stock void C_SetupProfile() {
 	}
 }
 
-public void  C_Event_MapStart(Event event, const char[] name, bool dontBroadcast) {
+public Action C_Event_MapStart(Event event, const char[] name, bool dontBroadcast) {
 	C_SetupProfile();
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		C_SkipList[i] = false;
 	}
+	return Plugin_Continue;
 }
 
 /**
@@ -624,7 +625,7 @@ stock int C_ShowActivity(int client, const char[] format, any ...) {
 			VFormat(szBuffer, sizeof(szBuffer), format, 3);
 
 			C_RemoveTags(szBuffer, sizeof(szBuffer));
-			PrintToConsole(client, "%s%s", tag, szBuffer);
+			PrintToConsole(client, "%s%s\n", tag, szBuffer);
 			display_in_chat = true;
 		}
 	}
@@ -633,7 +634,7 @@ stock int C_ShowActivity(int client, const char[] format, any ...) {
 		VFormat(szBuffer, sizeof(szBuffer), format, 3);
 
 		C_RemoveTags(szBuffer, sizeof(szBuffer));
-		PrintToServer("%s%s", tag, szBuffer);
+		PrintToServer("%s%s\n", tag, szBuffer);
 	}
 
 	if (!value) {
@@ -703,10 +704,6 @@ stock int C_ShowActivityEx(int client, const char[] tag, const char[] format, an
 		sm_show_activity = FindConVar("sm_show_activity");
 	}
 
-	char szTag[MAX_MESSAGE_LENGTH];
-	strcopy(szTag, sizeof(szTag), tag);
-	MC_RemoveTags(szTag, sizeof(szTag));
-
 	char szBuffer[MAX_MESSAGE_LENGTH];
 	//char szCMessage[MAX_MESSAGE_LENGTH];
 	int value = sm_show_activity.IntValue;
@@ -732,7 +729,7 @@ stock int C_ShowActivityEx(int client, const char[] tag, const char[] format, an
 			VFormat(szBuffer, sizeof(szBuffer), format, 4);
 
 			C_RemoveTags(szBuffer, sizeof(szBuffer));
-			PrintToConsole(client, "%s%s", szTag, szBuffer);
+			PrintToConsole(client, "%s%s\n", tag, szBuffer);
 			display_in_chat = true;
 		}
 	}
@@ -741,7 +738,7 @@ stock int C_ShowActivityEx(int client, const char[] tag, const char[] format, an
 		VFormat(szBuffer, sizeof(szBuffer), format, 4);
 
 		C_RemoveTags(szBuffer, sizeof(szBuffer));
-		PrintToServer("%s%s", szTag, szBuffer);
+		PrintToServer("%s%s\n", tag, szBuffer);
 	}
 
 	if (!value) {
@@ -813,10 +810,6 @@ stock int C_ShowActivity2(int client, const char[] tag, const char[] format, any
 		sm_show_activity = FindConVar("sm_show_activity");
 	}
 
-	char szTag[MAX_MESSAGE_LENGTH];
-	strcopy(szTag, sizeof(szTag), tag);
-	MC_RemoveTags(szTag, sizeof(szTag));
-
 	char szBuffer[MAX_MESSAGE_LENGTH];
 	//char szCMessage[MAX_MESSAGE_LENGTH];
 	int value = sm_show_activity.IntValue;
@@ -842,14 +835,14 @@ stock int C_ShowActivity2(int client, const char[] tag, const char[] format, any
 		 * simply gets added to the console, so we don't want it to print 
 		 * twice.
 		 */
-		C_PrintToChatEx(client, client, "%s%s", szTag, szBuffer);
+		C_PrintToChatEx(client, client, "%s%s", tag, szBuffer);
 	}
 	else {
 		SetGlobalTransTarget(LANG_SERVER);
 		VFormat(szBuffer, sizeof(szBuffer), format, 4);
 
 		C_RemoveTags(szBuffer, sizeof(szBuffer));
-		PrintToServer("%s%s", szTag, szBuffer);
+		PrintToServer("%s%s\n", tag, szBuffer);
 	}
 
 	if (!value) {

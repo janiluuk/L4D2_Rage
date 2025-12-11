@@ -230,7 +230,7 @@ stock int GetSurvivorType(const char[] modelName) {
 		return 2;
 	}else if(StrContains(modelName,"producer",false) > -1) {
 		return 1;
-	}else if(StrContains(modelName,"gambler",false) > -1) {	
+	}else if(StrContains(modelName,"gambler",false) > -1) {
 		return 0;
 	}else if(StrContains(modelName,"mechanic",false) > -1) {
 		return 3;
@@ -320,9 +320,8 @@ stock int GiveClientWeapon(int client, const char[] wpnName) {
 }
 stock int GetNearestEntity(int client, char[] classname)
 {
-int nearestEntity = -1;
-float clientVecOrigin[3], entityVecOrigin[3];
-GetClientAbsOrigin(client, clientVecOrigin);
+	int nearestEntity = -1;
+	float clientVecOrigin[3], entityVecOrigin[3];
 	
 	//Get the distance between the first entity and client
 	float distance, nearestDistance = -1.0;
@@ -440,10 +439,14 @@ stock bool DoesClientHaveMelee(int client) {
 	}
 }
 
+// IsValidClient is defined in rage/validation.inc
+// This version with checkTeam parameter is only defined if rage/validation is not included
+#if !defined _rage_validation_included
 stock bool IsValidClient(int client, int checkTeam = 0) {
 	int team = checkTeam > 0 ? GetClientTeam(client) : 0;
 	return IsClientConnected(client) && IsClientInGame(client) && IsPlayerAlive(client) && team == checkTeam; 
-} 
+}
+#endif 
 
 stock bool IsClientInSightRange(int client, int target, float angle = 90.0, float distance = 0.0, bool heightcheck = true, bool negativeangle = false) {
 	if(angle > 360.0 || angle < 0.0)

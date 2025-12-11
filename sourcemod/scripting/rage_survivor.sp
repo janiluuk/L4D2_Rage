@@ -8,15 +8,14 @@
 *
 */
 
-#define PLUGIN_NAME "Talents Plugin 2025D anniversary edition"
+#define PLUGIN_NAME "[RAGE] Survivor Classes"
 #define PLUGIN_VERSION "1.82b"
 #define PLUGIN_IDENTIFIER "rage_survivor"
+#define RAGE_SURVIVOR_PLUGIN  // Enable plugin-specific features in rage/timers.inc
 #pragma semicolon 1
-#define DEBUG 0
-#define DEBUG_LOG 1
-#define DEBUG_TRACE 0
+// DEBUG, DEBUG_LOG, DEBUG_TRACE now handled by rage/debug.inc - use PrintDebug() instead
 #define DEPLOY_LOOK_DOWN_ANGLE 45.0  // Minimum pitch angle (degrees) required to look down for deployment
-stock int DEBUG_MODE = 0;
+stock int DEBUG_MODE = 0; // Kept for backward compatibility, but use getDebugMode() from rage/debug.inc
 
 public Plugin myinfo =
 {
@@ -31,10 +30,49 @@ public Plugin myinfo =
 #include <sdktools>
 #include <clientprefs>
 #include <l4d2hud>
-#include <talents>
 #include <jutils>
 #include <l4d2>
+#tryinclude <LMCCore>
+#tryinclude <LMCL4D2SetTransmit>
 #include <rage/skill_actions>
+#include <rage/debug>
+#include <rage/cooldown_notify>
+#include <rage_menus/rage_menu_base>
+#include <rage/validation>
+
+// Global variables - MUST be declared before <talents> which includes <rage/menus>
+// Using hardcoded sizes since constants are defined later
+char g_ClassDescriptions[8][128];  // MAXCLASSES = 8, CLASS_DESCRIPTION_LENGTH = 128
+int g_iQueuedClass[MAXPLAYERS+1];
+bool g_bClassSelectionThirdPerson[MAXPLAYERS+1];
+Handle g_hClassCookie;
+ConVar CLASS_PREVIEW_DURATION;
+ConVar ATHLETE_PARACHUTE_ENABLED;
+ConVar HEALTH_MODIFIERS_ENABLED;
+bool LeftSafeAreaMessageShown;
+bool g_bIntroFinished = false;
+bool g_bFirstMission = true;
+bool g_bWasHoldingShift[MAXPLAYERS+1] = {false, ...};
+// Note: g_BeamSprite and g_HaloSprite are declared as stock in rage/effects.inc
+// We initialize them in OnMapStart() but don't redeclare them here to avoid duplicates
+
+#include <talents>
+
+#include <rage/admin_commands>
+#include <rage/class_commands>
+
+// Define LMC availability flag
+#if defined _LMCCore_included
+	#define LMC_AVAILABLE 1
+#else
+	#define LMC_AVAILABLE 0
+#endif
+
+#if defined _LMCL4D2SetTransmit_included
+	#define LMC_SETTRANSMIT_AVAILABLE 1
+#else
+	#define LMC_SETTRANSMIT_AVAILABLE 0
+#endif
 
 #if !defined MAX_SKILL_NAME_LENGTH
         #define MAX_SKILL_NAME_LENGTH 32
@@ -109,6 +147,8 @@ const int CLASS_COMMAND_PLUGIN_LEN = 32;
 char g_ClassActionCommandPlugin[MAXCLASSES][ClassSkill_Count][CLASS_COMMAND_PLUGIN_LEN];
 int g_ClassActionCommandType[MAXCLASSES][ClassSkill_Count];
 int g_ClassActionCommandEntity[MAXCLASSES][ClassSkill_Count];
+
+// Variables moved earlier - see declarations above before includes
 
 
 SkillActionSlot GetSkillActionSlotForInput(ClassSkillInput input)
@@ -281,18 +321,17 @@ void ApplyActionDefinition(ClassTypes classType, ClassSkillInput input, const ch
 
 void ConfigureDefaultClassSkills()
 {
-        ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Airstrike");
+        ApplyActionDefinition(soldier, ClassSkill_Special, "skill:Satellite");
         ApplyActionDefinition(athlete, ClassSkill_Special, "command:Grenades:15");
-        ApplyActionDefinition(medic, ClassSkill_Special, "skill:Grenades");
+        ApplyActionDefinition(medic, ClassSkill_Special, "command:Grenades:11");
         ApplyActionDefinition(medic, ClassSkill_Secondary, "skill:HealingOrb");
         ApplyActionDefinition(medic, ClassSkill_Tertiary, "skill:UnVomit");
         ApplyActionDefinition(medic, ClassSkill_Deploy, "builtin:medic_supply");
         ApplyActionDefinition(saboteur, ClassSkill_Special, "skill:cloak:1");
         ApplyActionDefinition(saboteur, ClassSkill_Deploy, "builtin:saboteur_mines");
-        ApplyActionDefinition(commando, ClassSkill_Special, "skill:Satellite");
-        ApplyActionDefinition(commando, ClassSkill_Secondary, "skill:Berzerk");
-        ApplyActionDefinition(engineer, ClassSkill_Special, "skill:Multiturret");
-        ApplyActionDefinition(engineer, ClassSkill_Secondary, "command:Grenades:7");
+        ApplyActionDefinition(commando, ClassSkill_Special, "skill:Berzerk");
+        ApplyActionDefinition(engineer, ClassSkill_Special, "command:Grenades:7");
+        ApplyActionDefinition(engineer, ClassSkill_Secondary, "skill:Multiturret");
         ApplyActionDefinition(engineer, ClassSkill_Deploy, "builtin:engineer_supply");
 }
 
@@ -404,12 +443,23 @@ int GetClassSkillId(ClassTypes classType, ClassSkillInput input)
 
 bool TriggerSkillAction(int client, ClassTypes classType, ClassSkillInput input)
 {
+	// Validate client before proceeding
+	if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+	{
+		return false;
+	}
+
 	int id = GetClassSkillId(classType, input);
 	if (id == -1)
 	{
 		if (g_ClassActionSkillName[classType][input][0] != '\0')
 		{
 			PrintToServer("[Rage] Unable to find registered skill \"%s\" for class %s (%s input).", g_ClassActionSkillName[classType][input], g_ClassIdentifiers[classType], g_InputIdentifiers[input]);
+			PrintHintText(client, "Skill \"%s\" is not available.", g_ClassActionSkillName[classType][input]);
+		}
+		else
+		{
+			PrintHintText(client, "Skill action is not properly configured for %s.", g_InputIdentifiers[input]);
 		}
 		return false;
 	}
@@ -422,20 +472,38 @@ bool TriggerSkillAction(int client, ClassTypes classType, ClassSkillInput input)
 	return true;
 }
 
-bool ExecuteBuiltinAction(int client, BuiltinAction action)
+bool ExecuteBuiltinAction(int client, BuiltinAction action, ClassTypes classType = NONE)
 {
 	switch (action)
 	{
 		case Builtin_MedicSupplies:
 		{
+			PrintHintText(client, "✓ Deployment menu opened!");
 			return CreatePlayerMedicMenu(client);
 		}
 		case Builtin_EngineerSupplies:
 		{
+			// For Engineer, show turret selection menu by triggering Multiturret skill
+			if (classType == engineer)
+			{
+				// Check if secondary skill is available before triggering
+				if (g_ClassActionMode[engineer][ClassSkill_Secondary] == ActionMode_None)
+				{
+					PrintHintText(client, "Turret skill is not available for Engineer.");
+					return false;
+				}
+				// Trigger the secondary skill (Multiturret) which opens the turret menu
+				// This will call OnSpecialSkillUsed which opens BuildMachineGunsMainMenu
+				PrintHintText(client, "✓ Turret menu opened!");
+				return TriggerSkillAction(client, engineer, ClassSkill_Secondary);
+			}
+			// For other classes (Soldier, Commando), show the supply menu
+			PrintHintText(client, "✓ Supply menu opened!");
 			return CreatePlayerEngineerMenu(client);
 		}
 		case Builtin_SaboteurMines:
 		{
+			PrintHintText(client, "✓ Mines menu opened!");
 			return CreatePlayerSaboteurMenu(client);
 		}
 	}
@@ -449,22 +517,42 @@ bool ExecuteClassAction(int client, ClassTypes classType, ClassSkillInput input)
 	{
 		case ActionMode_Skill:
 		{
-			return TriggerSkillAction(client, classType, input);
+			// Show activation hint before triggering (skill-specific notifications come from OnSpecialSkillSuccess)
+			char skillName[32];
+			strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][input]);
+			if (skillName[0] != '\0')
+			{
+				PrintHintText(client, "✓ Activating %s...", skillName);
+			}
+			bool result = TriggerSkillAction(client, classType, input);
+			// Note: Skill success/failure notifications are handled by OnSpecialSkillSuccess/OnSpecialSkillFail
+			return result;
 		}
 		case ActionMode_Command:
 		{
 			if (g_ClassActionCommandPlugin[classType][input][0] == '\0')
 			{
+				PrintHintText(client, "Command action is not configured for this input.");
+				return false;
+			}
+
+			// Validate client before calling command
+			if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+			{
 				return false;
 			}
 
 			useCustomCommand(g_ClassActionCommandPlugin[classType][input], client, g_ClassActionCommandEntity[classType][input], g_ClassActionCommandType[classType][input]);
+			// Notify player that command skill was activated
+			PrintHintText(client, "✓ %s activated!", g_ClassActionCommandPlugin[classType][input]);
 			ClientData[client].LastDropTime = GetGameTime();
 			return true;
 		}
 		case ActionMode_Builtin:
 		{
-			return ExecuteBuiltinAction(client, g_ClassActionBuiltin[classType][input]);
+			bool result = ExecuteBuiltinAction(client, g_ClassActionBuiltin[classType][input], classType);
+			// Builtin actions (menus) don't need activation notifications as they show menus
+			return result;
 		}
 	}
 
@@ -477,7 +565,18 @@ void GetActionCooldownMessage(ClassTypes classType, ClassSkillInput input, char[
 	{
 		case soldier:
 		{
-			strcopy(buffer, maxlen, "Wait %i seconds to order new airstrike.");
+			if (input == ClassSkill_Special)
+			{
+				strcopy(buffer, maxlen, "Wait %i seconds to order new airstrike.");
+			}
+			else if (input == ClassSkill_Secondary || input == ClassSkill_Tertiary)
+			{
+				strcopy(buffer, maxlen, "Wait %i seconds to fire another missile.");
+			}
+			else
+			{
+				strcopy(buffer, maxlen, "Wait %i seconds to use that ability again.");
+			}
 			return;
 		}
 		case medic:
@@ -527,6 +626,7 @@ bool TryTriggerClassSkillAction(int client, ClassTypes classType, ClassSkillInpu
 	char message[128];
 	GetActionCooldownMessage(classType, input, message, sizeof(message));
 
+	// Check if skill can be used and show hints if not
 	if (!canUseSpecialSkill(client, message))
 	{
 		return false;
@@ -535,57 +635,86 @@ bool TryTriggerClassSkillAction(int client, ClassTypes classType, ClassSkillInpu
 	return ExecuteClassAction(client, classType, input);
 }
 
-void HandleDeployInput(int client, ClassTypes classType, bool holdingShift, bool pressedPlant, bool lookingDown, bool onGround, bool canDrop, int elapsed)
+// Track deployment menu state per client
+static bool g_bDeployMenuOpen[MAXPLAYERS+1] = {false, ...};
+
+void HandleDeployInput(int client, ClassTypes classType, bool holdingDeploy, bool pressedPlant, bool onGround, bool canDrop, int elapsed)
 {
-	if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None || !holdingShift)
+	#pragma unused pressedPlant
+	// Check if deployment is configured for this class
+	if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
 	{
+		// Close menu if it was open
+		if (g_bDeployMenuOpen[client])
+		{
+			ExtraMenu_Close(client);
+			g_bDeployMenuOpen[client] = false;
+		}
 		return;
 	}
 
-	if (IsPlayerInSaferoom(client) || IsInEndingSaferoom(client))
+	// Show deployment menu when holding CTRL (IN_DUCK)
+	if (holdingDeploy)
 	{
-		if (pressedPlant)
+		// Only show menu if not already open
+		if (!g_bDeployMenuOpen[client])
+		{
+			// For builtin actions (menus), show them immediately
+			if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
+			{
+				if (ExecuteClassAction(client, classType, ClassSkill_Deploy))
+				{
+					g_bDeployMenuOpen[client] = true;
+				}
+			}
+			else
+			{
+				// For other actions, check restrictions first
+		if (IsPlayerInSaferoom(client) || IsInEndingSaferoom(client))
 		{
 			PrintHintText(client, "Cannot deploy here");
+			return;
 		}
-		return;
-	}
 
-	if (!pressedPlant)
-	{
-		return;
-	}
-
-	if (!onGround)
-	{
-		PrintHintText(client, "You must stand on solid ground to deploy");
-		return;
-	}
-
-	if (!lookingDown)
-	{
-		PrintHintText(client, "Look down to deploy");
-		return;
-	}
-
-	if (!canDrop)
-	{
-		int wait = ClientData[client].SpecialDropInterval - elapsed;
-		if (wait < 0)
+		if (!onGround)
 		{
-			wait = 0;
+			PrintHintText(client, "You must stand on solid ground to deploy");
+			return;
 		}
-		PrintHintText(client, "Wait %i seconds to deploy again", wait);
-		return;
-	}
 
-	if (ClientData[client].SpecialLimit > 0 && ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit)
+		if (!canDrop)
+		{
+			int wait = ClientData[client].SpecialDropInterval - elapsed;
+			if (wait < 0)
+			{
+				wait = 0;
+			}
+			PrintHintText(client, "Wait %i seconds to deploy again", wait);
+			return;
+		}
+
+		if (ClientData[client].SpecialLimit > 0 && ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit)
+		{
+			PrintHintText(client, "You're out of supplies (Max %d)", ClientData[client].SpecialLimit);
+			return;
+		}
+
+				if (ExecuteClassAction(client, classType, ClassSkill_Deploy))
+				{
+					g_bDeployMenuOpen[client] = true;
+				}
+			}
+		}
+	}
+	else
 	{
-		PrintHintText(client, "You're out of supplies (Max %d)", ClientData[client].SpecialLimit);
-		return;
+		// CTRL released - close deploymen menu if it was open
+		if (g_bDeployMenuOpen[client])
+		{
+			ExtraMenu_Close(client);
+			g_bDeployMenuOpen[client] = false;
+		}
 	}
-
-	ExecuteClassAction(client, classType, ClassSkill_Deploy);
 }
 
 /**
@@ -599,19 +728,16 @@ public OnPluginStart( )
         RegConsoleCmd("sm_class_set", CmdClassSet, "Select a class directly");
         RegConsoleCmd("sm_classinfo", CmdClassInfo, "Shows class descriptions");
         RegConsoleCmd("sm_classes", CmdClasses, "Shows class descriptions");
-        RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Airstrike for Soldier)");
-        RegConsoleCmd("+skill_action_1", CmdSkillAction1, "Trigger your primary class action (on press)");
-        RegConsoleCmd("-skill_action_1", CmdSkillActionRelease, "Skill action release (no-op)");
+        RegConsoleCmd("skill_action_1", CmdSkillAction1, "Trigger your primary class action (default: Satellite Strike for Soldier)");
+        RegConsoleCmd("+skill_action_1", CmdSkillAction1, "Trigger your primary class action (press version)");
+        RegConsoleCmd("-skill_action_1", CmdSkillAction1Release, "Release version (does nothing)");
         RegConsoleCmd("skill_action_2", CmdSkillAction2, "Trigger your secondary class action");
-        RegConsoleCmd("+skill_action_2", CmdSkillAction2, "Trigger your secondary class action (on press)");
-        RegConsoleCmd("-skill_action_2", CmdSkillActionRelease, "Skill action release (no-op)");
+        RegConsoleCmd("+skill_action_2", CmdSkillAction2, "Trigger your secondary class action (press version)");
+        RegConsoleCmd("-skill_action_2", CmdSkillAction2Release, "Release version (does nothing)");
         RegConsoleCmd("skill_action_3", CmdSkillAction3, "Trigger your tertiary class action");
-        RegConsoleCmd("+skill_action_3", CmdSkillAction3, "Trigger your tertiary class action (on press)");
-        RegConsoleCmd("-skill_action_3", CmdSkillActionRelease, "Skill action release (no-op)");
-        RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (look down + SHIFT by default)");
-        RegConsoleCmd("+deployment_action", CmdDeploymentAction, "Trigger your deployment action (on press)");
-        RegConsoleCmd("-deployment_action", CmdSkillActionRelease, "Deployment action release (no-op)");
-        RegConsoleCmd("quick_deploy", CmdQuickDeploy, "Quick deploy without look-down/shift requirements (for menu use)");
+        RegConsoleCmd("+skill_action_3", CmdSkillAction3, "Trigger your tertiary class action (press version)");
+        RegConsoleCmd("-skill_action_3", CmdSkillAction3Release, "Release version (does nothing)");
+        RegConsoleCmd("deployment_action", CmdDeploymentAction, "Trigger your deployment action (SHIFT by default)");
         RegConsoleCmd("sm_skill", CmdUseSkill, "Use your class special skill");
         g_hClassCookie = RegClientCookie("rage_class_choice", "Rage preferred class", CookieAccess_Public);
         RegisterAdminCommands();
@@ -796,13 +922,10 @@ public ResetClientVariables(client)
 	g_bInSaferoom[client] = false;
 	g_bHide[client] = false;
 	g_bClassSelectionThirdPerson[client] = false;
+	g_bDeployMenuOpen[client] = false;
 	
 	// Properly clean up timer
-	if (g_ReadyTimer[client] != null) 
-	{ 
-		KillTimer(g_ReadyTimer[client]);
-		g_ReadyTimer[client] = null;
-	}
+	KillTimerSafe(g_ReadyTimer[client]);
 }
 
 public ClearCache()
@@ -832,18 +955,38 @@ public RebuildCache()
 		{
 			g_iSoldierCount++;
 			g_iSoldierIndex[g_iSoldierCount] = i;
-			#if DEBUG
-			PrintToChatAll("\x03-registering \x01%N as Soldier",i);
-			#endif			
+			PrintDebugAll("\x03-registering \x01%N as Soldier",i);
 		}
 	}
 }
 
 public void GetPlayerSkillReadyHint(client) {
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return;
+        }
 
-        int classId = view_as<int>(ClientData[client].ChosenClass);
+        // Only show hints after intro finishes on first mission
+        if (g_bFirstMission && !g_bIntroFinished)
+        {
+                return;
+        }
+
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                return;
+        }
+
+        int classId = view_as<int>(classType);
+        // Always show class in HUD, and show skill ready status if applicable
         if (ClientData[client].SpecialLimit > ClientData[client].SpecialsUsed && classId > 0 && classId < sizeof(SpecialReadyTips)) {
                 ShowClassHud(client, true, SpecialReadyTips[classId]);
+        }
+        else
+        {
+                // Show class even when skill is not ready
+                ShowClassHud(client, false);
         }
 }
 
@@ -858,8 +1001,10 @@ public void SetupClasses(client, class)
 
         char primaryBind[64];
         char deployBind[64];
+        char secondaryBind[64];
         GetActionBindingLabel(ClassSkill_Special, primaryBind, sizeof(primaryBind));
         GetActionBindingLabel(ClassSkill_Deploy, deployBind, sizeof(deployBind));
+        GetActionBindingLabel(ClassSkill_Secondary, secondaryBind, sizeof(secondaryBind));
 
         ClientData[client].ChosenClass = view_as<ClassTypes>(class);
 ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_DROP_INTERVAL);
@@ -878,14 +1023,14 @@ switch (view_as<ClassTypes>(class))
                         char text[64];
                         text[0] = '\0';
                         if (g_bAirstrike == true) {
-                                Format(text, sizeof(text), "Press %s for Airstrike!", primaryBind);
+                                Format(text, sizeof(text), "Press %s for Satellite Strike!", primaryBind);
                         }
 
                         PrintHintText(client,"You have armor, fast attack rate and movement %s", text );
-			ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_AIRSTRIKE_INTERVAL);
-			ClientData[client].SpecialLimit = GetConVarInt(SOLDIER_MAX_AIRSTRIKES);
-			MaxPossibleHP = GetConVarInt(SOLDIER_HEALTH);
-		}
+                        ClientData[client].SpecialDropInterval = GetConVarInt(MINIMUM_AIRSTRIKE_INTERVAL);
+                        ClientData[client].SpecialLimit = GetConVarInt(SOLDIER_MAX_AIRSTRIKES);
+                        MaxPossibleHP = GetConVarInt(SOLDIER_HEALTH);
+                }
 		
                 case medic:
                 {
@@ -912,8 +1057,8 @@ switch (view_as<ClassTypes>(class))
 		{
                         char text[64];
 
-			ClientData[client].SpecialDropInterval = 120;
-			ClientData[client].SpecialLimit = 3;
+                        ClientData[client].SpecialDropInterval = 120;
+                        ClientData[client].SpecialLimit = 3;
 
                         if (GetConVarBool(COMMANDO_ENABLE_STUMBLE_BLOCK)) {
                                 text = ", You can knock down tanks!";
@@ -922,10 +1067,10 @@ switch (view_as<ClassTypes>(class))
                         PrintHintText(client,"You have faster reload & increased damage%s!\nPress %s to activate Berzerk mode!", text, primaryBind);
                         MaxPossibleHP = GetConVarInt(COMMANDO_HEALTH);
                 }
-		
+
                 case engineer:
                 {
-                        PrintHintText(client,"Press %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, deployBind);
+                        PrintHintText(client,"Press %s to launch experimental grenades. Use %s to deploy turrets. Use %s to drop ammo supplies!", primaryBind, secondaryBind, deployBind);
                         MaxPossibleHP = GetConVarInt(ENGINEER_HEALTH);
                         ClientData[client].SpecialLimit = GetConVarInt(ENGINEER_MAX_BUILDS);
                 }
@@ -935,14 +1080,14 @@ switch (view_as<ClassTypes>(class))
                         PrintHintText(client,"Use %s to drop mines! Hold CROUCH 3 sec to go invisible.\nPress %s to summon a Decoy. Toggle extended sight from your menu for wallhack support", deployBind, primaryBind);
 			MaxPossibleHP = GetConVarInt(SABOTEUR_HEALTH);
 			ClientData[client].SpecialLimit = GetConVarInt(SABOTEUR_MAX_BOMBS);
-		}
-		
-		case brawler:
-		{
-			PrintHintText(client,"You've got lots of health!");
-			MaxPossibleHP = GetConVarInt(BRAWLER_HEALTH);
-		}
-	}
+                }
+
+                case brawler:
+                {
+                        PrintHintText(client,"You've got lots of health! No special skill—just tank the damage for your team.");
+                        MaxPossibleHP = GetConVarInt(BRAWLER_HEALTH);
+                }
+        }
 
 	AssignSkills(client);
 	setPlayerHealth(client, MaxPossibleHP);
@@ -1141,6 +1286,10 @@ any Native_OnSpecialSkillSuccess(Handle plugin, int numParams)
  
 	char[] str = new char[len + 1];
 	GetNativeString(2, str, len + 1);
+	
+	// Notify player that skill was activated
+	PrintHintText(client, "✓ %s activated!", str);
+	
 	ClientData[client].SpecialsUsed++;
 	ClientData[client].LastDropTime = GetGameTime();
 
@@ -1187,6 +1336,15 @@ any Native_OnSpecialSkillFail(Handle plugin, int numParams)
 
 public OnMapStart()
 {
+	// Enable HUD system (required for custom HUD elements to be visible)
+	GameRules_SetProp("m_bChallengeModeActive", true, _, _, true);
+	
+	// Initialize cooldown notification system
+	CooldownNotify_Init();
+	
+	// Precache cooldown ready sound
+	PrecacheSound(COOLDOWN_READY_SOUND, true);
+	
 	// Sounds
 	PrecacheSound(SOUND_CLASS_SELECTED);
 	PrecacheSound(SOUND_DROP_BOMB);
@@ -1210,6 +1368,13 @@ public OnMapStart()
 
 	// Precache all class models to avoid runtime frame drops
 	PrecacheClassModels();
+	
+	// Validate LMC availability and log status
+#if LMC_AVAILABLE
+	PrintDebugAll("LMC (Lux Model Changer) support compiled in - will use LMC for model overlays if available at runtime");
+#else
+	PrintDebugAll("LMC (Lux Model Changer) not available at compile time - will use standard SetEntityModel");
+#endif
 
 	// Particles
 	PrecacheParticle(EXPLOSION_PARTICLE);
@@ -1222,6 +1387,7 @@ public OnMapStart()
 	// Cache
 	ClearCache();
 	RoundStarted = false;
+	LeftSafeAreaMessageShown = false;
 	ClassHint = false;
 	// Shake
 
@@ -1245,8 +1411,10 @@ public OnMapStart()
 
 public void OnMapEnd()
 {
+	CooldownNotify_OnMapEnd();
 	// Cache
 	RoundStarted=false;
+	LeftSafeAreaMessageShown = false;
 	ClearCache();
 	OnRoundState(0);
 }
@@ -1290,6 +1458,7 @@ public OnPluginReady() {
 void ResetPlugin()
 {
 	RoundStarted=false;
+	LeftSafeAreaMessageShown = false;
 	g_iPlayerSpawn = false;
 }
 
@@ -1299,6 +1468,7 @@ public OnClientPutInServer(client)
         return;
 
         g_iQueuedClass[client] = 0;
+        g_bWasHoldingShift[client] = false;
         ResetClientVariables(client);
         RebuildCache();
         HookPlayer(client);
@@ -1306,8 +1476,10 @@ public OnClientPutInServer(client)
         // Auto-bind skill action keys for convenience
         if (!IsFakeClient(client))
         {
-                ClientCommand(client, "bind mouse3 skill_action_1");  // Middle mouse button
-                ClientCommand(client, "bind shift +speed");  // Ensure shift is bound to walk/run modifier for deployment checks
+                ClientCommand(client, "bind mouse3 +skill_action_1");
+                ClientCommand(client, "bind mouse4 +skill_action_2");
+                ClientCommand(client, "bind mouse5 +skill_action_3");
+                // Deployment now uses mouse3 (middle mouse button) instead of Z
         }
 }
 
@@ -1336,8 +1508,64 @@ public void OnClientCookiesCached(int client)
         LastClassConfirmed[client] = view_as<int>(storedClass);
         g_iQueuedClass[client] = 0;
 
-        PrintToChat(client, "%sRestored your %s class. Use the class menu to change it again.", PRINT_PREFIX, MENU_OPTIONS[storedClass]);
-        NotifySelectedClassHint(client);
+        // Apply the class immediately if player is on survivor team
+        if (GetClientTeam(client) == 2)
+        {
+                ClassTypes oldClass = ClientData[client].ChosenClass;
+                
+                // Only apply if not already set or if it's different
+                if (oldClass != storedClass)
+                {
+                        // Check if class is available (not full)
+                        bool classFull = (GetMaxWithClass(view_as<int>(storedClass)) >= 0 && 
+                                        CountPlayersWithClass(view_as<int>(storedClass)) >= GetMaxWithClass(view_as<int>(storedClass)));
+                        
+                        if (!classFull || oldClass == storedClass)
+                        {
+                                ClientData[client].ChosenClass = storedClass;
+                                
+                                // Inform other plugins (only if forward is valid)
+                                if (g_hfwdOnPlayerClassChange != INVALID_HANDLE)
+                                {
+                                        Call_StartForward(g_hfwdOnPlayerClassChange);
+                                        Call_PushCell(client);
+                                        Call_PushCell(ClientData[client].ChosenClass);
+                                        Call_PushCell(LastClassConfirmed[client]);
+                                        Call_Finish();
+                                }
+                                
+                                // Setup the class (defer heavy operations to avoid timeout)
+                                DataPack pack;
+                                CreateDataTimer(0.1, TimerSetupClassOnCookieCached, pack, TIMER_FLAG_NO_MAPCHANGE);
+                                pack.WriteCell(GetClientUserId(client));
+                                pack.WriteCell(view_as<int>(storedClass));
+                                
+                                // Show notification
+                                PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected. Use the Rage menu to change it.", 
+                                           PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+                                PrintHintText(client, "✓ %s class auto-selected", MENU_OPTIONS[storedClass]);
+                        }
+                        else
+                        {
+                                // Class is full, show menu instead
+                                PrintToChat(client, "%sYour previous \x04%s\x01 class is full. Please choose another class.", 
+                                           PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+                                CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
+                        }
+                }
+                else
+                {
+                        // Class already set, just notify
+                        PrintToChat(client, "%s✓ Your \x04%s\x01 class is active. Use the Rage menu to change it.", 
+                                   PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+                }
+        }
+        else
+        {
+                // Not on survivor team yet, just store it
+                PrintToChat(client, "%s✓ Your previous \x04%s\x01 class will be auto-selected when you join survivors.", 
+                           PRINT_PREFIX, MENU_OPTIONS[storedClass]);
+        }
 }
 
 void NotifySelectedClassHint(int client)
@@ -1364,6 +1592,14 @@ void NotifySelectedClassHint(int client)
 
 public Action TimerAnnounceSelectedClass(Handle timer, any data)
 {
+        // Only show hints after intro finishes on first mission
+        if (g_bFirstMission && !g_bIntroFinished)
+        {
+                // Wait a bit and check again
+                CreateTimer(1.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+                return Plugin_Stop;
+        }
+        
         for (int i = 1; i <= MaxClients; i++)
         {
                 NotifySelectedClassHint(i);
@@ -1415,6 +1651,13 @@ public Action:OnWeaponEquip(client, weapon)
 
 public OnClientDisconnect(client)
 {
+	CooldownNotify_OnClientDisconnect(client);
+        // Close menu if client was holding shift
+        if (g_bWasHoldingShift[client])
+        {
+                FakeClientCommand(client, "-rage_menu");
+                g_bWasHoldingShift[client] = false;
+        }
         UnhookPlayer(false);
         RebuildCache();
         ResetClientVariables(client);
@@ -1475,6 +1718,8 @@ public Action CmdClassSet(int client, int args)
 
         // Change to the selected class
         SetupClasses(client, classIndex);
+        LastClassConfirmed[client] = classIndex;
+        g_iQueuedClass[client] = 0;
         SaveClassCookie(client, view_as<ClassTypes>(classIndex));
 
         // Schedule return to normal view
@@ -1490,7 +1735,17 @@ public Action CmdClassMenu(int client, int args)
                 return Plugin_Handled;
         }
 
-        PrintToChat(client, "[Rage] Use the main Rage menu (sm_rage or hold V) to select your class.");
+        if (GetClientTeam(client) != 2)
+        {
+                PrintToChat(client, "[Rage] Class selection is only available for survivors.");
+                return Plugin_Handled;
+        }
+
+        if (!CreatePlayerClassMenu(client))
+        {
+                PrintToChat(client, "[Rage] Class menu is unavailable right now. Try again in a moment.");
+        }
+
         return Plugin_Handled;
 }
 
@@ -1553,15 +1808,26 @@ void PrecacheClassModels()
                 char model[PLATFORM_MAX_PATH];
                 strcopy(model, sizeof(model), ClassCustomModels[i]);
                 
+                // Validate model path is not empty
+                if (strlen(model) == 0)
+                {
+                        LogError("Empty model path at index %d in ClassCustomModels array", i);
+                        continue;
+                }
+                
                 if (!IsModelPrecached(model))
                 {
                         PrecacheModel(model, true);
-                        PrintDebugAll("Precached class model: %s", model);
+                        PrintDebugAll("Precached class model: %s (index: %d)", model, i);
+                }
+                else
+                {
+                        PrintDebugAll("Model %s already precached (index: %d)", model, i);
                 }
         }
 }
 
-// Apply class-specific character model
+// Apply class-specific character model using LMC (if available)
 void ApplyClassModel(int client, ClassTypes classType)
 {
         if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
@@ -1573,16 +1839,95 @@ void ApplyClassModel(int client, ClassTypes classType)
         int classIndex = view_as<int>(classType);
         if (classIndex < 0 || classIndex >= sizeof(ClassCustomModels))
         {
-                PrintDebugAll("Invalid class index %d for model assignment", classIndex);
+                LogError("Invalid class index %d for model assignment (max: %d)", classIndex, sizeof(ClassCustomModels) - 1);
                 return;
         }
 
         char model[PLATFORM_MAX_PATH];
         strcopy(model, sizeof(model), ClassCustomModels[classIndex]);
         
-        // Models should already be precached in OnMapStart
+        // Validate model path
+        if (strlen(model) == 0)
+        {
+                LogError("Empty model path for class %d (%s)", classIndex, MENU_OPTIONS[classIndex]);
+                return;
+        }
+        
+        // Models should already be precached in OnMapStart - verify and warn
+        if (!IsModelPrecached(model))
+        {
+                LogError("Model %s not precached for class %d (%s)! This should have been done in OnMapStart().", model, classIndex, MENU_OPTIONS[classIndex]);
+                // Don't attempt to precache here - it won't work during gameplay
+                // Still try to apply with SetEntityModel as fallback
+        }
+        
+#if LMC_AVAILABLE
+        // Check if LMC library is actually loaded at runtime (not just available at compile time)
+        if (LibraryExists("LMCCore"))
+        {
+                // Verify client is still valid before LMC call
+                if (!IsClientInGame(client) || !IsPlayerAlive(client))
+                {
+                        LogError("Client %d became invalid before LMC model application", client);
+                        return;
+                }
+                
+                // Use LMC to apply the model overlay
+                int overlayIndex = LMC_SetClientOverlayModel(client, model);
+                if (overlayIndex > 0)
+                {
+                        // Verify client is still valid after LMC call
+                        if (!IsClientInGame(client) || !IsPlayerAlive(client))
+                        {
+                                LogError("Client %d became invalid after LMC_SetClientOverlayModel", client);
+                                return;
+                        }
+                        
+#if LMC_SETTRANSMIT_AVAILABLE
+                        // Check if SetTransmit module is loaded at runtime
+                        if (LibraryExists("LMCL4D2SetTransmit"))
+                        {
+                                // Enable SetTransmit for L4D2 compatibility
+                                if (!LMC_L4D2_SetTransmit(client, overlayIndex, true))
+                                {
+                                        LogError("Failed to set LMC SetTransmit for client %d, overlay %d", client, overlayIndex);
+                                }
+                                else
+                                {
+                                        PrintDebugAll("LMC SetTransmit enabled for client %d, overlay %d", client, overlayIndex);
+                                }
+                        }
+                        else
+                        {
+                                PrintDebugAll("LMCL4D2SetTransmit library not loaded - SetTransmit not configured for client %d", client);
+                        }
+#endif
+                        PrintDebugAll("Applied LMC model %s to client %d (class: %d, overlay: %d)", model, client, classType, overlayIndex);
+                        return;
+                }
+                else
+                {
+                        LogError("LMC_SetClientOverlayModel failed for client %d, model: %s (returned: %d). Falling back to SetEntityModel.", client, model, overlayIndex);
+                }
+        }
+        else
+        {
+                PrintDebugAll("LMCCore library not loaded at runtime - using fallback SetEntityModel for client %d", client);
+        }
+#else
+        PrintDebugAll("LMC not available at compile time - using fallback SetEntityModel for client %d", client);
+#endif
+        
+        // Fallback to standard SetEntityModel if LMC is unavailable or failed
+        // Verify client is still valid before applying model
+        if (!IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+                LogError("Client %d became invalid before SetEntityModel fallback", client);
+                return;
+        }
+        
         SetEntityModel(client, model);
-        PrintDebugAll("Applied model %s to client %d (class: %d)", model, client, classType);
+        PrintDebugAll("Using fallback SetEntityModel for client %d (class: %d, model: %s) - LMC unavailable or failed", client, classType, model);
 }
 
 bool TryExecuteSkillInput(int client, ClassSkillInput input)
@@ -1601,6 +1946,13 @@ bool TryExecuteSkillInput(int client, ClassSkillInput input)
 
         if (!TryTriggerClassSkillAction(client, classType, input))
         {
+                // Don't show generic message - canUseSpecialSkill already shows specific hints
+                // Only show this if the action mode is None (no action bound)
+                if (g_ClassActionMode[classType][input] != ActionMode_None)
+                {
+                        // Skill exists but can't be used - canUseSpecialSkill already showed the reason
+                        return false;
+                }
                 PrintHintText(client, "No action is bound to that input for %s.", MENU_OPTIONS[classType]);
                 return false;
         }
@@ -1610,52 +1962,52 @@ bool TryExecuteSkillInput(int client, ClassSkillInput input)
 
 public Action CmdSkillAction1(int client, int args)
 {
+        if (client < 1 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+        
         TryExecuteSkillInput(client, ClassSkill_Special);
         return Plugin_Handled;
 }
 
 public Action CmdSkillAction2(int client, int args)
 {
+        if (client < 1 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+        
         TryExecuteSkillInput(client, ClassSkill_Secondary);
         return Plugin_Handled;
 }
 
 public Action CmdSkillAction3(int client, int args)
 {
+        if (client < 1 || !IsClientInGame(client))
+        {
+                return Plugin_Handled;
+        }
+        
         TryExecuteSkillInput(client, ClassSkill_Tertiary);
         return Plugin_Handled;
 }
 
-public Action CmdSkillActionRelease(int client, int args)
+public Action CmdSkillAction1Release(int client, int args)
 {
-        // No-op for button release events
+        // Release version - do nothing, skill already triggered on press
         return Plugin_Handled;
 }
 
-public Action CmdQuickDeploy(int client, int args)
+public Action CmdSkillAction2Release(int client, int args)
 {
-        // Quick deploy for menu use - skips look-down and shift requirements
-        if (client < 1 || !IsClientInGame(client) || GetClientTeam(client) != 2)
-        {
-                return Plugin_Handled;
-        }
+        // Release version - do nothing, skill already triggered on press
+        return Plugin_Handled;
+}
 
-        ClassTypes classType = ClientData[client].ChosenClass;
-        if (classType == NONE)
-        {
-                PrintHintText(client, "Select a class from the Rage menu first.");
-                return Plugin_Handled;
-        }
-
-        // Check if deployment action is configured for this class
-        if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
-        {
-                PrintHintText(client, "No deployment action is available for your class.");
-                return Plugin_Handled;
-        }
-
-        // Execute deployment directly
-        TryExecuteSkillInput(client, ClassSkill_Deploy);
+public Action CmdSkillAction3Release(int client, int args)
+{
+        // Release version - do nothing, skill already triggered on press
         return Plugin_Handled;
 }
 
@@ -1673,50 +2025,21 @@ public Action CmdDeploymentAction(int client, int args)
                 return Plugin_Handled;
         }
 
-        // Check if deployment action is configured for this class
+        // Check if deployment is configured
         if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_None)
         {
-                char className[32] = "your class";
-                if (classType >= 0 && classType < MAXCLASSES)
-                {
-                        strcopy(className, sizeof(className), MENU_OPTIONS[classType]);
-                }
-                PrintHintText(client, "No deployment action is bound for %s.", className);
+                PrintHintText(client, "No deployment action configured for %s.", MENU_OPTIONS[classType]);
                 return Plugin_Handled;
         }
 
-        // Check if looking down
-        float angles[3];
-        GetClientEyeAngles(client, angles);
-        bool lookingDown = (angles[0] > DEPLOY_LOOK_DOWN_ANGLE);
-
-        if (!lookingDown)
+        // For builtin actions (menus), skip cooldown check - let the menu handle its own restrictions
+        if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
         {
-                PrintHintText(client, "Look down to deploy");
+                ExecuteClassAction(client, classType, ClassSkill_Deploy);
                 return Plugin_Handled;
         }
 
-        // Check if on ground
-        int flags = GetEntityFlags(client);
-        bool onGround = (flags & FL_ONGROUND) != 0;
-
-        if (!onGround)
-        {
-                PrintHintText(client, "You must stand on solid ground to deploy");
-                return Plugin_Handled;
-        }
-
-        // Check if holding shift (IN_SPEED button)
-        int buttons = GetClientButtons(client);
-        bool holdingShift = (buttons & IN_SPEED) != 0;
-
-        if (!holdingShift)
-        {
-                PrintHintText(client, "Hold SHIFT while looking down to deploy");
-                return Plugin_Handled;
-        }
-
-        // Now execute the deployment action
+        // For other actions, check cooldown and limits normally
         TryExecuteSkillInput(client, ClassSkill_Deploy);
         return Plugin_Handled;
 }
@@ -1737,6 +2060,12 @@ public void useSpecialSkill(int client, int type)
 
 bool canUseSpecialSkill(client, char[] pendingMessage, bool ignorePinned = false)
 {	
+	// Validate client first
+	if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+	{
+		return false;
+	}
+
 	new Float:fCanDropTime = (GetGameTime() - ClientData[client].LastDropTime);
 	if (ClientData[client].LastDropTime == 0) {
 		fCanDropTime+=ClientData[client].SpecialDropInterval;
@@ -1751,20 +2080,21 @@ bool canUseSpecialSkill(client, char[] pendingMessage, bool ignorePinned = false
 		PrintHintText(client, "Cannot deploy here");
 		return false;
 	}
-	// Don't allow special skills when pinned or incapacitated (unless ignorePinned is true)
-	if (!ignorePinned && (FindAttacker(client) > 0 || IsIncapacitated(client))) {
+	
+	// Check if player is pinned or incapacitated (removed duplicate check)
+	if ((FindAttacker(client) > 0 || IsIncapacitated(client)) && ignorePinned == false) {
 		PrintHintText(client, "You're too screwed to use special skills");
 		return false;
 	}
-	else if (CanDrop == false )
+	
+	if (CanDrop == false)
 	{
-
 		Format(pendMsg, sizeof(pendMsg), pendingMessage, (ClientData[client].SpecialDropInterval-iDropTime));
-		if (fCanDropTime > 5.0) {		
-			PrintHintText(client, pendMsg );
-		}
+		// Always show cooldown message when skill can't be used
+		PrintHintText(client, pendMsg);
 		return false;
-	} else if (ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit) {
+	} 
+	else if (ClientData[client].SpecialsUsed >= ClientData[client].SpecialLimit) {
 		int limit = ClientData[client].SpecialLimit;
 		if (limit > 0) {
 			Format(outOfMsg, sizeof(outOfMsg), "You're out of supplies! (Max %d / round)", ClientData[client].SpecialLimit);
@@ -1827,6 +2157,9 @@ public Event_RoundChange(Handle:event, String:name[], bool:dontBroadcast)
 	
 	RndSession++;
 	RoundStarted = false;
+	LeftSafeAreaMessageShown = false;
+	g_bIntroFinished = false;
+	g_bFirstMission = false; // Will be recalculated on next round_start
 }
 
 public Event_RoundStart(Handle:event, String:name[], bool:dontBroadcast)
@@ -1835,7 +2168,37 @@ public Event_RoundStart(Handle:event, String:name[], bool:dontBroadcast)
                 CreateTimer(1.0, TimerStart, _, TIMER_FLAG_NO_MAPCHANGE);
 
         RoundStarted = true;
-        CreateTimer(2.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+        
+        // Check if this is the first mission (campaign start)
+        char mapname[64];
+        GetCurrentMap(mapname, sizeof(mapname));
+        // First mission maps typically start with "c1m1", "c2m1", etc.
+        g_bFirstMission = (StrContains(mapname, "m1_", false) != -1 || StrContains(mapname, "_01_", false) != -1);
+        
+        // Reset intro finished flag for new round
+        g_bIntroFinished = false;
+        
+        // Only show hints after intro finishes (for first mission) or immediately (for other maps)
+        if (g_bFirstMission)
+        {
+                // Wait for intro to finish before showing hints
+                // L4D_OnFinishIntro forward will handle this
+        }
+        else
+        {
+                // Not first mission - show hints immediately
+                CreateTimer(2.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+        }
+}
+
+public void L4D_OnFinishIntro()
+{
+        // Intro cutscene finished - safe to show hints now
+        g_bIntroFinished = true;
+        if (RoundStarted)
+        {
+                CreateTimer(1.0, TimerAnnounceSelectedClass, _, TIMER_FLAG_NO_MAPCHANGE);
+        }
 }
 
 public void OnRoundState(int roundstate)
@@ -1868,21 +2231,116 @@ public Event_PlayerSpawn(Handle:hEvent, String:sName[], bool:bDontBroadcast)
 		
 		if (GetClientTeam(client) == 2)
 		{
-			int userid = GetClientUserId(client);
-			CreateTimer(0.3, TimerLoadClient, client, TIMER_FLAG_NO_MAPCHANGE);
-			CreateTimer(0.1, TimerThink, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-			
+                        int userid = GetClientUserId(client);
+                        CreateTimer(0.3, TimerLoadClient, client, TIMER_FLAG_NO_MAPCHANGE);
+                        CreateTimer(0.1, TimerThink, userid, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
                         if (LastClassConfirmed[client] != 0)
-                                ClientData[client].ChosenClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                        {
+                                ClassTypes restoredClass = view_as<ClassTypes>(LastClassConfirmed[client]);
+                                
+                                // Check if class is available (not full)
+                                bool classFull = (GetMaxWithClass(LastClassConfirmed[client]) >= 0 && 
+                                                CountPlayersWithClass(LastClassConfirmed[client]) >= GetMaxWithClass(LastClassConfirmed[client]));
+                                
+                                if (!classFull || ClientData[client].ChosenClass == restoredClass)
+                                {
+                                        ClassTypes oldClass = ClientData[client].ChosenClass;
+                                        ClientData[client].ChosenClass = restoredClass;
+                                        
+                                        // Inform other plugins if class changed
+                                        if (oldClass != restoredClass)
+                                        {
+                                                Call_StartForward(g_hfwdOnPlayerClassChange);
+                                                Call_PushCell(client);
+                                                Call_PushCell(ClientData[client].ChosenClass);
+                                                Call_PushCell(LastClassConfirmed[client]);
+                                                Call_Finish();
+                                        }
+                                        
+                                SetupClasses(client, LastClassConfirmed[client]);
+                                        
+                                        // Apply model to ensure it persists
+                                        ApplyClassModel(client, restoredClass);
+                                        
+                                        // Show notification that class was auto-selected (only after intro on first mission)
+                                        if (oldClass == NONE)
+                                        {
+                                                if (!g_bFirstMission || g_bIntroFinished)
+                                                {
+                                                        PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected.", 
+                                                                   PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
+                                                        PrintHintText(client, "✓ %s class auto-selected", MENU_OPTIONS[restoredClass]);
+                                                }
+                                        }
+                                        
+                                        // Show class info (only after intro on first mission)
+                                        if (!g_bFirstMission || g_bIntroFinished)
+                                        {
+                                                ShowClassHud(client, false);
+                                                ShowClassSelectionInfo(client, restoredClass);
+                                        }
+                        }
                         else
+                        {
+                                // Class is full, show menu instead
+                                PrintToChat(client, "%sYour previous \x04%s\x01 class is full. Please choose another class.", 
+                                           PRINT_PREFIX, MENU_OPTIONS[restoredClass]);
                                 CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
+                        }
+                }
+                else
+                {
+                        // No class selected - show class selection menu
+                        if (ClientData[client].ChosenClass == NONE)
+                        {
+                                CreateTimer(1.0, CreatePlayerClassMenuDelay, client, TIMER_FLAG_NO_MAPCHANGE);
+                        }
+                }
 
                         CreateTimer(2.0, TimerAnnounceSelectedClassHint, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
                         ShowAthleteAbilityHint(client);
+                        
+                        // Re-bind skill action keys on spawn to ensure they work
+                        if (!IsFakeClient(client))
+                        {
+                                CreateTimer(1.0, TimerBindSkillActions, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+                        }
                 }
 
                 g_iPlayerSpawn = true;
         }
+}
+
+public Action TimerSetupClassOnCookieCached(Handle timer, DataPack pack)
+{
+        pack.Reset();
+        int userid = pack.ReadCell();
+        int classIndex = pack.ReadCell();
+        delete pack;
+        
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return Plugin_Stop;
+        }
+        
+        // Verify the class is still valid
+        ClassTypes classType = view_as<ClassTypes>(classIndex);
+        if (ClientData[client].ChosenClass != classType)
+        {
+                return Plugin_Stop;
+        }
+        
+        // Setup the class
+        SetupClasses(client, classIndex);
+        RebuildCache();
+        
+        // Show class info
+        ShowClassHud(client, false);
+        ShowClassSelectionInfo(client, classType);
+        
+        return Plugin_Stop;
 }
 
 void ShowSelectedClassHint(int client)
@@ -1902,6 +2360,191 @@ void ShowSelectedClassHint(int client)
         PrintHintText(client, "You are playing as %s. Use your skill binds to activate abilities.", MENU_OPTIONS[classType]);
 }
 
+public void ShowClassSelectionInfo(int client, ClassTypes classType)
+{
+        if (client <= 0 || client > MaxClients || !IsClientInGame(client) || GetClientTeam(client) != 2 || classType == NONE)
+        {
+                return;
+        }
+
+        // Show class description first
+        char classDesc[128];
+        strcopy(classDesc, sizeof(classDesc), g_DefaultClassDescriptions[classType]);
+        
+        PrintHintText(client, "%s: %s", MENU_OPTIONS[classType], classDesc);
+        
+        // Then show skill bindings after a short delay
+        CreateTimer(0.5, Timer_ShowClassSkillBindings, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action Timer_ShowClassSkillBindings(Handle timer, any userid)
+{
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
+        {
+                return Plugin_Stop;
+        }
+        
+        ClassTypes classType = ClientData[client].ChosenClass;
+        if (classType == NONE)
+        {
+                return Plugin_Stop;
+        }
+        
+        ShowClassSkillBindings(client, classType);
+        return Plugin_Stop;
+}
+
+public void ShowClassSkillBindings(int client, ClassTypes classType)
+{
+        if (client <= 0 || client > MaxClients || !IsClientInGame(client) || GetClientTeam(client) != 2 || classType == NONE)
+        {
+                return;
+        }
+
+        char hintText[512];
+        char binding[64];
+        char skillName[64];
+        int partCount = 0;
+
+        // Check Special skill (Primary)
+        if (g_ClassActionMode[classType][ClassSkill_Special] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Special, binding, sizeof(binding));
+                
+                if (g_ClassActionMode[classType][ClassSkill_Special] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Special][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Special]);
+                }
+                else if (g_ClassActionMode[classType][ClassSkill_Special] == ActionMode_Builtin)
+                {
+                        // Builtin actions don't have skill names, skip them
+                        skillName[0] = '\0';
+                }
+                else
+                {
+                        skillName[0] = '\0';
+                }
+                
+                if (skillName[0] != '\0')
+                {
+                        if (partCount > 0)
+                        {
+                                StrCat(hintText, sizeof(hintText), ", ");
+                        }
+                        Format(hintText, sizeof(hintText), "%s%s for %s", hintText, binding, skillName);
+                        partCount++;
+                }
+        }
+
+        // Check Secondary skill
+        if (g_ClassActionMode[classType][ClassSkill_Secondary] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Secondary, binding, sizeof(binding));
+                
+                if (g_ClassActionMode[classType][ClassSkill_Secondary] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Secondary][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Secondary]);
+                }
+                else
+                {
+                        skillName[0] = '\0';
+                }
+                
+                if (skillName[0] != '\0')
+                {
+                        if (partCount > 0)
+                        {
+                                StrCat(hintText, sizeof(hintText), ", ");
+                        }
+                        Format(hintText, sizeof(hintText), "%s%s for %s", hintText, binding, skillName);
+                        partCount++;
+                }
+        }
+
+        // Check Tertiary skill
+        if (g_ClassActionMode[classType][ClassSkill_Tertiary] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Tertiary, binding, sizeof(binding));
+                
+                if (g_ClassActionMode[classType][ClassSkill_Tertiary] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Tertiary][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Tertiary]);
+                }
+                else
+                {
+                        skillName[0] = '\0';
+                }
+                
+                if (skillName[0] != '\0')
+                {
+                        if (partCount > 0)
+                        {
+                                StrCat(hintText, sizeof(hintText), ", ");
+                        }
+                        Format(hintText, sizeof(hintText), "%s%s for %s", hintText, binding, skillName);
+                        partCount++;
+                }
+        }
+
+        // Check Deployment action
+        if (g_ClassActionMode[classType][ClassSkill_Deploy] != ActionMode_None)
+        {
+                GetActionBindingLabel(ClassSkill_Deploy, binding, sizeof(binding));
+                
+                // Get deployment action name
+                if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Builtin)
+                {
+                        switch (g_ClassActionBuiltin[classType][ClassSkill_Deploy])
+                        {
+                                case Builtin_MedicSupplies:
+                                {
+                                        strcopy(skillName, sizeof(skillName), "Medic Supplies Menu");
+                                }
+                                case Builtin_EngineerSupplies:
+                                {
+                                        if (classType == engineer)
+                                        {
+                                                strcopy(skillName, sizeof(skillName), "Turret Selection Menu");
+                                        }
+                                        else
+                                        {
+                                                strcopy(skillName, sizeof(skillName), "Engineer Supplies Menu");
+                                        }
+                                }
+                                case Builtin_SaboteurMines:
+                                {
+                                        strcopy(skillName, sizeof(skillName), "Saboteur Mines Menu");
+                                }
+                                default:
+                                {
+                                        strcopy(skillName, sizeof(skillName), "Deploy");
+                                }
+                        }
+                }
+                else if (g_ClassActionMode[classType][ClassSkill_Deploy] == ActionMode_Skill && g_ClassActionSkillName[classType][ClassSkill_Deploy][0] != '\0')
+                {
+                        strcopy(skillName, sizeof(skillName), g_ClassActionSkillName[classType][ClassSkill_Deploy]);
+                }
+                else
+                {
+                        strcopy(skillName, sizeof(skillName), "Deploy");
+                }
+                
+                if (partCount > 0)
+                {
+                        StrCat(hintText, sizeof(hintText), ", ");
+                }
+                Format(hintText, sizeof(hintText), "%s%s to deploy %s", hintText, binding, skillName);
+                partCount++;
+        }
+
+        if (hintText[0] != '\0')
+        {
+                PrintHintText(client, "%s", hintText);
+        }
+}
+
 public Action TimerAnnounceSelectedClassHint(Handle timer, any userid)
 {
         int client = GetClientOfUserId(userid);
@@ -1911,6 +2554,22 @@ public Action TimerAnnounceSelectedClassHint(Handle timer, any userid)
         }
 
         ShowSelectedClassHint(client);
+        return Plugin_Stop;
+}
+
+public Action TimerBindSkillActions(Handle timer, any userid)
+{
+        int client = GetClientOfUserId(userid);
+        if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
+        {
+                return Plugin_Stop;
+        }
+        
+        // Bind skill action keys
+        ClientCommand(client, "bind mouse3 +skill_action_1");
+        ClientCommand(client, "bind mouse4 +skill_action_2");
+        ClientCommand(client, "bind mouse5 +skill_action_3");
+        
         return Plugin_Stop;
 }
 
@@ -1959,7 +2618,11 @@ public Event_LeftSaferoom(Handle:event, String:Event_name[], bool:dontBroadcast)
 public Action:Event_LeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	RoundStarted = true;
-	PrintToChatAll("%s Players left safe area, classes now locked!",PRINT_PREFIX);	
+	if (!LeftSafeAreaMessageShown)
+	{
+		LeftSafeAreaMessageShown = true;
+		PrintToChatAll("%s Players left safe area, classes now locked!",PRINT_PREFIX);
+	}
 }
 
 public Event_PlayerTeam(Handle:hEvent, String:sName[], bool:bDontBroadcast)
@@ -2296,9 +2959,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 
 	if (!IsValidEntity(weapon))
 	return;
-	#if DEBUG
 	PrintDebugAll("\x03Client \x01%i\x03; start of reload detected",client );
-	#endif
 	float flGameTime = GetGameTime();
 	float flNextTime_calc;
 	decl String:bNetCl[64];
@@ -2306,9 +2967,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 	float flStartTime_calc;
 	GetEntityNetClass(weapon, bNetCl, sizeof(bNetCl));
 	GetEntityNetClass(weapon,stClass,32);
-	#if DEBUG
 	PrintDebugAll("\x03-class of gun: \x01%s",stClass );
-	#endif
 
 	if (StrContains(bNetCl, "shotgun", false) == -1)
 	{
@@ -2316,7 +2975,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		new Handle:hPack = CreateDataPack();
 		WritePackCell(hPack, client);
 		float flNextPrimaryAttack = GetEntDataFloat(weapon, g_iNextPrimaryAttack);		
-		#if DEBUG
 		PrintDebugAll("\x03- pre, gametime \x01%f\x03, retrieved nextattack\x01 %i %f\x03, retrieved time idle \x01%i %f",
 		flGameTime,
 		g_iNextPrimaryAttack,
@@ -2324,7 +2982,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		g_iTimeWeaponIdle,
 		GetEntDataFloat(weapon,g_iTimeWeaponIdle)
 		);
-		#endif
 
 		new Float:fReloadRatio = g_flReloadRate;
 		flNextTime_calc = (flNextPrimaryAttack - flGameTime) * fReloadRatio;
@@ -2341,7 +2998,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		SetEntDataFloat(weapon, g_iTimeWeaponIdle, flNextTime_calc, true);
 		SetEntDataFloat(weapon, g_iNextPrimaryAttack, flNextTime_calc, true);
 		SetEntDataFloat(client, g_iNextAttack, flNextTime_calc, true);
-		#if DEBUG
 		PrintDebugAll("\x03- post, calculated nextattack \x01%f\x03, gametime \x01%f\x03, retrieved nextattack\x01 %i %f\x03, retrieved time idle \x01%i %f",
 		flNextTime_calc,
 		flGameTime,
@@ -2350,7 +3006,6 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 		g_iTimeWeaponIdle,
 		GetEntDataFloat(weapon,g_iTimeWeaponIdle)
 		);
-		#endif
 	}
 	else
 	{
@@ -2360,10 +3015,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 
 		if (StrContains(bNetCl, "CShotgun_SPAS", false) != -1)
 		{
-
-			#if DEBUG
 				PrintDebugAll("Shotgun Class: %s", stClass);
-			#endif
 			WritePackFloat(hPack, g_flShotgunSpasS);
 			WritePackFloat(hPack, g_flShotgunSpasI);
 			WritePackFloat(hPack, g_flShotgunSpasE);
@@ -2388,9 +3040,7 @@ public Event_RelCommandoClass(Handle:event, String:name[], bool:dontBroadcast)
 			CreateTimer(0.1, CommandoPumpShotReload, hPack);
 		}
 		else {
-		#if DEBUG
 			PrintDebugAll("\x03 did not find: \x01%s",stClass );
-		#endif
 			CloseHandle(hPack);
 
 		}
@@ -2442,9 +3092,7 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 	new Float:insert = ReadPackFloat(hOldPack);
 	new Float:end = ReadPackFloat(hOldPack);
 	CloseHandle(hOldPack);
-	#if DEBUG
 		PrintDebugAll("Starting reload");
-	#endif
 
 	if (client <= 0
 		|| weapon <= 0
@@ -2457,10 +3105,7 @@ public Action:CommandoPumpShotReload(Handle:timer, Handle:hOldPack)
 	SetEntDataFloat(weapon,	g_reloadInsertDuration,	insert * fReloadRatio,	true);
 	SetEntDataFloat(weapon,	g_reloadEndDuration, end * fReloadRatio,	true);
 	SetEntDataFloat(weapon, g_iPlaybackRate, 1.0 / fReloadRatio, true);
-	
-	#if DEBUG
 		PrintDebugAll("\x03-spas shotgun detected, ratio \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i", fReloadRatio, g_reloadStartDuration, g_reloadInsertDuration, g_reloadEndDuration);
-	#endif
 
 	new Handle:hPack = CreateDataPack();
 	WritePackCell(hPack, weapon);
@@ -2498,9 +3143,7 @@ public Action:CommandoShotCalculate(Handle:timer, Handle:hPack)
 		KillTimer(timer);
 		return Plugin_Stop;
 	}
-	#if DEBUG
 	PrintDebugAll("Shotgun finished reloading");
-	#endif
 
 	if (GetEntData(weapon, g_iReloadState) == 0 || GetEntData(weapon, g_iReloadState) == 2 )
 	{
@@ -2528,8 +3171,13 @@ public Action:Event_WeaponFire(Handle:event, const String:name[], bool:dontBroad
 		if (RoundStarted == true) {
 			ClassHint = true;
 		}
-                PrintHintText(client,"You really should pick a class. Soldier, Medic, or Engineer are good for beginners.");
-		CreatePlayerClassMenu(client);
+		
+		// Only show hints after intro finishes on first mission, or immediately on other maps
+		if (!g_bFirstMission || g_bIntroFinished)
+		{
+			PrintHintText(client,"You really should pick a class. Soldier, Medic, or Engineer are good for beginners.");
+			CreatePlayerClassMenu(client);
+		}
 	}
 
 
@@ -2892,24 +3540,18 @@ void DT_OnGameFrame()
 		if (flNextSecondaryAttack > flGameTime)
 		{
 			//----RSDEBUG----
-			#if DEBUG
 			PrintDebugAll("\x03DT client \x01%i\x03; melee attack inferred",client );
-			#endif
 			continue;
 		}
 
 		if (g_iEntityIndex[client] == iActiveWeapon && g_fNextAttackTime[client] < flNextPrimaryAttack)
 		{
-			#if DEBUG
 			PrintDebugAll("\x03DT after adjusted shot\n-pre, client \x01%i\x03; entid \x01%i\x03; enginetime\x01 %f\x03; NextTime_orig \x01 %f\x03; interval \x01%f",client,iActiveWeapon,flGameTime,flNextPrimaryAttack, flNextPrimaryAttack-flGameTime );
-			#endif
 
 			flNextTime_calc = ( flNextPrimaryAttack - flGameTime ) * g_flAttackRate + flGameTime;
 			g_fNextAttackTime[client] = flNextTime_calc;
 			SetEntDataFloat(iActiveWeapon, g_iNextPrimaryAttack, flNextTime_calc, true);
-			#if DEBUG
 			PrintDebugAll("\x03-post, NextTime_calc \x01 %f\x03; new interval \x01%f",GetEntDataFloat(iActiveWeapon,g_iNextPrimaryAttack), GetEntDataFloat(iActiveWeapon,g_iNextPrimaryAttack)-flGameTime );
-			#endif
 			continue;
 		}
 		
@@ -3027,9 +3669,7 @@ int MA_OnGameFrame()
 
 			//and finally adjust the value in the gun
 			SetEntDataFloat(iEntid, g_iNextPrimaryAttack, flNextTime_calc, true);
-			#if DEBUG
-			PrintDebugAll("\x03-melee attack, original: \x01 %f\x03; new \x01%f",flNextPrimaryAttack, GetEntDataFloat(iEntid,g_iNextPrimaryAttack - flGameTime);
-			#endif
+			PrintDebugAll("\x03-melee attack, original: \x01 %f\x03; new \x01%f",flNextPrimaryAttack, GetEntDataFloat(iEntid,g_iNextPrimaryAttack) - flGameTime);
 			continue;
 		}
 
@@ -3138,6 +3778,7 @@ public void DropBomb(client, bombType)
 	PrintHintTextToAll("%N planted a %s mine! (%i/%i)", client, bombName, (1+ ClientData[client].SpecialsUsed), GetConVarInt(SABOTEUR_MAX_BOMBS));
 }
 
+#define DROP_MINE_ENTITY_DEFINED
 public DropMineEntity(Float:pos[3], int index)
 {
 	char mineName[32];
@@ -3250,7 +3891,9 @@ stock FindAttacker(iClient)
 	return iAttacker;
 }
 
-stock bool:IsValidSurvivor(client, bool:isAlive = false) {
+// IsValidSurvivor is now provided by rage/validation.inc
+// This version has an optional isAlive parameter for backward compatibility
+stock bool:IsValidSurvivorCompat(client, bool:isAlive = false) {
 	if(client >= 1 && client <= MaxClients && GetClientTeam(client) == 2 && IsClientConnected(client) && IsClientInGame(client) && (isAlive == false || IsPlayerAlive(client)))
 	{	 
 		return true;
@@ -3333,19 +3976,47 @@ public setDebugMode(int mode) {
 
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon)
 {
-	if (!IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2)
-	return Plugin_Continue;
-	
-	new flags = GetEntityFlags(client);
-	
-	if (!(buttons & IN_DUCK) || !(flags & FL_ONGROUND)) {
-		ClientData[client].HideStartTime= GetGameTime();
-		ClientData[client].HealStartTime= GetGameTime();
-	}
+        if (!IsClientInGame(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2)
+        {
+                // Reset shift state if client is not valid
+                if (g_bWasHoldingShift[client])
+                {
+                        FakeClientCommand(client, "-rage_menu");
+                        g_bWasHoldingShift[client] = false;
+                }
+                return Plugin_Continue;
+        }
 
-	if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
-	return Plugin_Continue;
-	
+        new flags = GetEntityFlags(client);
+
+        // Removed redundant IN_ATTACK3 skill action detection - console commands handle this now
+
+        if (!(buttons & IN_DUCK) || !(flags & FL_ONGROUND)) {
+                ClientData[client].HideStartTime= GetGameTime();
+                ClientData[client].HealStartTime= GetGameTime();
+        }
+
+        // SHIFT (IN_SPEED) shows RAGE menu - check this before early returns
+        bool holdingShift = (buttons & IN_SPEED) != 0;
+        if (holdingShift && !g_bWasHoldingShift[client])
+        {
+                // SHIFT just pressed - show RAGE menu
+                FakeClientCommand(client, "+rage_menu");
+                g_bWasHoldingShift[client] = true;
+        }
+        else if (!holdingShift && g_bWasHoldingShift[client])
+        {
+                // SHIFT released - close RAGE menu
+                FakeClientCommand(client, "-rage_menu");
+                g_bWasHoldingShift[client] = false;
+        }
+
+        if (IsFakeClient(client) || IsHanging(client) || IsIncapacitated(client) || FindAttacker(client) > 0 || IsClientOnLadder(client) || GetClientWaterLevel(client) > Water_Level:WATER_LEVEL_FEET_IN_WATER)
+        return Plugin_Continue;
+
+        // Ensure IN_USE (T key) is not blocked for voice chat
+        // Don't interfere with IN_USE - let it work normally for voice chat
+
         if (ClientData[client].ChosenClass == athlete)
         {
                 if (buttons & IN_JUMP && flags & FL_ONGROUND )
@@ -3356,6 +4027,8 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
                 }
         }
+
+        // Skill actions are now handled via console commands - no need for duplicate detection here
         ClientData[client].LastButtons = buttons;
 
         return Plugin_Continue;

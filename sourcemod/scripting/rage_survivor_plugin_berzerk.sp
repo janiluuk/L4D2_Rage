@@ -43,7 +43,7 @@
 
 #define PLUGIN_VERSION 		"1.6.8"
 #define PLUGIN_SKILL_NAME "Berzerk"
-#define DEBUG 0
+// DEBUG now handled by rage/debug.inc - use PrintDebug() instead
 int g_iClassID = -1;
 bool g_bRageAvailable = false;
 
@@ -51,6 +51,10 @@ bool g_bRageAvailable = false;
 #include <sourcemod>
 #include <sdktools>
 #include <rage/skills>
+#include <rage/effects>
+#include <rage/timers>
+#include <rage/debug>
+#include <rage/validation>
 #pragma semicolon 1
 
 //Definitions
@@ -63,17 +67,8 @@ bool g_bRageAvailable = false;
 #define GETVERSION "1.6.8" //Plugin version
 
 //**********************DEBUGGING OPTIONS AND OUTPUTS*******************************
-#define RSDEBUG 0 //Faster swinging, reloading and shooting debug information.
-#define BYDEBUG 0 //Berserker Yell debug information.
-#define LBDEBUG 0 //Lethal bite debug information
-#define FSDEBUG 0 //Fire shield debug information
-#define NRDEBUG 0 //Nasty Revenge debug information
-#define CTDEBUG 0 //Stats and counts debug information
-#define EVTDEBUG 0 //Events information
-#define ZKDEBUG 0 //Berserker debug information
-#define CKDEBUG 0 //Safe timers and checkers debug information
-#define BOODEBUG 0 //Boomer debug
-#define CODEBUG 0 //Common Infected debug - Reason: Sometimes the event wont fire??
+// All debug flags removed - use PrintDebug() from rage/debug.inc instead
+// Debug output controlled via getDebugMode() at runtime
 //***********************************************************************************
 
 //Berserker Yell feature sound file paths.
@@ -428,12 +423,14 @@ public OnPluginStart()
 	g_cvarColor = CreateConVar("l4d2_berserk_mode_color", "1", "What color should the players have on berserker? (1 = RED, 2 = BLUE, 3 = GREEN, 4 = BLACK, 5 = TRANSPARENT)", FCVAR_NOTIFY, true, 1.0, true, 5.0);
 	g_cvarMusicFile = CreateConVar("l4d2_berserk_mode_music_file", "music/tank/onebadtank.wav", "Which music should be played on berserker mode?");
 	g_cvarDownloadMusic = CreateConVar("l4d2_berserk_mode_music_custom", "0", "Is the music sound file a non-standard one? If it is, it will be forced to be downloaded", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	g_cvarKeyToBind = CreateConVar("l4d2_berserk_mode_binding_key", "b", "Which key should the plugin bind for berserker? Default is B key", FCVAR_NOTIFY);
+        g_cvarKeyToBind = CreateConVar("l4d2_berserk_mode_binding_key", "k", "Which key should the plugin bind for berserker? Default is K key", FCVAR_NOTIFY);
 	g_cvarBindKey = CreateConVar("l4d2_berserk_mode_bind_key", "0", "Should the plugin bind the specified key for berserker?", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarEnableMusicShield  = CreateConVar("l4d2_berserk_mode_esthetic_shield", "1", "Should the plugin avoid playing the music if it is anoying? (On finale escapes, tanks on play, etc)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarAdrenCheckEnable = CreateConVar("l4d2_berserk_mode_adren_safeguard", "1", "Should we activate the Adrenaline Safe Guard for sound? (Prevents glitches)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarAdrenCheckTimer = CreateConVar("l4d2_berserk_mode_adren_safeguard_time", "20", "How long should the Adrenaline Safe Guard wait to check and fix sound?");
-	g_cvarAllowZoomKey = CreateConVar("l4d2_berserk_mode_bind_zoom_key", "0", "Allow the +ZOOM (Mouse wheel) to be the default berserker key?", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	// NOTE: This should be set to 0 (disabled) when using the skill action system.
+	// Berserk is now triggered via skill_action_1 command, not direct button detection.
+	g_cvarAllowZoomKey = CreateConVar("l4d2_berserk_mode_bind_zoom_key", "0", "Allow the +ZOOM (Mouse wheel) to be the default berserker key? (DISABLED by default - use skill_action_1 instead)", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarYell = CreateConVar("l4d2_berserk_mode_yell", "1", "Allow the berserker mode 'Yell' feature. (Shove enemies at berserker start", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_cvarYellPower = CreateConVar("l4d2_berserk_mode_yell_power", "250", "Power of the shove of the Berserker mode 'Yell' feature", FCVAR_NOTIFY);
 	g_cvarYellRadius = CreateConVar("l4d2_berserk_mode_yell_radius", "350", "Radius that the yell shoves enemies", FCVAR_NOTIFY);
@@ -536,9 +533,7 @@ public OnPluginStart()
 	//Hooking global events
 	HookEvent("round_end", OnRoundEnd); //When a round ends, called before OnMapEnd
 	HookEvent("round_start_post_nav", OnRoundStart); //When a round starts, seems to be called before OnMapStart
-	#if CTDEBUG
-	PrintToServer("[PLUGIN] Hooked global events");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	HookEvent("jockey_ride", OnJockeyRideStart); //Anytime a jockey rides a survivor
 	HookEvent("lunge_pounce", OnHunterPounceStart); //Everytime a hunter pounces a survivor
@@ -551,18 +546,14 @@ public OnPluginStart()
 	
 	HookEvent("charger_pummel_start", OnPummelStart);
 	HookEvent("charger_pummel_end", OnPummelEnd);
-	#if CTDEBUG
-	PrintToServer("[PLUGIN] Hooked Infected events");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	HookEvent("player_death", OnPlayerDeath); //When a player is killed or simply dies
 	HookEvent("player_incapacitated", OnPlayerIncap); //When a player gets incapacitated
 	HookEvent("weapon_reload", OnWeaponReload); //When a player reload its weapon
 	HookEvent("infected_hurt", OnCommonHurt); //When a common infected or witch is hurt
 	HookEvent("weapon_fire", OnWeaponFire); //When a weapon is fired
-	#if CTDEBUG
-	PrintToServer("[PLUGIN] Hooked Survivor events");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	//CHECKS
 	HookEvent("player_incapacitated_start", OnPlayerPreIncap); //Right before player gets incapacitated, last chance to read its living info.
@@ -724,9 +715,7 @@ public OnMapStart()
 	PrecacheParticle(EFFECT_PARTICLE_SURVIVOR);
 	PrecacheParticle(EFFECT_PARTICLE_INFECTED);
 
-	#if CTDEBUG
-	PrintToServer("[PLUGIN]Sounds have been precached");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	//Server is not loading anymore
 	g_bIsLoading = false;
@@ -769,7 +758,7 @@ public int OnSpecialSkillUsed(int iClient, int skill, int type)
 	}
 	if (StrEqual(szSkillName,PLUGIN_SKILL_NAME))
 	{
-
+		PrintHintText(iClient, "✓ Berzerk mode activated!");
 		BeginBerserkerMode(iClient);
 		OnSpecialSkillSuccess(iClient, PLUGIN_SKILL_NAME);
 		return 1;
@@ -830,16 +819,14 @@ public OnGameFrame()
 	{
 		//If the selected client was 0 or wasn't in game, discart
 		//Checks: Is a survivor, is alive, is in game, has berserker running and the required convar is enabled
-		if(i > 0 && IsValidEntity(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2 && IsClientInGame(i) && g_bHasBerserker[i] && GetConVarBool(g_cvarShovePenalty))
+		if(IsValidSurvivor(i, true) && g_bHasBerserker[i] && GetConVarBool(g_cvarShovePenalty))
 		{
 			//If the player is pressing the right click of the mouse, proceed
 			if(GetClientButtons(i) & IN_ATTACK2)
 			{
 				//This will reset the penalty, so it doesnt even get applied.
 				SetEntData(i, g_iShovePenalty, 0, 4);
-				#if ZKDEBUG
-				PrintToConsole(i, "[PLUGIN]Shove fatige disabled");
-				#endif
+				// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			}
 		}
 	}
@@ -877,9 +864,7 @@ public OnClientPutInServer(client)
 		
 		//Bind the key for the client
 		ClientCommand(client, "bind %s sm_berserker", bind);
-		#if ZKDEBUG
-		PrintToConsole(client, "[PLUGIN]Your [%s] key will now activate berserker", bind);
-		#endif
+		// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	}
 }
 
@@ -889,6 +874,9 @@ public OnClientDisconnect(client)
 	RebuildAll();
 	if(client > 0)
 	{
+		// Clean up timers
+		KillTimerSafe(g_hAdrenCheckHandle[client]);
+		
 		g_iKillCount[client] = false;
 		g_iZerkTime[client] = GetConVarInt(g_cvarInfectedDuration);
 		g_iKillCountExtra[client] = false;
@@ -911,9 +899,7 @@ public OnMapEnd()
 	//Obviously, an escape is not proceeding
 	g_bFinaleEscape = false;
 	ResetBerserkCount();
-	#if CTDEBUG
-	PrintToServer("[PLUGIN]Counts and controls have been resetted");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	ClearAll();
 	g_bIsLoading = true;
 	for(new i = 1; i <=MaxClients ; i++)
@@ -935,9 +921,7 @@ public OnRoundStart(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 	
 	//Begin berserker stats
 	RunBerserkCount();
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01 Round Started!");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 
@@ -947,9 +931,7 @@ public OnRoundEnd(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 	ClearAll();
 	ResetBerserkCount();
 	g_bFinaleEscape = false;
-	#if EVTDEBUG
-	PrintToServer("[PLUGIN]Counts and controls have been resetted");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	ClearAll();
 	g_bIsLoading = true;
 }
@@ -957,16 +939,8 @@ public OnRoundEnd(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 //Add Lethal bite to yourself
 public Action:CmdLethBiteMe(client, args)
 {
-	if(g_timerLethalBiteDur != INVALID_HANDLE)
-	{
-		KillTimer(g_timerLethalBiteDur);
-		g_timerLethalBiteDur = INVALID_HANDLE;
-	}
-	if(g_timerLethalBiteFreq != INVALID_HANDLE)
-	{
-		KillTimer(g_timerLethalBiteFreq);
-		g_timerLethalBiteFreq = INVALID_HANDLE;
-	}
+	KillTimerSafe(g_timerLethalBiteDur);
+	KillTimerSafe(g_timerLethalBiteFreq);
 	DoLethalBite(client, client, GetConVarInt(g_cvarLethalBiteDmg), GetConVarFloat(g_cvarLethalBiteDur), GetConVarFloat(g_cvarLethalBiteFreq));
 }
 
@@ -991,10 +965,7 @@ public Action:CmdForceZerk(client, args)
 		return;
 	}
 	BeginBerserkerMode(client);
-	#if ZKDEBUG
-	PrintToServer("[PLUGIN]%s forced berserker on himself", client);
-	PrintToChat(client, "[PLUGIN]You forced berserker on yourself!");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Will force berserker mode on everybody
@@ -1007,10 +978,7 @@ public Action:CmdForceZerkOn(client, args)
 			BeginBerserkerMode(i);
 		}
 	}
-	#if ZKDEBUG
-	PrintToServer("[PLUGIN]%s forced berserker on all players", client);
-	PrintToChatAll("[PLUGIN]An admin forced berserker on everybody!");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Will force God Mode in yourself
@@ -1021,10 +989,7 @@ public Action:CmdForceGod(client, args)
 		return;
 	}
 	SetEntProp(client, Prop_Data, "m_takedamage", 0, 1);
-	#if ZKDEBUG
-	PrintToServer("[PLUGIN]%s forced god mode on himself", client);
-	PrintToChat(client, "[PLUGIN]You forced berserker on yourself");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Force berserk mode to be ready
@@ -1040,12 +1005,7 @@ public Action:CmdEnableZerk(client, args)
 	WritePackString(pack, "Berserker is ready!");
 	WritePackString(pack, "sm_berserker");
 	CreateTimer(0.1, DisplayHint, pack, TIMER_FLAG_NO_MAPCHANGE);
-	#if ZKDEBUG
-	decl String:sName[256];
-	GetClientName(client, sName, sizeof(sName));
-	PrintToServer("[PLUGIN]%s forced berserker to be ready on himself", sName);
-	//PrintToChat(client, "[PLUGIN]You forced berserker to be ready on yourself");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Retrieve any godmode feature of the player
@@ -1056,10 +1016,7 @@ public Action:CmdForceGodOff(client, args)
 		return;
 	}
 	SetEntProp(client, Prop_Data, "m_takedamage", 2, 1);
-	#if ZKDEBUG
-	PrintToServer("[PLUGIN]%s retrieved god mode from himself", client);
-	PrintToChat(client, "[PLUGIN]You retrieved god mode from yourself");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //BETA function - Prints essential debugging information for developers.
@@ -1068,7 +1025,7 @@ public Action:CmdDebugReport(client, args)
 	decl String:weapon[256]; 
 	decl String:godmode[30];
 	decl String:exinfectedED[256];
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	GetConVarString(g_cvarEDExInfected, exinfectedED, sizeof(exinfectedED));
 	if( StrContains( exinfectedED, "boomer" ) != -1) 
 	{
@@ -1178,12 +1135,7 @@ public Action:CmdBerserker(client, args)
 	if(!g_bHasBerserker[client] && g_bBerserkerEnabled[client] && IsValidEntity(client) && IsPlayerAlive(client) && !IsRestrictedALL(client) && (!GetConVarBool(g_cvarIncapRestrict) && GetEntProp(client, Prop_Send, "m_isIncapacitated") == 0 || GetConVarBool(g_cvarIncapRestrict)))
 	{
 		BeginBerserkerMode(client);
-		#if ZKDEBUG
-		decl String:sName[256];
-		GetClientName(client, sName, sizeof(sName));
-		PrintToServer("[PLUGIN]%s began berserker mode by command", sName);
-		PrintToChat(client, "[PLUGIN]You began berserker mode by command");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	}
 	//If not, proceed to print chat information
 	else
@@ -1233,12 +1185,7 @@ public Action:CmdBerserker(client, args)
 			//Print to players chat his progress.
 			
 			PrintToChat(client, "\x04Berserker - \x01 Charging [%i/%i]", count, goal);
-			#if ZKDEBUG
-			decl String:name[256];
-			GetClientName(client, name, sizeof(name));
-			PrintToServer("[PLUGIN]%s tried to use berserker, but failed", name);
-			PrintToChat(client, "[PLUGIN]You failed to begin berserker. REASON: Goal not reached");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			return Plugin_Handled;
 		}
 	}
@@ -1255,16 +1202,12 @@ public RunBerserkCount()
 	{
 		g_iZerkTime[i] = GetConVarInt(g_cvarInfectedDuration);
 	}
-	#if CTDEBUG
-	PrintToServer("[PLUGIN] Got needed offsets and properties");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 public ResetBerserkCount()
 {
-	#if CTDEBUG
-	PrintToServer("[PLUGIN] Resetted needed offsets and properties");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	g_bFinaleEscape = false;
 	for(new i=1; i<=MaxClients; i++)
 	{
@@ -1324,15 +1267,11 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 	
 	if(iAttacker == 0) //If the attacker is the world or not a client.
 	{
-		#if CTDEBUG
-		PrintToChatAll("WORLD ATTACKED %N", iVictim);
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		//Filter: 
 		if(iEntityId > 0 && IsValidEntity(iEntityId) && iVictim > 0 && IsValidEntity(iVictim) && IsClientInGame(iVictim))
 		{
-			#if CTDEBUG
-			PrintToChatAll("WORLD ATTACKED AND IS > 0", iVictim);
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			g_iTeam[iVictim] = GetClientTeam(iVictim);
 			if(g_iTeam[iVictim] != 2)
 			{
@@ -1361,18 +1300,14 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 							g_iDamageCount[iRealAttacker] = 0;
 							g_bBerserkerEnabled[iRealAttacker] = true;
 							Announce(iRealAttacker);
-							#if CTDEBUG
-							PrintToChat(iRealAttacker, "[PLUGIN] Goal reached, enabling berserker");
-							#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 						}
 					}
 				}
 				else if(g_bHasBerserker[iVictim] && g_bDidYell[iVictim])
 				{
 					IgniteEntity(iEntityId, 20.0);
-					#if BYDEBUG
-					PrintToConsole(iVictim, "An infected (%i) hurt you and you had yelled. Ignited.", iEntityId);
-					#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 				}
 			}
 		}
@@ -1383,20 +1318,14 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 		|| !IsClientInGame(iAttacker)
 		|| IsFakeClient(iAttacker))
 		{
-			#if CTDEBUG
-			PrintToChat(iAttacker, "\x04Not valid");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			return;
 		}
-		#if CTDEBUG
-		PrintToChat(iAttacker, "\x04You are a valid attacker");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		g_iTeam[iAttacker] = GetClientTeam(iAttacker);
 		if(GetConVarBool(g_cvarSurvivorEnable) && g_iTeam[iAttacker] == 2)
 		{
-			#if CTDEBUG
-			PrintToChat(iAttacker, "\x04You are a survivor and the Zerk For Survivors is enabled");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			if(GetClientTeam(iVictim) == 3)
 			{
 				if(GetConVarBool(g_cvarYellFire) && g_bHasBerserker[iAttacker] && g_bHasFireBullets[iAttacker])
@@ -1418,19 +1347,13 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 		}
 		else if(GetConVarBool(g_cvarInfectedEnable) && g_iTeam[iAttacker] == 3)
 		{
-			#if CTDEBUG
-			PrintToChat(iAttacker, "\x04You are an infected nad the zerk is also enabled");
-			#endif
-			if(GetClientTeam(iVictim) == 2)
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
+			if(IsSurvivor(iVictim))
 			{
-				#if CTDEBUG
-				PrintToChat(iAttacker, "\x04Victim is an attacker");
-				#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 				if(!g_bHasBerserker[iAttacker] && !g_bBerserkerEnabled[iAttacker])
 				{
-					#if CTDEBUG
-					PrintToChat(iAttacker, "\x04You don't have any zerk");
-					#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 					if(GetConVarBool(g_cvarInfectedCountType))
 					{
 						g_iDamageCount[iAttacker] += 1;
@@ -1439,9 +1362,7 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 					{
 						g_iDamageCount[iAttacker] += iDamage;
 					}
-					#if CTDEBUG
-					PrintToChat(iAttacker, "[PLUGIN] Damage count raised");
-					#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 					if(!GetConVarBool(g_cvarCountMode))
 					{
 						if(g_iDamageCount[iAttacker] <= 1)
@@ -1455,9 +1376,7 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 						g_iDamageCount[iAttacker] = 0;
 						g_bBerserkerEnabled[iAttacker] = true;
 						Announce(iAttacker);
-						#if CTDEBUG
-						PrintToChat(iAttacker, "[PLUGIN] Goal reached, enabling berserker");
-						#endif
+						// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 					}
 				}
 				else if(g_bHasBerserker[iAttacker])
@@ -1472,13 +1391,7 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 							new Float:flNewDamage = iDamage*flBonusDamage;
 							new Float:flTotal = iPostHealth-flNewDamage;
 							new iTotal = RoundToFloor(flTotal);
-							#if CTDEBUG
-							new prevhealth = iPostHealth+iDamage;
-							PrintToChat(iAttacker, "[INFECTED] Original target health: %i", prevhealth);
-							PrintToChat(iAttacker, "[INFECTED] Original iDamage dealt: %i", iDamage);
-							PrintToChat(iAttacker, "[INFECTED] New iDamage dealt: %i", RoundToNearest(iDamage+iDamage*flBonusDamage));
-							PrintToChat(iAttacker, "[INFECTED] Final target health: %i", RoundToNearest(flTotal));
-							#endif
+							// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 							if(iTotal <= 0 && GetEntProp(iVictim, Prop_Send, "m_isIncapacitated") == 0)
 							{
 								//If the damage is GENERIC, skip, as it could create unnecesary loops.
@@ -1486,16 +1399,12 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 								{
 									IncapSurvivor(iVictim, iAttacker);
 								}
-								#if CTDEBUG
-								PrintToChat(iAttacker, "[INFECTED] Final health was below 0, incapacitating");
-								#endif
+								// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 							}
 							else if(iTotal <= 0 && GetEntProp(iVictim, Prop_Send, "m_isIncapacitated") == 1)
 							{
 								SetEntityHealth(iVictim, 0);
-								#if CTDEBUG
-								PrintToChat(iAttacker, "[INFECTED] Final health was below 0 and was already incapacitated, killing");
-								#endif
+								// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 							}
 							else
 							{
@@ -1512,9 +1421,7 @@ public OnPlayerHurt(Handle:hEvent, String:sEventName[], bool:bDontBroadcast)
 							if(iDamageType == 8 || iDamageType == 2056)
 							{
 								ExtinguishEntity(iVictim);
-								#if FSDEBUG
-								PrintToChat(iVictim, "[FIRE SHIELD] Activated!, Extinguishing you!");
-								#endif
+								// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 							}
 						}
 					}
@@ -1529,35 +1436,21 @@ public OnPummelStart(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
 	new attacker = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	g_bIsPummeling[attacker] = true;
-	#if EVTDEBUG
-	new victim = GetClientOfUserId(GetEventInt(hEvent, "victim"));
-	decl String:vname[256], aname[256];
-	GetClientName(victim, vname, sizeof(vname));
-	GetClientName(attacker, aname, sizeof(aname));
-	PrintToChatAll("\x04[Event]\x01 Player %s(%i) is pummeling %s(%i)", aname, attacker, vname, victim);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 public OnPummelEnd(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
 	new attacker = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	g_bIsPummeling[attacker] = false;
-	#if EVTDEBUG
-	new victim = GetClientOfUserId(GetEventInt(hEvent, "victim"));
-	decl String:vname[256], aname[256];
-	GetClientName(victim, vname, sizeof(vname));
-	GetClientName(attacker, aname, sizeof(aname));
-	PrintToChatAll("\x04[Event]\x01 Player %s(%i) is not pummeling %s(%i) anymore", aname, attacker, vname, victim);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 /*Special infected abilities during Berserker*/
 //Jockey ride start
 public Action:OnJockeyRideStart(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01 Jockey ride started");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	if(GetConVarInt(g_cvarAbilityImmunity) == 0)
 	{
 		return;
@@ -1577,9 +1470,7 @@ public Action:OnJockeyRideStart(Handle:hEvent, String:event_name[], bool:dontBro
 			{
 				SetEntProp(client, Prop_Data, "m_takedamage", 0, 1);
 				CreateTimer(1.0, CheckInfectedZerk, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-				#if ZKDEBUG
-				PrintToChat(client, "\x04[ZERK DEBUG]\x01Gave you immunity during ride");
-				#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			}
 		}
 	}
@@ -1588,9 +1479,7 @@ public Action:OnJockeyRideStart(Handle:hEvent, String:event_name[], bool:dontBro
 //Pounce Start
 public Action:OnHunterPounceStart(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01 Hunter Pounce started");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	if(GetConVarInt(g_cvarAbilityImmunity) == 0)
 	{
 		return;
@@ -1610,9 +1499,7 @@ public Action:OnHunterPounceStart(Handle:hEvent, String:event_name[], bool:dontB
 			{
 				SetEntProp(client, Prop_Data, "m_takedamage", 0, 1);
 				CreateTimer(1.0, CheckInfectedZerk, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-				#if ZKDEBUG
-				PrintToChat(client, "\x04[ZERK DEBUG]\x01Gave you immunity during pounce");
-				#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			}
 		}
 	}
@@ -1634,9 +1521,7 @@ public Action:OnPlayerShoved(Handle:hEvent, String:event_name[], bool:dontBroadc
 	g_iTeam[client] = GetClientTeam(client);
 	if(g_iTeam[client] == 3)
 	{
-		#if EVTDEBUG
-		PrintToChatAll("\x04[Event]\x01 Infected got shoved");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		g_bIsRiding[client] = false;
 		g_bIsPouncing[client] = false;
 		g_bIsChoking[client] = false;
@@ -1646,9 +1531,7 @@ public Action:OnPlayerShoved(Handle:hEvent, String:event_name[], bool:dontBroadc
 //Choke Start
 public Action:OnSmokerChokeStart(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01 Smoker choke started");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	if(GetConVarInt(g_cvarAbilityImmunity) == 0)
 	{
 		return;
@@ -1668,9 +1551,7 @@ public Action:OnSmokerChokeStart(Handle:hEvent, String:event_name[], bool:dontBr
 			{
 				SetEntProp(client, Prop_Data, "m_takedamage", 0, 1);
 				CreateTimer(1.0, CheckInfectedZerk, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-				#if ZKDEBUG
-				PrintToChat(client, "\x04[ZERK DEBUG]\x01Gave you immunity during choke");
-				#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			}
 		}
 	}
@@ -1679,9 +1560,7 @@ public Action:OnSmokerChokeStart(Handle:hEvent, String:event_name[], bool:dontBr
 //Jockey Ride Over
 public Action:OnJockeyRideEnd(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01 Jockey ride is now over");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	if(GetConVarInt(g_cvarAbilityImmunity) == 0)
 	{
 		return;
@@ -1702,9 +1581,7 @@ public Action:OnJockeyRideEnd(Handle:hEvent, String:event_name[], bool:dontBroad
 //Hunter Pounce Over
 public Action:OnHunterPounceEnd(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01 Hunter Pounce is now over");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	if(GetConVarInt(g_cvarAbilityImmunity) == 0)
 	{
 		return;
@@ -1725,9 +1602,7 @@ public Action:OnHunterPounceEnd(Handle:hEvent, String:event_name[], bool:dontBro
 //Smoker Choke Over
 public Action:OnSmokerChokeEnd(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01 Smoker Choke is now over");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	if(GetConVarInt(g_cvarAbilityImmunity) == 0)
 	{
 		return;
@@ -1761,9 +1636,7 @@ public Action:OnPlayerIncap(Handle:hEvent, String:event_name[], bool:dontBroadca
 			{
 				SetEntProp(client, Prop_Data, "m_takedamage", 0, 1);
 				CreateTimer(0.1, CheckZerk, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-				#if ZKDEBUG
-				PrintToChat(client, "\x04[ZERK DEBUG]\x01Gave you immunity during incapacitation");
-				#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			}
 		}
 	}
@@ -1772,50 +1645,30 @@ public Action:OnPlayerIncap(Handle:hEvent, String:event_name[], bool:dontBroadca
 //Tank Spawned
 public Action:OnTankSpawned(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event] \x01A Tank was spawned [Tank Count: %i]", GetTankCount());
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Tanks is frustrated
 public Action:OnTankFrustrated(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event] \x01Tank Frustrated!!!");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Tank Killed
 public Action:OnTankKilled(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event] \x01Tank Killed [Tank Count: %i]", GetTankCount());
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Bot replaces a player
 public Action:OnBotReplacePlayer(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	new botuserid = GetEventInt(hEvent, "bot");
-	new bot = GetClientOfUserId(botuserid);
-	new client = GetClientOfUserId(GetEventInt(hEvent, "player"));
-	decl String:sName[256];
-	GetClientName(client, sName, sizeof(sName));
-	PrintToChatAll("\x04[Event] \x01A bot(id:%i)(index: %i) just replaced %s", botuserid, bot, sName);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 public Action:OnPlayerReplaceBot(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	new botuserid = GetEventInt(hEvent, "bot");
-	new bot = GetClientOfUserId(botuserid);
-	new client = GetClientOfUserId(GetEventInt(hEvent, "player"));
-	decl String:sName[256];
-	GetClientName(client, sName, sizeof(sName));
-	PrintToChatAll("\x04[Event] \x01%s replaced a bot(id:%i)(index: %i)", sName, botuserid, bot);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //When a finale escape starts
@@ -1823,9 +1676,7 @@ public Action:OnFinaleEscapeStart(Handle:hEvent, String:event_name[], bool:dontB
 {
 	g_bFinaleEscape = true;
 	
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01Finale escape has began");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //On vomited by boomer or hit by boomer's explosion
@@ -1833,25 +1684,17 @@ public Action:OnVomited(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	new attacker = GetClientOfUserId(GetEventInt(hEvent, "attacker"));
-	#if EVTDEBUG
-	new String:sName[MAX_NAME_LENGTH+1];
-	GetClientName(client, sName, sizeof(sName));
-	PrintToChatAll("\x04[Event]\x01 %s got vomited", sName);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	g_iWhoVomited[client] = attacker;
 	if(!g_bIsVomited[client])
 	{
-		#if NRDEBUG
-		PrintToChatAll("[NASTY REVENGE] Player wasnt vomited, setting as he is now...");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		g_bIsVomited[client] = true;
 		g_iTeam[client] = GetClientTeam(client);
 		if(GetConVarBool(g_cvarNastyRevenge) && g_bHasBerserker[client] && g_iTeam[client] == 2)
 		{
-			#if NRDEBUG
-			PrintToChatAll("[NASTY REVENGE] Enabled and player with berserker detected, try chances");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			DoNastyRevenge();
 		}
 	}
@@ -1866,11 +1709,7 @@ public Action:OnVomitCleaned(Handle:hEvent, String:event_name[], bool:dontBroadc
 	new client = GetClientOfUserId(GetEventInt(hEvent, "userid"));
 	g_bIsVomited[client] = false;
 	RetrieveBlackScreen(client);
-	#if EVTDEBUG
-	new String:sName[MAX_NAME_LENGTH+1];
-	GetClientName(client, sName, sizeof(sName));
-	PrintToChatAll("\x04[Event]\x01 %s is no longer vomited", sName);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //On adrenaline shot used - SAFE GUARD
@@ -1880,23 +1719,13 @@ public Action:OnAdrenalineUsed(Handle:hEvent, String:event_name[], bool:dontBroa
 	new client = GetClientOfUserId(userid);
 	if(GetConVarBool(g_cvarAdrenCheckEnable))
 	{
-		if(g_hAdrenCheckHandle[client] != INVALID_HANDLE)
-		{
-			KillTimer(g_hAdrenCheckHandle[client]);
-			g_hAdrenCheckHandle[client] = INVALID_HANDLE;
-		}
+		KillTimerSafe(g_hAdrenCheckHandle[client]);
 		
 		g_hAdrenCheckHandle[client] = CreateTimer(GetConVarFloat(g_cvarAdrenCheckTimer), timerAdrenCheck, client, TIMER_FLAG_NO_MAPCHANGE);
-		#if CKDEBUG
-		PrintToChat(client, "\x02[SAFE GUARD]\x01 Safe guard activated");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	}
 	
-	#if EVTDEBUG
-	decl String:sName[MAX_NAME_LENGTH+1];
-	GetClientName(client, sName, sizeof(sName));
-	PrintToChatAll("\x04[Event]\x01Adrenaline used by %s", sName);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //Adrenaline safe guard for sounds - SAFE GUARD
@@ -1907,25 +1736,17 @@ public Action:timerAdrenCheck(Handle:timer, any:client)
 	//Checks: Is not world or console, is a valid entity, is inside the game, belongs to survivors
 	if(client == 0 || !IsValidEntity(client) || !IsClientInGame(client) || g_iTeam[client] != 2)
 	{
-		#if CKDEBUG
-		PrintToChatAll("[SAFE GUARD] The last valid client id (%i) didn't pass the filters, canceling...", userid);
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		return;
 	}
 	
 	//Check: Berserker enabled, in case the berserker was enabled or was applied, cancel adrenaline use and refire timer.
 	if(g_bHasBerserker[client])
 	{
-		if(g_hAdrenCheckHandle[client] != INVALID_HANDLE)
-		{
-			KillTimer(g_hAdrenCheckHandle[client]);
-			g_hAdrenCheckHandle[client] = INVALID_HANDLE;
-		}
+		KillTimerSafe(g_hAdrenCheckHandle[client]);
 		
 		g_hAdrenCheckHandle[client] = CreateTimer(1.5, timerAdrenCheck, client, TIMER_FLAG_NO_MAPCHANGE);
-		#if CKDEBUG
-		PrintToChat(client, "\x02[SAFE GUARD]\x01 User has berserker active, wait for re-check");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		return;
 	}
 	//If the player has no berserker, delete adrenaline effects, in case they remain active
@@ -1935,9 +1756,7 @@ public Action:timerAdrenCheck(Handle:timer, any:client)
 		{
 			SetEntPropFloat(client, Prop_Send, "m_fNVAdrenaline", 0.0);
 			SetEntDataFloat(client, g_iAdrenSoundEffect, 0.0, true);
-			#if CKDEBUG
-			PrintToChat(client, "\x02[SAFE GUARD]\x01 Time has expired, retrieving adrenaline sound effect");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			return;
 		}
 	}
@@ -1946,9 +1765,7 @@ public Action:timerAdrenCheck(Handle:timer, any:client)
 //Get the last valid weapon if it was enforced
 public Action:OnPlayerPreIncap(Handle:hEvent, String:event_name[], bool:dontBroadcast)
 {
-	#if EVTDEBUG
-	PrintToChatAll("\x04[Event]\x01Player Pre Incapacitation");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //On Weapon Reload
@@ -2136,9 +1953,7 @@ public OnPlayerDeath (Handle:hEvent, String:event_name[], bool:dontBroadcast)
 									total = 100;
 								}
 								SetEntityHealth(iAttacker, total);
-								#if ZKDEBUG
-								PrintToChat(iAttacker, "\x04[ZERK DEBUG]\x01Your health is now %i", total);
-								#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 							}
 						}
 					}
@@ -2192,9 +2007,7 @@ stock OnCommonKilled(attacker, infected, String:weapon[], type)
 					}
 					SetEntityHealth(attacker, total);
 					
-					#if ZKDEBUG
-					PrintToChat(attacker, "\x04[ZERK DEBUG]\x01Your health is now %i", total);
-					#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 				}
 			}
 		}
@@ -2289,20 +2102,18 @@ public Action:BeginBerserkerMode(client)
 		{
 			case 1:
 			{
-				if(GetClientTeam(client) == 2 && GetConVarBool(g_cvarYellSurvivor) || GetClientTeam(client) == 3 && GetConVarBool(g_cvarYellInfected))
+				if((IsSurvivor(client) && GetConVarBool(g_cvarYellSurvivor)) || (IsValidInfected(client) && GetConVarBool(g_cvarYellInfected)))
 				{
 					Yell(client);
 					g_bDidYell[client] = true;
-					#if BYDEBUG
-					PrintToConsole(client, "Yelling...");
-					#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 				}
 			}
 		}
 	}
 	//Survivors
 	g_iTeam[client] = GetClientTeam(client);
-	if((g_iTeam[client] == 2) && (IsClientInGame(client)) && (IsPlayerAlive(client)))
+	if((g_iTeam[client] == 2) && IsValidAliveClient(client))
 	{
 		g_iZerkTime[client] = GetConVarInt(g_cvarSurvivorDuration);
 		PrintHintTextToAll("\x04%N went into berzerk mode!", client);
@@ -2319,9 +2130,7 @@ public Action:BeginBerserkerMode(client)
 		{
 			CheatCommand(client, "give", "adrenaline");
 			
-			#if ZKDEBUG
-			PrintToChat(client, "\x04[ZERK DEBUG] \x01Gave you an adrenaline shot");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		}
 		else if(GetConVarInt(g_cvarAdrenType) == 2)
 		{
@@ -2350,9 +2159,7 @@ public Action:BeginBerserkerMode(client)
 		if(GetConVarInt(g_cvarRefillWeapon) == 1)
 		{
 			CheatCommand(client, "give",  "ammo");
-			#if ZKDEBUG
-			PrintToChat(client, "\x04[ZERK DEBUG] \x01Refilled your weapon");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		}
 		
 		if(GetConVarInt(g_cvarSpecialBullets) == 1)
@@ -2366,9 +2173,7 @@ public Action:BeginBerserkerMode(client)
 				g_bHasFireBullets[client] = true;
 			}
 			
-			#if ZKDEBUG
-			PrintToChat(client, "\x04[ZERK DEBUG] \x01Gave you fire bullets");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		}
 		EmitAmbientSound(SOUND_GUITAR, vec, client, SNDLEVEL_GUNFIRE);
 		
@@ -2396,14 +2201,10 @@ public Action:BeginBerserkerMode(client)
 			}
 		}
 		
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Custom color applied");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 		ClientCommand(client, "play %s", SOUND_START);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01 Initial sound played");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 		if(GetConVarInt(g_cvarPlayMusic) == 1)
 		{
@@ -2418,22 +2219,16 @@ public Action:BeginBerserkerMode(client)
 				CreateTimer(GetConVarFloat(g_cvarImmunityDuration), NoDamageTimer, client, TIMER_FLAG_NO_MAPCHANGE);
 			}
 		}
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01 Gave initial immunity");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 		//Increased Speed
 		SetEntDataFloat(client, g_flLagMovement, 1.2, true);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Increased your speed");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		if(GetConVarInt(g_cvarEffectType) == 1 || GetConVarInt(g_cvarEffectType) == 3)
 		{
 			IgniteEntity(client, GetConVarFloat(g_cvarSurvivorDuration));
 		}
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Screen effect is being shown");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		if(GetConVarInt(g_cvarGiveLaserSight) == 1)
 		{
 			CheatCommand(client, "upgrade_add", "laser_sight");
@@ -2445,7 +2240,7 @@ public Action:BeginBerserkerMode(client)
 	}
 	
 	//Infected
-	else if((g_iTeam[client] == 3) && (IsClientInGame(client)) && (!GetEntProp(client, Prop_Send, "m_isIncapacitated")) && (IsPlayerAlive(client)))
+	else if((g_iTeam[client] == 3) && IsValidAliveClient(client) && (!GetEntProp(client, Prop_Send, "m_isIncapacitated")))
 	{
 		if(GetConVarBool(g_cvarAdvEffectInfected))
 		{
@@ -2465,15 +2260,11 @@ public Action:BeginBerserkerMode(client)
 		
 		//Sets red color for the player
 		SetEntityRenderColor(client, 189, 9, 13, 235);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG]\x01Custom color has been set for you");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 		//Starts berserker music, if enabled on the config file
 		ClientCommand(client, "play %s", SOUND_START);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG]\x01Playing specified music");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 		if(GetConVarInt(g_cvarPlayMusic) == 1)
 		{
@@ -2493,9 +2284,7 @@ public Action:BeginBerserkerMode(client)
 		
 		//Increases Speed
 		SetEntDataFloat(client, g_flLagMovement, 1.2, true);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG]\x01Increased your speed");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 		//Create timer to disable berserker later
 		CreateTimer(1.0, BerserkEnd, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -2520,9 +2309,7 @@ public Action:SoundTimer(Handle:timer, any:client)
 	{
 		ClientCommand(client, "play %s", g_sBerserkMusic);
 	}
-	#if ZKDEBUG
-	PrintToChat(client, "\x04[ZERK DEBUG]\x01Music has started");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	//Creates timer to disable the music later
 	CreateTimer(1.0, STOPSOUND, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -2544,13 +2331,9 @@ public Action:STOPSOUND(Handle:timer, any:client)
 			
 			//Set default color
 			SetEntityRenderColor(client, 255, 255, 255, 255);
-			#if ZKDEBUG
-			PrintToChat(client, "\x04[ZERK DEBUG]\x01 Music is over");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			ClientCommand(client, "play %s", SOUND_NONE);
-			#if ZKDEBUG
-			PrintToChat(client, "\x04[ZERK DEBUG] \x01Returned to the default color");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			//Stop music and announce that the berserker is over
 			PrintToChat(client, "\x04Berzerk mode is over");
 			ClientCommand(client, "play %s", SOUND_NONE);
@@ -2579,13 +2362,9 @@ public Action:STOPSOUND(Handle:timer, any:client)
 		
 		//Set default color
 		SetEntityRenderColor(client, 255, 255, 255, 255);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG]\x01 Music is over");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		ClientCommand(client, "play %s", SOUND_NONE);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Returned to the default color");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		//Stop music and announce that the berserker is over
 		PrintToChat(client, "\x04Berserker mode is over");
 		ClientCommand(client, "play %s", SOUND_NONE);
@@ -2627,17 +2406,13 @@ public Action:BerserkEnd(Handle:timer, any:client)
 		{
 			SetEntDataFloat(client, g_flLagMovement, 1.0, true);
 		}
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Returned to normal speed");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		//Set berserker control to 0 (OFF)
 		g_bHasBerserker[client] = false;
 		g_bHasFireBullets[client] = false;
 		g_iZerkTime[client] = GetConVarInt(g_cvarInfectedDuration);
 		RebuildAll();
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Berserker mode is over!");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		return Plugin_Stop;
 	}
 	if(IsRestrictedALL(client))
@@ -2647,18 +2422,14 @@ public Action:BerserkEnd(Handle:timer, any:client)
 		if(client > 0 && IsValidEntity(client) && IsClientInGame(client))
 		{
 			SetEntDataFloat(client, g_flLagMovement, 1.0, true);
-			#if ZKDEBUG
-			PrintToChat(client, "\x04[ZERK DEBUG] \x01Returned to normal speed");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		}
 		//Set berserker control to 0 (OFF)
 		g_bHasBerserker[client] = false;
 		g_bHasFireBullets[client] = false;
 		g_iZerkTime[client] = GetConVarInt(g_cvarInfectedDuration);
 		RebuildAll();
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Berserker mode is over!");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		PrintToChat(client, "\x04Berserker Mode is disabled with this infected, stopping");
 		return Plugin_Stop;
 	}
@@ -2673,17 +2444,13 @@ public Action:BerserkEnd(Handle:timer, any:client)
 		g_bDidYell[client] = false;
 		//Sets speed to default (Normal)
 		SetEntDataFloat(client, g_flLagMovement, 1.0, true);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Returned to normal speed");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		//Set berserker control to 0 (OFF)
 		g_bHasBerserker[client] = false;
 		g_bHasFireBullets[client] = false;
 		g_iZerkTime[client] = GetConVarInt(g_cvarInfectedDuration);
 		RebuildAll();
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Berserker mode is over!");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		return Plugin_Stop;
 	}
 	return Plugin_Continue;
@@ -2698,9 +2465,7 @@ public Action:CheckZerk(Handle:timer, any:client)
 	if(!g_bHasBerserker[client] && client > 0 && IsValidEntity(client) && IsClientInGame(client))
 	{		
 		SetEntProp(client, Prop_Data, "m_takedamage", 2, 1);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Incapacitation immunity is no longer being applied");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		return Plugin_Stop;
 	}
 	
@@ -2715,9 +2480,7 @@ public Action:CheckInfectedZerk(Handle:timer, any:client)
 	if(client > 0 && IsValidEntity(client) && IsClientInGame(client) && ((!g_bHasBerserker[client]) || ((!g_bIsRiding[client]) && (!g_bIsPouncing[client]) && (!g_bIsChoking[client]))))
 	{
 		SetEntProp(client, Prop_Data, "m_takedamage", 2, 1);
-		#if ZKDEBUG
-		PrintToChat(client, "\x04[ZERK DEBUG] \x01Immunity during special ability ended");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		return Plugin_Stop;
 	}
 	
@@ -2769,7 +2532,7 @@ public Action:ResetDamageCount(Handle:timer, any:attacker)
 //Timer - Will set the default color again in case it has not come back yet
 public Action:timerRestoreColor(Handle:timer, any:client)
 {
-	if(client > 0 && IsValidEntity(client) && IsClientInGame(client) && GetClientTeam(client) != 1 && IsPlayerAlive(client))
+	if(IsValidAliveClient(client) && GetClientTeam(client) != 1)
 	{
 		SetEntityRenderColor(client, 255, 255, 255, 255);
 		SetEntityRenderColor(client, 255, 255, 255, 255);
@@ -2801,10 +2564,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	if((buttons & IN_ZOOM) && !g_bHasBerserker[client] && g_bBerserkerEnabled[client] &&!IsRestrictedALL(client) && (!GetConVarBool(g_cvarIncapRestrict) && GetEntProp(client, Prop_Send, "m_isIncapacitated") == 0 || GetConVarBool(g_cvarIncapRestrict)))
 	{
 		BeginBerserkerMode(client);
-		#if CTDEBUG
-		PrintToServer("[PLUGIN]%s began berserker mode by command", client);
-		PrintToChat(client, "[PLUGIN]You began berserker mode by command");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	}
 	//If not, proceed to print chat information
 	else
@@ -2828,12 +2588,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 		//If the berserker is not ready for the player...
 		else if((buttons & IN_ZOOM) && !g_bBerserkerEnabled[client])
 		{			
-			#if CTDEBUG
-			decl String:name[256];
-			GetClientName(client, name, sizeof(name));
-			PrintToServer("[PLUGIN]%s tried to use berserker, but failed", name);
-			PrintToChat(client, "[PLUGIN]You failed to begin berserker. REASON: Goal not reached");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			return Plugin_Continue;
 		}
 	}
@@ -2914,11 +2669,9 @@ stock bool:IsValidBulletBased(String:weapon[])
 //On the start of a reload
 AdrenReload (client)
 {
-	if (GetClientTeam(client) == 2)
+	if (IsSurvivor(client))
 	{
-		#if RSDEBUG
-		PrintToChatAll("\x03Client \x01%i\x03; start of reload detected",client );
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		new iEntid = GetEntDataEnt2(client, g_iActiveWO);
 		if (IsValidEntity(iEntid)==false) return;
 	
@@ -2965,20 +2718,10 @@ AdrenReload (client)
 //called for mag loaders
 MagStart (iEntid, client)
 {
-	#if RSDEBUG
-	PrintToChatAll("\x05-magazine loader detected,\x03 gametime \x01%f", GetGameTime());
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	new Float:flGameTime = GetGameTime();
 	new Float:flNextTime_ret = GetEntDataFloat(iEntid,g_iNextPAttO);
-	#if RSDEBUG
-	PrintToChatAll("\x03- pre, gametime \x01%f\x03, retrieved nextattack\x01 %i %f\x03, retrieved time idle \x01%i %f",
-		flGameTime,
-		g_iNextAttO,
-		GetEntDataFloat(client,g_iNextAttO),
-		g_iTimeIdleO,
-		GetEntDataFloat(iEntid,g_iTimeIdleO)
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	//this is a calculation of when the next primary attack will be after applying reload values
 	//NOTE: at this point, only calculate the interval itself, without the actual game engine time factored in
@@ -3007,16 +2750,7 @@ MagStart (iEntid, client)
 	SetEntDataFloat(iEntid, g_iTimeIdleO, flNextTime_calc, true);
 	SetEntDataFloat(iEntid, g_iNextPAttO, flNextTime_calc, true);
 	SetEntDataFloat(client, g_iNextAttO, flNextTime_calc, true);
-	#if RSDEBUG
-	PrintToChatAll("\x03- post, calculated nextattack \x01%f\x03, gametime \x01%f\x03, retrieved nextattack\x01 %i %f\x03, retrieved time idle \x01%i %f",
-		flNextTime_calc,
-		flGameTime,
-		g_iNextAttO,
-		GetEntDataFloat(client,g_iNextAttO),
-		g_iTimeIdleO,
-		GetEntDataFloat(iEntid,g_iTimeIdleO)
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 //called for autoshotguns
@@ -3041,19 +2775,7 @@ public Action:Timer_AutoshotgunStart (Handle:timer, Handle:hPack)
 		|| IsClientInGame(iCid)==false)
 		return Plugin_Stop;
 
-	#if RSDEBUG
-	PrintToChatAll("\x03-autoshotgun detected, iEntid \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i",
-		iEntid,
-		g_iShotStartDurO,
-		g_iShotInsertDurO,
-		g_iShotEndDurO
-		);
-	PrintToChatAll("\x03- pre mod, start \x01%f\x03, insert \x01%f\x03, end \x01%f",
-		g_fl_AutoS,
-		0.4,
-		g_fl_AutoE
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 	//then we set the new times in the gun
 	SetEntDataFloat(iEntid,	g_iShotStartDurO,	g_fl_AutoS*g_fl_reload_rate,	true);
@@ -3075,13 +2797,7 @@ public Action:Timer_AutoshotgunStart (Handle:timer, Handle:hPack)
 			CreateTimer(0.3,Timer_ShotgunEnd,hPack,TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	}
 
-	#if RSDEBUG
-	PrintToChatAll("\x03- after mod, start \x01%f\x03, insert \x01%f\x03, end \x01%f",
-		g_fl_AutoS,
-		0.4,
-		g_fl_AutoE
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	return Plugin_Stop;
 }
@@ -3107,19 +2823,7 @@ public Action:Timer_SpasShotgunStart (Handle:timer, Handle:hPack)
 		|| IsClientInGame(iCid)==false)
 		return Plugin_Stop;
 
-	#if RSDEBUG
-	PrintToChatAll("\x03-autoshotgun detected, iEntid \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i",
-		iEntid,
-		g_iShotStartDurO,
-		g_iShotInsertDurO,
-		g_iShotEndDurO
-		);
-	PrintToChatAll("\x03- pre mod, start \x01%f\x03, insert \x01%f\x03, end \x01%f",
-		g_fl_SpasS,
-		g_fl_SpasI,
-		0.699999
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		
 	//then we set the new times in the gun
 	SetEntDataFloat(iEntid,	g_iShotStartDurO,	g_fl_SpasS*g_fl_reload_rate,	true);
@@ -3133,13 +2837,7 @@ public Action:Timer_SpasShotgunStart (Handle:timer, Handle:hPack)
 	//but first check the reload state; if it's 2, then it needs a pump/cock before it can shoot again, and thus needs more time
 	CreateTimer(0.3,Timer_ShotgunEnd,hPack,TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 
-	#if RSDEBUG
-	PrintToChatAll("\x03- after mod, start \x01%f\x03, insert \x01%f\x03, end \x01%f",
-		g_fl_SpasS,
-		g_fl_SpasI,
-		0.699999
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	return Plugin_Stop;
 }
@@ -3166,19 +2864,7 @@ public Action:Timer_PumpshotgunStart (Handle:timer, Handle:hPack)
 		|| IsClientInGame(iCid)==false)
 		return Plugin_Stop;
 
-	#if RSDEBUG
-	PrintToChatAll("\x03-pumpshotgun detected, iEntid \x01%i\x03, startO \x01%i\x03, insertO \x01%i\x03, endO \x01%i",
-		iEntid,
-		g_iShotStartDurO,
-		g_iShotInsertDurO,
-		g_iShotEndDurO
-		);
-	PrintToChatAll("\x03- pre mod, start \x01%f\x03, insert \x01%f\x03, end \x01%f",
-		g_fl_PumpS,
-		g_fl_PumpI,
-		g_fl_PumpE
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	//then we set the new times in the gun
 	SetEntDataFloat(iEntid,	g_iShotStartDurO,	g_fl_PumpS*g_fl_reload_rate,	true);
@@ -3199,13 +2885,7 @@ public Action:Timer_PumpshotgunStart (Handle:timer, Handle:hPack)
 			CreateTimer(0.3,Timer_ShotgunEnd,hPack,TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 	}
 
-	#if RSDEBUG
-	PrintToChatAll("\x03- after mod, start \x01%f\x03, insert \x01%f\x03, end \x01%f",
-		g_fl_PumpS,
-		g_fl_PumpI,
-		g_fl_PumpE
-		);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	return Plugin_Stop;
 }
@@ -3217,9 +2897,7 @@ public Action:Timer_MagEnd (Handle:timer, any:iEntid)
 	if (IsServerProcessing()==false)
 		return Plugin_Stop;
 
-	#if RSDEBUG
-	PrintToChatAll("\x03Reset playback, magazine loader");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	if (iEntid <= 0
 		|| IsValidEntity(iEntid)==false)
@@ -3239,9 +2917,7 @@ public Action:Timer_MagEnd2 (Handle:timer, Handle:hPack)
 		return Plugin_Stop;
 	}
 
-	#if RSDEBUG
-	PrintToChatAll("\x03Reset playback, magazine loader");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	ResetPack(hPack);
 	new iCid = ReadPackCell(hPack);
@@ -3257,18 +2933,14 @@ public Action:Timer_MagEnd2 (Handle:timer, Handle:hPack)
 	new iVMid = GetEntDataEnt2(iCid,g_iViewModelO);
 	SetEntDataFloat(iVMid, g_iVMStartTimeO, flStartTime_calc, true);
 
-	#if RSDEBUG
-	PrintToChatAll("\x03- end mag loader, icid \x01%i\x03 starttime \x01%f\x03 gametime \x01%f", iCid, flStartTime_calc, GetGameTime());
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	return Plugin_Stop;
 }
 
 public Action:Timer_ShotgunEnd (Handle:timer, Handle:hPack)
 {
-	#if RSDEBUG
-	PrintToChatAll("\x03-autoshotgun tick");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	ResetPack(hPack);
 	new iCid = ReadPackCell(hPack);
@@ -3287,9 +2959,7 @@ public Action:Timer_ShotgunEnd (Handle:timer, Handle:hPack)
 
 	if (GetEntData(iEntid,g_iShotRelStateO)==0)
 	{
-		#if RSDEBUG
-		PrintToChatAll("\x03-shotgun end reload detected");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 		SetEntDataFloat(iEntid, g_iPlayRateO, 1.0, true);
 
@@ -3311,9 +2981,7 @@ public Action:Timer_ShotgunEnd (Handle:timer, Handle:hPack)
 //exactly as the above, except it adds slightly more time
 public Action:Timer_ShotgunEndCock (Handle:timer, any:hPack)
 {
-	#if RSDEBUG
-	PrintToChatAll("\x03-autoshotgun tick");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 	ResetPack(hPack);
 	new iCid = ReadPackCell(hPack);
@@ -3332,9 +3000,7 @@ public Action:Timer_ShotgunEndCock (Handle:timer, any:hPack)
 
 	if (GetEntData(iEntid,g_iShotRelStateO)==0)
 	{
-		#if RSDEBUG
-		PrintToChatAll("\x03-shotgun end reload + cock detected");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 		SetEntDataFloat(iEntid, g_iPlayRateO, 1.0, true);
 
@@ -3374,18 +3040,14 @@ MA_Rebuild ()
 	//if the server's not running or is in the middle of loading, stop
 	if (IsServerProcessing()==false)
 		return;
-	#if RSDEBUG
-	PrintToChatAll("\x03Rebuilding melee registry");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	for (new iI=1 ; iI<=MaxClients ; iI++)
 	{
-		if (IsClientInGame(iI)==true && IsPlayerAlive(iI)==true && GetClientTeam(iI)==2 && g_bHasBerserker[iI])
+		if (IsValidSurvivor(iI, true) && g_bHasBerserker[iI])
 		{
 			g_iMARegisterCount++;
 			g_iMARegisterIndex[g_iMARegisterCount]=iI;
-			#if RSDEBUG
-			PrintToChatAll("\x03-registering \x01%i",iI);
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		}
 	}
 }
@@ -3395,9 +3057,7 @@ MA_Rebuild ()
 MA_Clear ()
 {
 	g_iMARegisterCount=0;
-	#if RSDEBUG
-	PrintToChatAll("\x03Clearing melee registry");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	for (new iI=1 ; iI<=MaxClients ; iI++)
 	{
 		g_iMARegisterIndex[iI]= -1;
@@ -3414,18 +3074,14 @@ DT_Rebuild ()
 	//if the server's not running or is in the middle of loading, stop
 	if (IsServerProcessing()==false)
 		return;
-	#if RSDEBUG
-	PrintToChatAll("\x03Rebuilding weapon firing registry");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	for (new iI=1 ; iI<=MaxClients ; iI++)
 	{
-		if (IsClientInGame(iI)==true && IsPlayerAlive(iI)==true && GetClientTeam(iI)==2 && g_bHasBerserker[iI])
+		if (IsValidSurvivor(iI, true) && g_bHasBerserker[iI])
 		{
 			g_iDTRegisterCount++;
 			g_iDTRegisterIndex[g_iDTRegisterCount]=iI;
-			#if RSDEBUG
-			PrintToChatAll("\x03-registering \x01%i",iI);
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		}
 	}
 }
@@ -3435,9 +3091,7 @@ DT_Rebuild ()
 DT_Clear ()
 {
 	g_iDTRegisterCount=0;
-	#if RSDEBUG
-	PrintToChatAll("\x03Clearing weapon firing registry");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	for (new iI=1 ; iI<=MaxClients ; iI++)
 	{
 		g_iDTRegisterIndex[iI]= -1;
@@ -3515,9 +3169,7 @@ MA_OnGameFrame()
 				&& g_iMAAttCount[iCid]!=0
 				&& (flGameTime - flNextTime_ret) > 1.0)
 		{
-			#if RSDEBUG
-			PrintToChatAll("\x03Client \x01%i\x03; hasn't swung weapon",iCid );
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			g_iMAAttCount[iCid]=0;
 		}
 
@@ -3556,9 +3208,7 @@ MA_OnGameFrame()
 			//and finally adjust the value in the gun
 			SetEntDataFloat(iEntid, g_iNextPAttO, flNextTime_calc, true);
 
-			#if RSDEBUG
-			PrintToChatAll("\x03-post, NextTime_calc \x01 %f\x03; new interval \x01%f",GetEntDataFloat(iEntid,g_iNextPAttO), GetEntDataFloat(iEntid,g_iNextPAttO)-flGameTime );
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 			continue;
 		}
@@ -3572,9 +3222,7 @@ MA_OnGameFrame()
 		//actions: store the weapon's entid into either
 		//         the known-melee or known-non-melee variable
 
-		#if RSDEBUG
-		PrintToChatAll("\x03DT client \x01%i\x03; weapon switch inferred",iCid );
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
 		//check if the weapon is a melee
 		decl String:stName[32];
@@ -3687,9 +3335,7 @@ DT_OnGameFrame()
 		if (g_iDTEntid[iCid]==iEntid
 			&& g_flDTNextTime[iCid] < flNextTime_ret)
 		{
-			#if RSDEBUG
-			PrintToChatAll("\x03DT after adjusted shot\n-pre, client \x01%i\x03; entid \x01%i\x03; enginetime\x01 %f\x03; NextTime_orig \x01 %f\x03; interval \x01%f",iCid,iEntid,flGameTime,flNextTime_ret, flNextTime_ret-flGameTime );
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			//this is a calculation of when the next primary attack
 			//will be after applying double tap values
 			flNextTime_calc = ( flNextTime_ret - flGameTime ) * g_flDT_rate + flGameTime;
@@ -3700,9 +3346,7 @@ DT_OnGameFrame()
 			//and finally adjust the value in the gun
 			SetEntDataFloat(iEntid, g_iNextPAttO, flNextTime_calc, true);
 
-			#if RSDEBUG
-			PrintToChatAll("\x03-post, NextTime_calc \x01 %f\x03; new interval \x01%f",GetEntDataFloat(iEntid,g_iNextPAttO), GetEntDataFloat(iEntid,g_iNextPAttO)-flGameTime );
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			continue;
 		}
 
@@ -3713,17 +3357,13 @@ DT_OnGameFrame()
 		//actions: updates stored gun id and sets stored next attack time to retrieved value
 		if (g_iDTEntid[iCid] != iEntid)
 		{
-			#if RSDEBUG
-			PrintToChatAll("\x03DT client \x01%i\x03; weapon switch inferred",iCid );
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			//now we update the stored vars
 			g_iDTEntid[iCid]=iEntid;
 			g_flDTNextTime[iCid]=flNextTime_ret;
 			continue;
 		}
-		#if RSDEBUG
-		PrintToChatAll("\x03DT client \x01%i\x03; reached end of checklist...",iCid );
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	}
 }
 
@@ -3732,7 +3372,7 @@ DT_OnGameFrame()
 IsRestrictedED(client)
 {
 	decl String:weapon[256];
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3780,7 +3420,7 @@ IsRestrictedED(client)
 IsRestrictedLB(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3828,7 +3468,7 @@ IsRestrictedLB(client)
 IsRestrictedEIH(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3876,7 +3516,7 @@ IsRestrictedEIH(client)
 IsRestrictedFS(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3924,7 +3564,7 @@ IsRestrictedFS(client)
 IsRestrictedBY(client)
 {
 	decl String:weapon[256]; 
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -3976,7 +3616,7 @@ IsRestrictedALL(client)
 	{
 		return -1;
 	}
-	new entity = GetEntDataEnt2(client, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
+	int entity = GetClientActiveWeapon(client);
 	if(entity <= 0 || !IsValidEntity(entity))
 	{
 		return false;
@@ -4417,9 +4057,7 @@ DoNastyRevenge()
 	{
 		case 1:
 		{
-			#if NRDEBUG
-			PrintToChatAll("[NASTY REVENGE] Chance succeed, applying vomit!");
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			for(new i=1; i<=MaxClients; i++)
 			{
 				//If the selected client was 0 or wasn't in game, discart
@@ -4437,43 +4075,29 @@ DoNastyRevenge()
 						case 1:
 						{
 							SDKCall(sdkCallVomitPlayer, i, i, true);
-							#if NRDEBUG
-							PrintToChat(i, "[NASTY REVENGE] Your chance is 1, vomiting you!");
-							#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 							vcount++;
 						}
 					}
 				}
 			}
-			#if NRDEBUG
-			PrintToChatAll("[NASTY REVENGE] Vomited %i players as revenge", vcount);
-			#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 			vcount = 0;
 		}
 	}
-	#if NRDEBUG
-	PrintToChatAll("[NASTY REVENGE] Vomited %i players as revenge", vcount);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	vcount = 0;
 }
 
 stock DoLethalBite(victim, attacker, damage, Float:duration, Float:frequency)
 {
-	#if LBDEBUG
-	PrintToChatAll("[LETHAL BITE] Lethal bite request detected");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	if(attacker == 0)
 	{
-		#if LBDEBUG
-		PrintToChatAll("[LETHAL BITE] Player got hurt by world, doing nothing");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		return;
 	}
-	#if LBDEBUG
-	decl String:sName[256];
-	GetClientName(victim, sName, sizeof(sName));
-	PrintToChatAll("[LETHAL BITE] Created duration timer for %s (%i)", sName, victim);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	g_timerLethalBiteDur = CreateTimer(duration, timerLethalBiteDuration, victim, TIMER_FLAG_NO_MAPCHANGE);
 	g_bLBActive[victim] = true;
 	
@@ -4481,21 +4105,14 @@ stock DoLethalBite(victim, attacker, damage, Float:duration, Float:frequency)
 	WritePackCell(pack2, victim);
 	WritePackCell(pack2, damage);
 	
-	#if LBDEBUG
-	GetClientName(victim, sName, sizeof(sName));
-	PrintToChatAll("[LETHAL BITE] Created frequency timer for %s(%i)", sName, victim);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	g_timerLethalBiteFreq = CreateTimer(frequency, timerLethalBiteFrequency, pack2, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public Action:timerLethalBiteDuration(Handle:timer, any:victim)
 {
-	#if LBDEBUG
-	decl String:sName[256];
-	GetClientName(victim, sName, sizeof(sName));
-	PrintToChatAll("[LETHAL BITE] Lethal bite expired for %s(%i)", sName, victim);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	g_bLBActive[victim] = false;
 	g_timerLethalBiteDur = INVALID_HANDLE;
 }
@@ -4525,9 +4142,7 @@ public Action:timerLethalBiteFrequency(Handle:timer, Handle:pack2)
 		DispatchKeyValue(iDmgEntity, "DamageType", "0");
 		DispatchSpawn(iDmgEntity);
 		AcceptEntityInput(iDmgEntity, "Hurt", client);
-		#if LBDEBUG
-		PrintToConsole(client, "[LETHAL BITE] Hurting you");
-		#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 		RemoveEdict(iDmgEntity);
 	}
 	return Plugin_Continue;
@@ -4538,7 +4153,7 @@ GetTankCount()
 	new count = 0;
 	for(new i=1 ; i<=MaxClients ; i++)
 	{
-		if(i > 0 && IsClientConnected(i) && IsValidEntity(i) && IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 3)
+		if(IsValidInfected(i))
 		{
 			decl String:weapon[128];
 			new entity = GetEntDataEnt2(i, FindSendPropInfo("CTerrorPlayer", "m_hActiveWeapon"));
@@ -4562,19 +4177,14 @@ stock Yell(client)
 	new Float:power = GetConVarFloat(g_cvarYellPower);
 	//Get the client's userid for debuggin info
 	new tcount = 0;
-	#if BYDEBUG
-	new userid = GetClientUserId(client);
-	PrintToConsole(client, "Getting position from this client[Index :%i | User Id: %i]", client, userid);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	//Declare the client's position and the target position as floats.
 	decl Float:pos[3], Float:tpos[3], Float:traceVec[3], Float:resultingFling[3], Float:currentVelVec[3];
 	
 	//Get the client's position and store it on the declared variable.
 	GetClientAbsOrigin(client, pos);
-	#if BYDEBUG
-	PrintToConsole(client, "Position for (%i) is: %f, %f, %f", userid, pos[0], pos[1], pos[2]);
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	
 	//If the client is an infected
 	if(GetClientTeam(client) == 3)
@@ -4582,7 +4192,7 @@ stock Yell(client)
 		//Find any possible colliding clients.
 		for(new i=1; i<=MaxClients; i++)
 		{
-			if(i == 0 || !IsValidEntity(i) || !IsClientInGame(i) || !IsPlayerAlive(i))
+			if(!IsValidAliveClient(i))
 			{
 				continue;
 			}
@@ -4618,7 +4228,7 @@ stock Yell(client)
 		//Find any possible colliding clients.
 		for(new i=1; i<=MaxClients; i++)
 		{
-			if(i == 0 || !IsValidEntity(i) || !IsClientInGame(i) || !IsPlayerAlive(i))
+			if(!IsValidAliveClient(i))
 			{
 				continue;
 			}
@@ -4665,12 +4275,7 @@ stock Yell(client)
 			}
 		}
 	}
-	#if BYDEBUG
-	if(tcount > 0)
-		PrintToConsole(client, "Targets found: %i", tcount);
-	else
-		PrintToConsole(client, "No targets matched");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 	tcount = 0;
 }
 
@@ -4846,9 +4451,7 @@ stock EmitYell(client)
 			EmitSoundToAll(YELLTANK_3, client);
 		}
 	}
-	#if BYDEBUG
-	PrintToChat(client, "ROAAAARRRR!");
-	#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 }
 
 stock FlingPlayer(target, Float:vector[3], attacker, Float:stunTime = 3.0)
@@ -4964,26 +4567,8 @@ public Action:timerEndEffect(Handle:timer, any:client)
 	return Plugin_Continue;
 }
 
-stock PrecacheParticle(String:ParticleName[])
-{
-	new Particle = CreateEntityByName("info_particle_system");
-	if(IsValidEntity(Particle) && IsValidEdict(Particle))
-	{
-		DispatchKeyValue(Particle, "effect_name", ParticleName);
-		DispatchSpawn(Particle);
-		ActivateEntity(Particle);
-		AcceptEntityInput(Particle, "start");
-		CreateTimer(0.3, timerRemovePrecacheParticle, Particle, TIMER_FLAG_NO_MAPCHANGE);
-	}
-}
-
-public Action:timerRemovePrecacheParticle(Handle:timer, any:Particle)
-{
-	if(IsValidEntity(Particle) && IsValidEdict(Particle))
-	{
-		AcceptEntityInput(Particle, "Kill");
-	}
-}
+// PrecacheParticle now provided by rage/effects.inc
+// TimerRemovePrecacheParticle handled by rage/effects.inc as TimerRemovePrecacheParticle
 stock ToggleBlackScreen(client)
 {
 	if(client <= 0
@@ -5393,21 +4978,10 @@ stock bool:IsValidFireWeaponName(String:sWeapon[])
 
 stock LogDebug(const String:format[], any:...)
 {
-#if (CODEBUG || RSDEBUG || BYDEBUG || LBDEBUG || FSDEBUG || NRDEBUG || CTDEBUG || EVTDEBUG || ZKDEBUG || CKDEBUG || BOODEBUG)
-decl String:buffer[512];
-VFormat(buffer, sizeof(buffer), format, 2);
-	new Handle:file;
-	decl String:FileName[256], String:sTime[256];
-	BuildPath(Path_SM, FileName, sizeof(FileName), "logs/berserker_debug.log", sTime);
-	file = OpenFile(FileName, "a+");
-	FormatTime(sTime, sizeof(sTime), "%b %d |%H:%M:%S| %Y");
-	WriteFileLine(file, "%s: %s", sTime, buffer);
-PrintToServer("[BERSERKER DEBUG INFORMATION]: %s", buffer);
-FlushFile(file);
-CloseHandle(file);
-#endif
+	// Debug output removed - use PrintDebug() from rage/debug.inc if needed
 
-#if !(CODEBUG || RSDEBUG || BYDEBUG || LBDEBUG || FSDEBUG || NRDEBUG || CTDEBUG || EVTDEBUG || ZKDEBUG || CKDEBUG || BOODEBUG)
+// Debug flags removed - use PrintDebug() from rage/debug.inc instead
+#if 1
 #pragma unused format
 #endif
 }

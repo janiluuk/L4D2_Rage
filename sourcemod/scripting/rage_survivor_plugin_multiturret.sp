@@ -8,7 +8,10 @@
 #include <rage/skills>
 #include <rage/skill_actions>
 #include <rage/common>
-#define PLUGIN_NAME "[Rage Plugin] Portable turret & gatling guns."
+#include <rage/effects>
+#include <rage/timers>
+#include <rage/validation>
+#define PLUGIN_NAME "[RAGE] Portable Turret"
 #define PLUGIN_VERSION "4.5"
 
 #define MAX_MESSAGE_LENGTH           250 	
@@ -372,6 +375,7 @@ public int OnSpecialSkillUsed(int iClient, int skill, int type)
 
 	if (StrEqual(szSkillName,PLUGIN_SKILL_NAME))
 	{
+		PrintHintText(iClient, "✓ Turret menu opened!");
 		CMD_MainMenu(iClient, 0);
 		return 1;
 	}
@@ -897,6 +901,30 @@ public void OnMapStart()
 public void OnMapEnd()
 {
 	bMapStarted = false;
+}
+
+public void OnClientDisconnect(int client)
+{
+	if (!IsValidClient(client))
+		return;
+	
+	// Reset client data to prevent leaks
+	GunState[client] = State_None;
+	ShowMsg[client] = 0;
+	GunOwner[client] = 0;
+	GunCarrier[client] = 0;
+	Gun[client] = 0;
+	MachineGunCounterUser[client] = 0;
+	FreezedPlayer[client] = false;
+	VomitedPlayer[client] = false;
+	MachineGunerTime[client] = 0.0;
+	Machine_RateTime[client] = 0.0;
+	
+	for(int iArrayNum = 0; iArrayNum < MAX_EACHPLAYER; iArrayNum++)
+	{
+		FreezingMachineGunOwner[client][iArrayNum] = 0;
+		FreezingMachineGunCount[client][iArrayNum] = -1;
+	}
 }
 
 //////////////////////////////////////////////
@@ -1558,7 +1586,7 @@ public int MenuHandler_AdvancedMachineGuns(Menu hMenu, MenuAction hAction, int P
 /****************************************************************************************************************************************/
 public Action CMD_RemoveMachine(int client, int args)
 {
-	if(client > 0 && IsClientInGame(client) && IsPlayerAlive(client))
+	if(IsValidAliveClient(client))
 	{
 		int iEntity = GetMinigun(client);
 		int iIndex = FindGunIndex(iEntity);
@@ -1575,7 +1603,7 @@ public Action CMD_RemoveMachine(int client, int args)
 			RemoveMachine(iIndex, owner);
 			CustomPrintToChat(client, "%s %t", sPluginTag, "Admin Removed Entity", owner);
 		}
-		else if(owner > 0 && IsClientInGame(owner) && IsPlayerAlive(owner))
+		else if(IsValidAliveClient(owner))
 		{
 			PrintHintText(client, "%t", "Can't Pick Up", owner);
 		}
@@ -1694,7 +1722,7 @@ public Action RemoveInstructorHint(Handle hTimer, DataPack hPack)
 	return Plugin_Continue;
 }
 
-void DealDamage(int victim, int attacker = 0, int iTeam, int iSpecialType = NULL, const float vStartingPos[3], const float vEndPos[3])
+void DealTurretDamage(int victim, int attacker = 0, int iTeam, int iSpecialType = NULL, const float vStartingPos[3], const float vEndPos[3])
 {
 	float fDamageIndex = iTeam == 2 ? fCvar_MachineDamageToInfected : fCvar_MachineDamageToSurvivor;
 	float fDamage = fDamageIndex;
@@ -1706,7 +1734,7 @@ void DealDamage(int victim, int attacker = 0, int iTeam, int iSpecialType = NULL
 	int DMG_INCENDIARY = (DMG_HEADSHOT - DMG_PLASMA - DMG_BURN - DMG_BULLET) * -1; 					
 	
 //	if(IsTank(victim) && !bLeft4DeadTwo)
-	if(IsValidInfected(victim) == TANK && !bLeft4DeadTwo)
+	if(GetInfectedZombieClass(victim) == TANK && !bLeft4DeadTwo)
 		DMG_EXPLOSIVETYPE = DMG_BULLET; 
 	else
 		DMG_EXPLOSIVETYPE = bLeft4DeadTwo ? DMG_EXPLOSIVE : DMG_BLAST; 
@@ -1776,25 +1804,7 @@ stock void HurtTarget(int attacker, float fDamage, int DMG_TYPE = DMG_GENERIC, i
 	}
 } 																													
 
-stock bool IsValidClient(int client)
-{
-	return client > 0 && client <= MaxClients && IsClientInGame(client) && !IsClientInKickQueue(client);
-}
-
-stock bool IsPlayerGhost (int client)
-{
-    if (GetEntData(client, FindSendPropInfo("CTerrorPlayer", "m_isGhost"), 1))
-        return true;
-    return false;
-}
-
-stock bool IsClientValidAdmin(int client)
-{	
-	if(!IsClientConnected(client) || !IsClientInGame(client) || !IsValidClient(client) || IsFakeClient(client))
-		return false;
-	
-	return true;
-}
+// IsValidClient, IsPlayerGhost, IsClientValidAdmin now provided by rage/validation.inc
 
 stock bool IsClientAdmin(int client, int AdminFlags)
 {
@@ -1839,12 +1849,13 @@ stock bool IsWitch(int witch)
 }
 
 /**
- * Validates if the current client is valid to run the plugin.
+ * Gets the zombie class type of an infected client.
+ * This is different from IsValidInfected() in rage/validation.inc which returns bool.
  *
  * @param client		The client index.
- * @return              False if the client is not the Tank, true otherwise.
+ * @return              Zombie class type (SMOKER, BOOMER, etc.) or NULL if not infected.
  */
-stock int IsValidInfected(int client)
+stock int GetInfectedZombieClass(int client)
 {
 	if(client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == TEAM_INFECTED)
 	{
@@ -1938,7 +1949,7 @@ void CreateMachine(int client, int iMachineGunModel, int iSpecialType = NULL)
 		return;
 	}
 
-	if(IsClientInGame(client) && IsPlayerAlive(client))
+	if(IsValidAliveClient(client))
 	{
 		if(!(GetEntityFlags(client) & FL_ONGROUND))
 			return;
@@ -2312,7 +2323,7 @@ void ScanEnemys()
 		InfectedCount = 0;
 
 	for(int i = 1; i <= MaxClients; i ++)
-		if(IsClientInGame(i) && IsPlayerAlive(i) && !IsPlayerGhost(i))
+		if(IsValidAliveClient(i) && !IsPlayerGhost(i))
 			InfectedsArray[InfectedCount++] = i;
 	
 	int entity = -1;
@@ -2423,7 +2434,7 @@ void SetStatusHealth(int index, float damage, int attacker, bool bBroken = false
 		GunHealth[index] = 0.0;
 		Broken[index] = true;
 		
-		if(IsValidInfected(attacker) == TANK || IsValidInfected(attacker) == CHARGER)
+		if(GetInfectedZombieClass(attacker) == TANK || GetInfectedZombieClass(attacker) == CHARGER)
 			CustomPrintToChatAll("%s %t", sPluginTag, "Entity Destroyed By Special Infected", attacker);
 	}
 }
@@ -2444,7 +2455,7 @@ public void PreThinkGun(int iEntity)
 		else if(GunState[index] == State_Carry)
 		{
 			int carrier = GunCarrier[index];
-			if(IsClientInGame(carrier) && IsPlayerAlive(carrier) && !IsFakeClient(carrier))
+			if(IsValidAliveClient(carrier) && !IsFakeClient(carrier))
 			{
 				Carrying(index, interval);
 			}
@@ -2509,11 +2520,11 @@ public void OnTakeDamagePost(int victim, int attacker, int inflictor, float dama
 				}
 				else if(GetClientTeam(attacker) == TEAM_INFECTED) 
 				{
-					if(damagetype == DMG_CLUB && IsValidInfected(attacker) == TANK) 
+					if(damagetype == DMG_CLUB && GetInfectedZombieClass(attacker) == TANK) 
 					{
 						SetStatusHealth(index, damage, attacker, true);
 					}
-					else if(damagetype == DMG_CLUB && IsValidInfected(attacker) == CHARGER)
+					else if(damagetype == DMG_CLUB && GetInfectedZombieClass(attacker) == CHARGER)
 					{
 						SetStatusHealth(index, 200.0, attacker);
 					}
@@ -3036,14 +3047,14 @@ int IsEnemyVisible(int iEntity, int iNewTarget, float vStartingPos[3], float vEn
 	{
 		if(target <= MaxClients)
 		{
-			if(IsClientInGame(target) && IsPlayerAlive(target) && GetClientTeam(target) == iTeam && !IsPlayerGhost(target))
+			if(IsValidAliveClient(target) && GetClientTeam(target) == iTeam && !IsPlayerGhost(target))
 				return target;
 			else 
 				return 0;
 		}
 		else if(iTeam == 3)
 		{
-			if(IsInfected(target) || IsWitch(target) || IsValidInfected(target) == TANK || (IsValidInfected(target) != NULL && !IsPlayerGhost(target)))
+			if(IsInfected(target) || IsWitch(target) || GetInfectedZombieClass(target) == TANK || (GetInfectedZombieClass(target) != NULL && !IsPlayerGhost(target)))
 				return target;
 			else 
 				return 0;
@@ -3103,7 +3114,7 @@ void Shot(int client, int index, int iEntity, int iTeam, float vMachinePosition[
 			else 
 				client = 0;
 			
-			DealDamage(enemy, client, iTeam, MachineGunTypes[iEntity], vMachinePosition, vTargetPosition); 
+			DealTurretDamage(enemy, client, iTeam, MachineGunTypes[iEntity], vMachinePosition, vTargetPosition); 
 			
 			float vAngParticle[3];
 			GetAngleVectors(vAng, vAngParticle, NULL_VECTOR, NULL_VECTOR);
@@ -3111,7 +3122,7 @@ void Shot(int client, int index, int iEntity, int iTeam, float vMachinePosition[
 			GetVectorAngles(vAngParticle, vAngParticle);
 			
 			if(bBlood && MachineGunTypes[iEntity] != TYPE_FLAME)
-				DisplayParticle(enemy, PARTICLE_BLOOD, vTargetPosition, vAngParticle, 0.0, true);
+				DisplayParticle(enemy, PARTICLE_BLOOD, vTargetPosition, vAngParticle, 0.0);
 				
 			if(MachineGunTypes[iEntity] != TYPE_FLAME)
 				EmitSoundToAll(SOUND_IMPACT_FLESH, 0, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 1.0, SNDPITCH_NORMAL, -1, vTargetPosition, NULL_VECTOR, true, 0.0);
@@ -3146,7 +3157,7 @@ void Shot(int client, int index, int iEntity, int iTeam, float vMachinePosition[
 				if(bSpecialBulletsAllowed[iEntity] == true)
 				{
 					vMachinePosition[2] += 5.0;
-					DisplayParticle(iEntity, PARTICLE_VOMIT, vMachinePosition, vAng, 0.0, true);
+					DisplayParticle(iEntity, PARTICLE_VOMIT, vMachinePosition, vAng, 0.0);
 					vMachinePosition[2] -= 5.0;
 					
 					VomitTarget(enemy, client);
@@ -3163,7 +3174,7 @@ void Shot(int client, int index, int iEntity, int iTeam, float vMachinePosition[
 		}
 		
 		if(!MachineGunTypes[iEntity] || MachineGunTypes[iEntity] == TYPE_LASER || (MachineGunTypes[iEntity] == TYPE_NAUSEATING && bSpecialBulletsAllowed[iEntity] == false))
-			DisplayParticle(iEntity, PARTICLE_MUZZLE_FLASH, vMachinePosition, vAng, 0.0, true); 	
+			DisplayParticle(iEntity, PARTICLE_MUZZLE_FLASH, vMachinePosition, vAng, 0.0); 	
 		
 		if(!MachineGunTypes[iEntity] || (MachineGunTypes[iEntity] == TYPE_NAUSEATING && bSpecialBulletsAllowed[iEntity] == false))
 			L4D_TE_Create_Particle(bLeft4DeadTwo ? vMachinePosition : vTargetPosition, bLeft4DeadTwo ? vTargetPosition : vMachinePosition, GunType[index] == 1 ? iParticleTracer_Gatling : iParticleTracer_50Cal);
@@ -3330,14 +3341,14 @@ int isGatlingGun(int index)
 
 bool canCarryGun(int index, int client) 
 {
- 	if (index < 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+ 	if (index < 0 || !IsValidAliveClient(client))
  		return false;
 	int owner = GunOwner[index];
 	if (isGatlingGun(index)) {
 
 		if (iCvar_MachineAllowCarryGatling == 0) return false;
 		if (iCvar_MachineAllowCarryGatling == 1) return true;
-		if (iCvar_MachineAllowCarryGatling == 2 && owner > 0 && IsClientInGame(owner) && IsPlayerAlive(owner) && owner != client) {
+		if (iCvar_MachineAllowCarryGatling == 2 && IsValidAliveClient(owner) && owner != client) {
  			return false;
  		} 
  		return true;
@@ -3347,7 +3358,7 @@ bool canCarryGun(int index, int client)
 
 		if (iCvar_MachineAllowCarry == 0) return false;
 		if (iCvar_MachineAllowCarry == 1) return true;
-		if (iCvar_MachineAllowCarry == 2 && owner > 0 && IsClientInGame(owner) && IsPlayerAlive(owner) && owner != client) {
+		if (iCvar_MachineAllowCarry == 2 && IsValidAliveClient(owner) && owner != client) {
  			return false;
  		}
  		return true;
@@ -3514,14 +3525,7 @@ stock void CreateLight(int client, const char[] sColor = "255 30 0 255", const i
 		InputKill(entity, 0.8);
 }
 
-void InputKill(int entity, float time)
-{
-	static char sTemp[40];
-	Format(sTemp, sizeof sTemp, "OnUser4 !self:Kill::%f:-1", time);
-	SetVariantString(sTemp);
-	AcceptEntityInput(entity, "AddOutput");
-	AcceptEntityInput(entity, "FireUser4");
-}
+// InputKill is now provided by rage/effects.inc
 
 public Action TimerDeleteEffetcs(Handle hTimer, DataPack hPack)
 {	
@@ -3799,106 +3803,7 @@ stock void CreateSparks(float vTargetPosition[3])
 	EmitSoundToAll(SOUND_IMPACT_CONCRETE, 0, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 1.0, SNDPITCH_NORMAL, -1, vTargetPosition, NULL_VECTOR, true, 0.0);
 }
 
-stock int PrecacheParticle(const char[] sEffectName)
-{
-	static int iTable = INVALID_STRING_TABLE;
-
-	if(iTable == INVALID_STRING_TABLE)
-		iTable = FindStringTable("ParticleEffectNames");
-
-	int iIndex = FindStringIndex(iTable, sEffectName);
-	if(iIndex == INVALID_STRING_INDEX)
-	{
-		bool bSave = LockStringTables(false);
-		AddToStringTable(iTable, sEffectName);
-		LockStringTables(bSave);
-		iIndex = FindStringIndex(iTable, sEffectName);
-	}
-
-	return iIndex;
-}
-
-stock int DisplayParticle(int target, const char[] sParticle, const float vPos[3], const float vAng[3], float fRefire = 0.0, bool bDelete = false)
-{
-	int entity = CreateEntityByName("info_particle_system");
-	if(entity == -1)
-	{
-		LogError("Failed to create 'info_particle_system'");
-		return 0;
-	}
-
-	DispatchKeyValue(entity, "effect_name", sParticle);
-	DispatchSpawn(entity);
-	ActivateEntity(entity);
-	AcceptEntityInput(entity, "start");
-	TeleportEntity(entity, vPos, vAng, NULL_VECTOR);
-
-	// Refire
-	if(fRefire)
-	{
-		static char sTemp[64];
-		Format(sTemp, sizeof sTemp, "OnUser1 !self:Stop::%f:-1", fRefire - 0.05);
-		SetVariantString(sTemp);
-		AcceptEntityInput(entity, "AddOutput");
-		Format(sTemp, sizeof sTemp, "OnUser1 !self:FireUser2::%f:-1", fRefire);
-		SetVariantString(sTemp);
-		AcceptEntityInput(entity, "AddOutput");
-		AcceptEntityInput(entity, "FireUser1");
-
-		SetVariantString("OnUser2 !self:Start::0:-1");
-		AcceptEntityInput(entity, "AddOutput");
-		SetVariantString("OnUser2 !self:FireUser1::0:-1");
-		AcceptEntityInput(entity, "AddOutput");
-	}
-
-	// Attach
-	if(target)
-	{
-		SetVariantString("!activator");
-		AcceptEntityInput(entity, "SetParent", target);
-	}
-	
-	if(bDelete)
-		InputKill(entity, 0.1); 
-	
-	return entity;
-}
-
-void MakeEnvSteam(int target, const float vPos[3], const float vAng[3], const char[] sColor)
-{
-	int entity = CreateEntityByName("env_steam");
-	if(entity == -1)
-	{
-		LogError("Failed to create 'env_steam'");
-		return;
-	}
-
-	static char sTemp[32];
-	Format(sTemp, sizeof sTemp, "silv_steam_%d", target);
-	DispatchKeyValue(entity, "targetname", sTemp);
-	DispatchKeyValue(entity, "SpawnFlags", "1");
-	DispatchKeyValue(entity, "rendercolor", sColor);
-	DispatchKeyValue(entity, "SpreadSpeed", "10");
-	DispatchKeyValue(entity, "Speed", "100");
-	DispatchKeyValue(entity, "StartSize", "5");
-	DispatchKeyValue(entity, "EndSize", "10");
-	DispatchKeyValue(entity, "Rate", "50");
-	DispatchKeyValue(entity, "JetLength", "100");
-	DispatchKeyValue(entity, "renderamt", "150");
-	DispatchKeyValue(entity, "InitialState", "1");
-	DispatchSpawn(entity);
-	AcceptEntityInput(entity, "TurnOn");
-	TeleportEntity(entity, vPos, vAng, NULL_VECTOR);
-
-	// Attach
-	if(target)
-	{
-		SetVariantString("!activator");
-		AcceptEntityInput(entity, "SetParent", target);
-	}
-	
-	InputKill(entity, 1.2);
-}
+// PrecacheParticle, DisplayParticle, MakeEnvSteam are now provided by rage/effects.inc - removed duplicate implementations
 
 public void FreezeTargets(int entity)
 {	
@@ -3918,7 +3823,7 @@ public void FreezeTargets(int entity)
 	float vEnd[3];
 	for(int i = 1; i <= MaxClients; i++) 
 	{
-		if(IsClientInGame(i) && IsPlayerAlive(i) /*&& GetClientTeam(i) == TEAM_SURVIVOR*/)
+		if(IsValidAliveClient(i) /*&& GetClientTeam(i) == TEAM_SURVIVOR*/)
 		{
 			if(IsValidArrayEntity(i, entity))
 				continue;
@@ -3952,7 +3857,7 @@ public void FreezeTargets(int entity)
 
 void Freeze(int i)
 {
-	if(IsValidClient(i) && IsClientInGame(i) && IsPlayerAlive(i))
+	if(IsValidAliveClient(i))
 	{
 		if(FreezedPlayer[i] == false)
 		{
@@ -4009,7 +3914,7 @@ public Action Timer_Freeze(Handle hTimer, any EntityID)
 
 public Action TimerDefreeze(Handle hTimer, any client)
 {
-	if((client = GetClientOfUserId(client)) && IsClientInGame(client) && IsPlayerAlive(client))
+	if((client = GetClientOfUserId(client)) && IsValidAliveClient(client))
 	{
 //		if(FreezedPlayer[client] == false)
 //			return Plugin_Stop;
@@ -4055,7 +3960,7 @@ public Action Vomit_Recharge_Timer(Handle hTimer, any EntityID)
 
 void VomitTarget(int victim, int attacker)
 {
-	if(IsValidClient(victim) && IsValidClient(attacker) && (IsValidInfected(victim) == TANK && bLeft4DeadTwo || GetClientTeam(victim) == TEAM_SURVIVOR))
+	if(IsValidClient(victim) && IsValidClient(attacker) && (GetInfectedZombieClass(victim) == TANK && bLeft4DeadTwo || GetClientTeam(victim) == TEAM_SURVIVOR))
 	{
 		SDKCall(SDKVomitOnPlayer, victim, attacker, true);	
 		VomitedPlayer[victim] = true;
@@ -4213,7 +4118,7 @@ stock void ExplodeMachine(int entity)
 	GetEntPropVector(entity, Prop_Data, "m_angAbsRotation", vAng);
 	vPos[2] += 22.0; 
 	
-	CreateExplosion(vPos, vAng, RoundFloat(iCvar_MachineEnableExplosion * 1.4), 250, 828); // 6146
+	CreateExplosionCompat(vPos, vAng, RoundFloat(iCvar_MachineEnableExplosion * 1.4), 250, 828); // 6146
 	
 	if(MachineGunTypes[entity] == TYPE_FLAME)
 		CreateFires(entity, /*client,*/ bLeft4DeadTwo ? GetRandomBool() : true);
@@ -4229,10 +4134,14 @@ stock bool GetRandomBool()
 	return false;
 }
 
-stock int CreateExplosion(const float vPos[3], const float vAng[3], int iDamage = 0, int iRadius = 500, int iFlags = 0)
+// CreateExplosion is now provided by rage/effects.inc - removed duplicate implementation
+// Note: The shared CreateExplosion has a different signature, so we use a wrapper for compatibility
+stock int CreateExplosionCompat(const float vPos[3], const float vAng[3], int iDamage = 0, int iRadius = 500, int iFlags = 0)
 {
-#pragma unused vAng
-int iExplosion = CreateEntityByName("env_explosion");
+	#pragma unused vAng
+	// The shared CreateExplosion doesn't support all these parameters, so we create a custom version
+	// for this plugin's specific needs
+	int iExplosion = CreateEntityByName("env_explosion");
 	int iPhysExplosion = CreateEntityByName("env_physexplosion");
 	int iExplosion_Effect = CreateEntityByName("info_particle_system");
 
@@ -4288,7 +4197,6 @@ int iExplosion = CreateEntityByName("env_explosion");
 			StaggerClient(GetClientUserId(i), vPos);
 	}
 	
-//	InputKill(iExplosion, 0.3);
 	return iExplosion;
 }
 
@@ -4323,7 +4231,7 @@ stock void CreateEffectsDamage(int entity)
 	float vEnd[3];
 	for(int i = 1; i <= MaxClients; i++) 
 	{
-		if(IsClientInGame(i) && IsPlayerAlive(i))
+		if(IsValidAliveClient(i))
 		{	
 			GetClientAbsOrigin(i, vEnd);
 			if(GetVectorDistance(vPos, vEnd) <= 250.0) 
@@ -4472,17 +4380,7 @@ stock char[] GetColorIndex(int iColorType)
 	return sColor;
 }
 
-stock int GetColor(char[] sTemp)
-{
-	char sColors[4][4];
-	ExplodeString(sTemp, " ", sColors, sizeof sColors, sizeof sColors[]);
-
-	int iColor;
-	iColor = StringToInt(sColors[0]);
-	iColor += 256 * StringToInt(sColors[1]);
-	iColor += 65536 * StringToInt(sColors[2]);
-	return iColor;
-}
+// GetColor is now provided by rage/effects.inc - removed duplicate implementation
 
 public Action ShowEnergyEffects(Handle hTimer, DataPack hPack)
 {	

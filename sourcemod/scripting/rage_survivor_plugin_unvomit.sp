@@ -7,6 +7,7 @@
 #include <rage/common>
 #include <rage/skills>
 #include <rage/skill_actions>
+#include <rage/cooldown_notify>
 
 #define PLUGIN_VERSION "1.0"
 #define PLUGIN_SKILL_NAME "UnVomit"
@@ -145,6 +146,8 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 
     ClearVomit(client, false);
     g_fLastCleanse[client] = now;
+    // Register cooldown for notification
+    CooldownNotify_Register(client, now + g_fCooldown, PLUGIN_SKILL_NAME);
     OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
     return 1;
 }

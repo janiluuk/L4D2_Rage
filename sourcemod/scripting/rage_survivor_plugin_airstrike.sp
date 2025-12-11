@@ -222,10 +222,25 @@ public int OnSpecialSkillUsed(int iClient, int skill, int type)
 	GetPlayerSkillName(iClient, szSkillName, sizeof(szSkillName));
 	if (StrEqual(szSkillName,PLUGIN_SKILL_NAME))
 	{
+		if (!IsClientInGame(iClient) || !IsPlayerAlive(iClient) || GetClientTeam(iClient) != 2)
+		{
+			OnSpecialSkillFail(iClient, PLUGIN_SKILL_NAME, "invalid_client");
+			return 1;
+		}
+		
 		float vPos[3], vAng[3];
 		GetClientAbsOrigin(iClient, vPos);
 		GetClientEyeAngles(iClient, vAng);
-		ShowAirstrike(vPos, vAng[1], iClient);
+		
+		if (ShowAirstrike(vPos, vAng[1], iClient))
+		{
+			PrintHintText(iClient, "✓ Airstrike called!");
+			OnSpecialSkillSuccess(iClient, PLUGIN_SKILL_NAME);
+		}
+		else
+		{
+			OnSpecialSkillFail(iClient, PLUGIN_SKILL_NAME, "limit_reached");
+		}
 		return 1;
 	} 
 	return 0;

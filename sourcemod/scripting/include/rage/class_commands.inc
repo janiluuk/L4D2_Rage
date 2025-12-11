@@ -4,6 +4,11 @@
 #define _RAGE_CLASS_COMMANDS_INC
 
 #include <sourcemod>
+#include <talents>
+
+// Note: g_ClassDescriptions is defined in rage_survivor.sp
+// This include file is included by rage_survivor.sp, so the variable should be accessible
+// If compilation fails, ensure g_ClassDescriptions is declared before this include
 
 forward bool ApplyClassSelection(int client, int classIndex);
 

@@ -4597,7 +4597,7 @@ native int L4D_GetGameModeType();
 
 /**
  * @brief Deafens a player with a high pitch ringing sound for a few seconds
- * @remarks Used in the "Grenades" plugin by Silvers
+ * @remarks Used in the "Prototype Grenades" plugin by Silvers
  *
  * @param client	Client id of the player to deafen
  *

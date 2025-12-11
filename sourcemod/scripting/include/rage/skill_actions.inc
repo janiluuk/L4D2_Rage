@@ -26,10 +26,10 @@ char g_SkillActionBindings[SkillActionSlot_Count][64];
 
 void ResetSkillActionBindings()
 {
-    strcopy(g_SkillActionBindings[SkillAction_Primary], sizeof(g_SkillActionBindings[]), "Middle button");
-    strcopy(g_SkillActionBindings[SkillAction_Secondary], sizeof(g_SkillActionBindings[]), "Use + Fire");
-    strcopy(g_SkillActionBindings[SkillAction_Tertiary], sizeof(g_SkillActionBindings[]), "Crouch + Use + Fire");
-    strcopy(g_SkillActionBindings[SkillAction_Deploy], sizeof(g_SkillActionBindings[]), "Look down + SHIFT");
+    strcopy(g_SkillActionBindings[SkillAction_Primary], sizeof(g_SkillActionBindings[]), "Mouse3");
+    strcopy(g_SkillActionBindings[SkillAction_Secondary], sizeof(g_SkillActionBindings[]), "Mouse4");
+    strcopy(g_SkillActionBindings[SkillAction_Tertiary], sizeof(g_SkillActionBindings[]), "Mouse5");
+    strcopy(g_SkillActionBindings[SkillAction_Deploy], sizeof(g_SkillActionBindings[]), "CROUCH + SHOVE");
 }
 
 void LoadSkillActionBindings()

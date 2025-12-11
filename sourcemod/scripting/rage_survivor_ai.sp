@@ -15,12 +15,18 @@
 
 #include <rage_survivor_ai>
 
+// Overlay integration
+native bool IsOverlayConnected();
+native void RegisterActionHandler(const char[] ns, const char[] action, Function handler);
+native void RegisterActionAnyHandler(const char[] ns, Function handler);
+native int FindClientBySteamId2(const char[] steamid);
+
 #define MAX_QUERY_LENGTH 256
 #define MAX_RESPONSE_LENGTH 4096
 #define MAX_REQUEST_BODY 2048
 
 public Plugin myinfo = {
-    name = "rage_survivor_ai",
+    name = "[RAGE] AI Chat",
     author = "original authors, integrated by Rage",
     description = "AI chat for L4D2 (requires httpclient extension)",
     version = "1.0.0",
@@ -39,10 +45,27 @@ char g_sModel[64];
 float g_fTimeout = 8.0;
 float g_fMaxDistance = 750.0;
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+#if !HTTPCLIENT_AVAILABLE
+    strcopy(error, err_max, "This plugin requires the httpclient extension. Install it from https://github.com/alliedmodders/sourcemod/tree/master/extensions/httpclient");
+    return APLRes_Failure;
+#else
+    // Check if HTTPRequest native is available at runtime
+    if (GetFeatureStatus(FeatureType_Native, "HTTPRequest.HTTPRequest") != FeatureStatus_Available)
+    {
+        strcopy(error, err_max, "HTTPRequest native not found. Please ensure httpclient extension is loaded.");
+        return APLRes_Failure;
+    }
+    return APLRes_Success;
+#endif
+}
+
 public void OnPluginStart()
 {
 #if !HTTPCLIENT_AVAILABLE
-    SetFailState("This plugin requires the httpclient extension. Install it from https://github.com/alliedmodders/sourcemod/tree/master/extensions/httpclient");
+    // Should not reach here if AskPluginLoad2 failed, but just in case
+    SetFailState("This plugin requires the httpclient extension.");
     return;
 #endif
 
@@ -202,13 +225,27 @@ public void OnAIResponse(HTTPResponse response, any data)
         return;
     }
 
-    if (speaker > 0 && IsClientInGame(speaker) && IsPlayerAlive(speaker))
+    // Send response through overlay if available, otherwise use chat
+    bool sentViaOverlay = false;
+    if (LibraryExists("rage_overlay") && GetFeatureStatus(FeatureType_Native, "IsOverlayConnected") == FeatureStatus_Available)
     {
-        PrintToChatAll("\x04[AI]\x01 %N replies: %s", speaker, content);
+        if (IsOverlayConnected())
+        {
+            sentViaOverlay = SendAIResponseViaOverlay(requester, speaker, content);
+        }
     }
-    else
+    
+    if (!sentViaOverlay)
     {
-        PrintToChat(requester, "\x04[AI]\x01 %s", content);
+        // Fallback to chat
+        if (speaker > 0 && IsClientInGame(speaker) && IsPlayerAlive(speaker))
+        {
+            PrintToChatAll("\x04[AI]\x01 %N replies: %s", speaker, content);
+        }
+        else
+        {
+            PrintToChat(requester, "\x04[AI]\x01 %s", content);
+        }
     }
 #endif
 }
@@ -414,4 +451,56 @@ void DecodeJsonString(const char[] input, char[] output, int maxLen)
     }
 
     output[outPos] = '\0';
+}
+
+// Overlay integration handlers
+public void OnOverlayAIChat(int client, Handle data)
+{
+    if (client <= 0 || !IsClientInGame(client))
+    {
+        return;
+    }
+    
+    // Extract input from overlay message
+    // TODO: Parse JSON data when JSON library is available
+    // For now, we'll use a simple string extraction
+    char input[MAX_QUERY_LENGTH];
+    // data.GetString("input", input, sizeof(input));
+    
+    // If we can't get input from overlay, skip
+    if (input[0] == '\0')
+    {
+        return;
+    }
+    
+    int speaker = FindNearbySurvivor(client, g_fMaxDistance);
+    if (speaker == 0)
+    {
+        speaker = client;
+    }
+    
+    SendAIRequest(client, speaker, input);
+}
+
+public void OnOverlayAIAny(int client, Handle data)
+{
+    // Handle any AI-related actions from overlay
+    // This is a fallback handler for unhandled actions
+    OnOverlayAIChat(client, data);
+}
+
+bool SendAIResponseViaOverlay(int requester, int speaker, const char[] content)
+{
+    #pragma unused requester, speaker, content
+    // TODO: Send AI response through overlay WebSocket when JSON library is available
+    // This would send a message like:
+    // {
+    //   "type": "ai_response",
+    //   "requester_steamid": "...",
+    //   "speaker_steamid": "...",
+    //   "content": "..."
+    // }
+    
+    // For now, return false to use chat fallback
+    return false;
 }

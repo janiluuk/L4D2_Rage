@@ -5,13 +5,29 @@
 #include <sdkhooks>
 #include <admin>
 #include <clientprefs>
-#include <rage_menu_base>
+#include <left4dhooks>
+#include <rage_menus/rage_menu_base>
 #include <rage_survivor_guide>
-#include <l4d2hud>
-#include <rage/hud>
+#include <jutils>
+#include <rage_menus/rage_survivor_menu_kits>
+#include <rage_menus/rage_survivor_menu_keybinds>
+#include <rage_menus/rage_survivor_menu_thirdperson>
+#include <rage_menus/rage_survivor_menu_multiequip>
+#include <rage/const>
+#include <RageCore>
 
-#define GAMEMODE_OPTION_COUNT 11
-#define CLASS_OPTION_COUNT 7
+// Define PRINT_PREFIX since we're not including talents.inc
+#define PRINT_PREFIX 	"\x04[RAGE]\x01"
+
+// Forward declarations for functions from rage_survivor.sp that we need
+// These are implemented in rage_survivor.sp and available at runtime
+// Note: We use FakeClientCommand to trigger class selection instead of calling functions directly
+
+// ClientData is not accessible from this plugin, so we'll use GetSavedClassIndex instead
+// which reads from cookies and is available
+
+#define GAMEMODE_OPTION_COUNT 13
+#define CLASS_OPTION_COUNT 8
 #define MENU_OPTION_EXIT -1
 #define MENU_OPTION_BACK_ON_FIRST_PAGE -2
 
@@ -27,7 +43,9 @@ static const char g_sGameModeNames[GAMEMODE_OPTION_COUNT][] =
     "Team Scavenge",
     "Survival",
     "Co-op",
-    "Realism"
+    "Realism",
+    "GuessWho",
+    "Race Mod"
 };
 
 static const char g_sGameModeCvarNames[GAMEMODE_OPTION_COUNT][] =
@@ -42,7 +60,9 @@ static const char g_sGameModeCvarNames[GAMEMODE_OPTION_COUNT][] =
     "rage_gamemode_teamscavenge",
     "rage_gamemode_survival",
     "rage_gamemode_coop",
-    "rage_gamemode_realism"
+    "rage_gamemode_realism",
+    "rage_gamemode_guesswho",
+    "rage_gamemode_race"
 };
 
 static const char g_sGameModeDefaults[GAMEMODE_OPTION_COUNT][] =
@@ -57,7 +77,9 @@ static const char g_sGameModeDefaults[GAMEMODE_OPTION_COUNT][] =
     "teamscavenge",
     "survival",
     "coop",
-    "realism"
+    "realism",
+    "guesswho",
+    "coop"
 };
 
 static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
@@ -72,11 +94,14 @@ static const char g_sGameModeDescriptions[GAMEMODE_OPTION_COUNT][] =
     "mp_gamemode value for team-based Scavenge.",
     "mp_gamemode value for Survival.",
     "mp_gamemode value for Co-op.",
-    "mp_gamemode value for Realism."
+    "mp_gamemode value for Realism.",
+    "mp_gamemode value for GuessWho (Hide & Seek).",
+    "mp_gamemode value for Race Mod (race to safe room)."
 };
 
 static const char g_sClassOptions[CLASS_OPTION_COUNT][] =
 {
+    "No class selected",
     "Soldier",
     "Athlete",
     "Medic",
@@ -84,6 +109,18 @@ static const char g_sClassOptions[CLASS_OPTION_COUNT][] =
     "Commando",
     "Engineer",
     "Brawler"
+};
+
+static const char g_sClassIdentifiers[CLASS_OPTION_COUNT][] =
+{
+    "none",
+    "soldier",
+    "athlete",
+    "medic",
+    "saboteur",
+    "commando",
+    "engineer",
+    "brawler"
 };
 
 #pragma semicolon 1
@@ -96,57 +133,106 @@ int g_iGuideOptionIndexInfected = -1;
 bool g_bGuideNativeAvailable = false;
 bool g_bExtraMenuLoaded = false;
 bool g_bMenuHeld[MAXPLAYERS + 1];
-int g_iKitsUsed[MAXPLAYERS + 1];
-bool g_bHudEnabled = true;
+int g_iLastButtons[MAXPLAYERS + 1];
+int g_iLastSelectedOption[MAXPLAYERS + 1] = {-1, ...};
+int g_iLastSelectedMenuId[MAXPLAYERS + 1] = {-1, ...};
+bool g_bQuickActionMenuOpen[MAXPLAYERS + 1] = {false, ...};
+float g_fQuickActionHoldStart[MAXPLAYERS + 1] = {0.0, ...};
+Handle g_hQuickActionMenu[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
 ArrayList g_hMenuOptionsSurvivor = null;
 ArrayList g_hMenuOptionsInfected = null;
+int g_iAdminMenuOptionIndexSurvivor = -1;  // Index of admin menu option in survivor menu
+int g_iAdminMenuOptionIndexInfected = -1;   // Index of admin menu option in infected menu
 
-enum ThirdPersonMode
-{
-    TP_Off = 0,
-    TP_MeleeOnly,
-    TP_Always
-};
+Handle g_hClassCookie = INVALID_HANDLE;
 
-ThirdPersonMode g_ThirdPersonMode[MAXPLAYERS + 1];
-bool g_ThirdPersonActive[MAXPLAYERS + 1];
-Handle g_hThirdPersonCookie = INVALID_HANDLE;
+// Team switch tracking
+int g_iTeamSwitchCount[MAXPLAYERS + 1] = {0, ...};
+int g_iVoteSelection[MAXPLAYERS + 1] = {-1, ...};  // -1 = none, 0 = map, 1+ = gamemode index
+bool g_bVoteTypeIsMap[MAXPLAYERS + 1] = {false, ...};
 
 ConVar g_hCvarMPGameMode;
 ConVar g_hGameModeCvars[GAMEMODE_OPTION_COUNT];
-ConVar g_hKitSlots;
-ConVar g_hDefaultMenuKey;
-Handle g_hMenuKeyCookie = INVALID_HANDLE;
 
 enum RageMenuOption
 {
-    Menu_Deploy = 0,
-    Menu_GetKit,
+    Menu_GetKit = 0,
     Menu_SetAway,
     Menu_SelectTeam,
     Menu_ChangeClass,
+    Menu_DeployAction,
     Menu_ViewRank,
-    Menu_VoteCustomMap,
-    Menu_VoteGameMode,
+    Menu_VoteOptions,  // Combined voting menu (map + gamemode)
+    Menu_VoteAction,   // Action button to initiate vote
     Menu_ThirdPerson,
     Menu_MultiEquip,
-    Menu_HudToggle,
     Menu_MusicToggle,
     Menu_MusicVolume,
-    Menu_ChangeCharacter,
-    Menu_SpawnItems,
-    Menu_Reload,
-    Menu_ManageSkills,
-    Menu_ManagePerks,
-    Menu_ApplyEffect,
-    Menu_DebugMode,
-    Menu_HaltGame,
-    Menu_InfectedSpawn,
-    Menu_GodMode,
-    Menu_RemoveWeapons,
-    Menu_GameSpeed,
+    Menu_AdminMenu,  // Link to admin menu (only shown for admins)
     Menu_Guide
 };
+
+// Forward declarations for types and functions from rage_survivor.sp
+// These enums must match the definitions in rage_survivor.sp
+enum ClassSkillInput
+{
+        ClassSkill_Special = 0,
+        ClassSkill_Secondary,
+        ClassSkill_Tertiary,
+        ClassSkill_Deploy,
+        ClassSkill_Count
+};
+
+enum ClassActionMode
+{
+	ActionMode_None = 0,
+	ActionMode_Skill,
+	ActionMode_Command,
+	ActionMode_Builtin
+};
+
+enum BuiltinAction
+{
+	Builtin_None = 0,
+	Builtin_MedicSupplies,
+	Builtin_EngineerSupplies,
+	Builtin_SaboteurMines
+};
+
+// Forward declarations for functions (these are implemented in rage_survivor.sp)
+// Note: These need to be available at compile time, so we'll use stock functions
+// that call the actual implementations if available, or provide fallbacks
+stock bool TryExecuteSkillInput(int client, ClassSkillInput input)
+{
+    // This will be resolved at runtime - the actual function is in rage_survivor.sp
+    // For now, we'll use FakeClientCommand as a workaround
+    switch (input)
+    {
+        case ClassSkill_Special:
+        {
+            FakeClientCommand(client, "skill_action_1");
+        }
+        case ClassSkill_Secondary:
+        {
+            FakeClientCommand(client, "skill_action_2");
+        }
+        case ClassSkill_Tertiary:
+        {
+            FakeClientCommand(client, "skill_action_3");
+        }
+        case ClassSkill_Deploy:
+        {
+            FakeClientCommand(client, "deployment_action");
+        }
+    }
+    return true;
+}
+
+// These functions are available through rage/menus include
+// They're implemented in rage_survivor.sp but accessible via the include
+// Forward declarations for functions that may not be available
+forward int GetMaxWithClass(int classIndex);
+forward int CountPlayersWithClass(int classIndex);
 
 void AddGameModeOptions(int menu_id);
 void AddClassOptions(int menu_id);
@@ -155,11 +241,10 @@ bool TryShowGuideMenu(int client);
 bool DisplayRageMenu(int client, bool showHint);
 bool HasRageMenuAccess(int client);
 void ApplyThirdPersonMode(int client);
-void PersistThirdPersonMode(int client);
-bool IsMeleeWeapon(int weapon);
-void SetHudEnabled(bool enabled, int activator);
-bool IsValidKeyString(const char[] key);
-public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue);
+int GetSavedClassIndex(int client);
+int ClassIdentifierToIndex(const char[] ident);
+void SyncMenuSelections(int client, int menuId, ArrayList optionMap);
+void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value);
 
 // ====================================================================================================
 //					PLUGIN INFO
@@ -184,19 +269,17 @@ public void OnPluginStart()
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
     g_hCvarMPGameMode = FindConVar("mp_gamemode");
+    g_hClassCookie = FindClientCookie("rage_class_choice");
 
     for (int i = 0; i < GAMEMODE_OPTION_COUNT; i++)
     {
         g_hGameModeCvars[i] = CreateConVar(g_sGameModeCvarNames[i], g_sGameModeDefaults[i], g_sGameModeDescriptions[i], FCVAR_NONE);
     }
 
-    g_hThirdPersonCookie = RegClientCookie("rage_tp_mode", "Rage third person preference", CookieAccess_Public);
-    g_hMenuKeyCookie = RegClientCookie("rage_menu_key_bound", "Rage menu key auto-bind status", CookieAccess_Private);
-
-    g_hKitSlots = CreateConVar("rage_menu_kit_slots", "1", "How many kits a player can request from the Rage menu per life.");
-    g_hKitSlots.AddChangeHook(OnKitSlotsChanged);
-    
-    g_hDefaultMenuKey = CreateConVar("rage_menu_default_key", "shift", "Default key to bind the Rage menu to. Set to empty string to disable auto-binding.", FCVAR_NONE);
+    ThirdPerson_OnPluginStart();
+    MultiEquip_OnPluginStart();
+    Keybinds_OnPluginStart();
+    Kits_OnPluginStart();
     AutoExecConfig(true, "rage_survivor_menu");
 
     g_bExtraMenuLoaded = LibraryExists("rage_menu_base") || LibraryExists("extra_menu");
@@ -212,9 +295,6 @@ public void OnPluginStart()
         }
     }
 
-    // Note: HUD initialization is delayed until OnMapStart to avoid entity creation before map is running
-    g_bHudEnabled = true;
-
     RefreshGuideLibraryStatus();
 }
 
@@ -223,96 +303,162 @@ public void OnAllPluginsLoaded()
     RefreshGuideLibraryStatus();
 }
 
-public void OnMapStart()
-{
-    // Initialize HUD now that a map is running
-    if (g_bHudEnabled)
-    {
-        hudPosition currentPos = view_as<hudPosition>(getCurrentHud());
-        if (currentPos < HUD_POSITION_FAR_LEFT || currentPos > HUD_POSITION_SCORE_4)
-        {
-            currentPos = HUD_POSITION_MID_TOP;
-        }
-
-        SetupMessageHud(currentPos, HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEAM_SURVIVORS);
-    }
-}
-
 public void OnClientPutInServer(int client)
 {
     g_bMenuHeld[client] = false;
-    g_ThirdPersonActive[client] = false;
-    g_ThirdPersonMode[client] = TP_Off;
-    g_iKitsUsed[client] = 0;
+    g_iLastButtons[client] = 0;
+    g_iLastSelectedOption[client] = -1;
+    g_iLastSelectedMenuId[client] = -1;
+    g_iTeamSwitchCount[client] = 0;
+    g_iVoteSelection[client] = -1;
+    g_bVoteTypeIsMap[client] = false;
+    g_bQuickActionMenuOpen[client] = false;
+    g_fQuickActionHoldStart[client] = 0.0;
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
+    }
+    ThirdPerson_OnClientPutInServer(client);
+    MultiEquip_OnClientPutInServer(client);
+    Kits_OnClientPutInServer(client);
     SDKHook(client, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
 }
 
 public void OnClientDisconnect(int client)
 {
     g_bMenuHeld[client] = false;
-    g_ThirdPersonActive[client] = false;
-    g_ThirdPersonMode[client] = TP_Off;
-    g_iKitsUsed[client] = 0;
+    g_iTeamSwitchCount[client] = 0;
+    g_iVoteSelection[client] = -1;
+    g_bVoteTypeIsMap[client] = false;
+    g_bQuickActionMenuOpen[client] = false;
+    g_fQuickActionHoldStart[client] = 0.0;
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
+    }
+    ThirdPerson_OnClientDisconnect(client);
+    MultiEquip_OnClientDisconnect(client);
+    Kits_OnClientDisconnect(client);
+}
+
+public void OnMapStart()
+{
+    // Reset team switch counts on new map
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        g_iTeamSwitchCount[i] = 0;
+        g_iVoteSelection[i] = -1;
+        g_bVoteTypeIsMap[i] = false;
+    }
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
+{
+    if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    // Check for SHOVE+USE held for 1 second to open quick action menu
+    if (GetClientTeam(client) == 2 && IsPlayerAlive(client))
+    {
+        bool holdingShove = (buttons & IN_ATTACK2) != 0;
+        bool holdingUse = (buttons & IN_USE) != 0;
+        bool holdingBoth = holdingShove && holdingUse;
+        
+        if (holdingBoth && !g_bQuickActionMenuOpen[client])
+        {
+            if (g_fQuickActionHoldStart[client] == 0.0)
+            {
+                g_fQuickActionHoldStart[client] = GetGameTime();
+            }
+            else
+            {
+                float holdTime = GetGameTime() - g_fQuickActionHoldStart[client];
+                if (holdTime >= 1.0)
+                {
+                    DisplayQuickActionMenu(client);
+                    g_fQuickActionHoldStart[client] = 0.0;
+                }
+            }
+        }
+        else if (!holdingBoth)
+        {
+            g_fQuickActionHoldStart[client] = 0.0;
+            if (g_bQuickActionMenuOpen[client])
+            {
+                CloseQuickActionMenu(client);
+            }
+        }
+    }
+    else
+    {
+        g_fQuickActionHoldStart[client] = 0.0;
+        if (g_bQuickActionMenuOpen[client])
+        {
+            CloseQuickActionMenu(client);
+        }
+    }
+
+    // Removed redundant SHIFT button detection - console commands (+rage_menu) handle this now
+    // Menu opening/closing is handled via +rage_menu and -rage_menu console commands
+    
+    // Check for USE (E) button to execute action when menu is open
+    if (g_bMenuHeld[client])
+    {
+        bool pressingUse = (buttons & IN_USE) != 0;
+        bool wasPressingUse = (g_iLastButtons[client] & IN_USE) != 0;
+        
+        if (pressingUse && !wasPressingUse)
+        {
+            // USE button just pressed - trigger the last selected action if it's an action type
+            int menu_id = g_iLastSelectedMenuId[client];
+            int option = g_iLastSelectedOption[client];
+            
+            if (menu_id >= 0 && option >= 0)
+            {
+                ArrayList map = null;
+                if (menu_id == g_iMenuIDSurvivor)
+                {
+                    map = g_hMenuOptionsSurvivor;
+                }
+                else if (menu_id == g_iMenuIDInfected)
+                {
+                    map = g_hMenuOptionsInfected;
+                }
+                
+                if (map != null && option < map.Length)
+                {
+                    RageMenuOption menuOption = view_as<RageMenuOption>(map.Get(option));
+                    
+                    // Check if this is an action that should be triggered by E
+                    if (menuOption == Menu_DeployAction)
+                    {
+                        // Close menu and execute action
+                        ExtraMenu_Close(client);
+                        g_bMenuHeld[client] = false;
+                        
+                        // Execute the deployment action - it will handle its own feedback/menus
+                        FakeClientCommand(client, "deployment_action");
+                        
+                        // Don't show generic message - let the deployment action show its own menu/feedback
+                    }
+                }
+            }
+        }
+    }
+    
+    g_iLastButtons[client] = buttons;
+    return Plugin_Continue;
 }
 
 public void OnClientCookiesCached(int client)
 {
-    if (!IsClientInGame(client) || IsFakeClient(client))
-    {
-        return;
-    }
-    
-    // Handle third person cookie
-    if (g_hThirdPersonCookie != INVALID_HANDLE)
-    {
-        char buffer[8];
-        GetClientCookie(client, g_hThirdPersonCookie, buffer, sizeof(buffer));
-        if (buffer[0] != '\0')
-        {
-            g_ThirdPersonMode[client] = view_as<ThirdPersonMode>(StringToInt(buffer));
-        }
-        ApplyThirdPersonMode(client);
-    }
-    
-    // Auto-bind menu key if not already done
-    if (g_hMenuKeyCookie != INVALID_HANDLE && g_hDefaultMenuKey != null)
-    {
-        char boundStatus[8];
-        GetClientCookie(client, g_hMenuKeyCookie, boundStatus, sizeof(boundStatus));
-        
-        // If cookie is empty or "0", the key hasn't been bound yet
-        if (boundStatus[0] == '\0' || StringToInt(boundStatus) == 0)
-        {
-            char defaultKey[32];
-            g_hDefaultMenuKey.GetString(defaultKey, sizeof(defaultKey));
-            
-            // Only bind if a default key is configured and valid
-            if (defaultKey[0] != '\0' && IsValidKeyString(defaultKey))
-            {
-                // Execute bind command for the client
-                ClientCommand(client, "bind %s +rage_menu", defaultKey);
-                
-                // Mark as bound in cookie
-                SetClientCookie(client, g_hMenuKeyCookie, "1");
-                
-                // Notify the player
-                CreateTimer(2.0, Timer_NotifyMenuKey, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-            }
-        }
-    }
-}
-
-public void OnKitSlotsChanged(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-    if (convar == null)
-    {
-        return;
-    }
-
-    if (convar.IntValue < 0)
-    {
-        convar.SetInt(0);
-    }
+    ThirdPerson_OnCookiesCached(client);
+    MultiEquip_OnCookiesCached(client);
+    Keybinds_OnClientCookiesCached(client);
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -323,8 +469,8 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
         return;
     }
 
-    g_iKitsUsed[client] = 0;
-    ApplyThirdPersonMode(client);
+    Kits_OnPlayerSpawn(client);
+    ThirdPerson_OnPlayerSpawn(client);
 }
 
 public Action OnWeaponSwitchPost(int client, int weapon)
@@ -334,7 +480,7 @@ public Action OnWeaponSwitchPost(int client, int weapon)
         return Plugin_Continue;
     }
 
-    ApplyThirdPersonMode(client);
+    ThirdPerson_OnWeaponSwitch(client);
     return Plugin_Continue;
 }
 
@@ -395,6 +541,11 @@ public void OnPluginEnd()
 
 Action CmdRageMenu(int client, int args)
 {
+    // This function handles both sm_rage (regular menu) and sm_ragem (admin menu)
+    // Check if user has admin access - if so, they might be calling sm_ragem
+    // For now, always show the main menu - admin menu is accessed via CreateRageMenu directly
+    // The admin command registration in admin_commands.inc will call this, but we'll
+    // show the main menu for consistency. Admins can use CreateRageMenu directly if needed.
     DisplayRageMenu(client, true);
     return Plugin_Handled;
 }
@@ -425,9 +576,10 @@ Action CmdRageMenuBind(int client, int args)
 
     PrintToChat(client, "\x04[Rage]\x01 To bind the menu to a key, open your console and type:");
     PrintToChat(client, "\x03bind <key> +rage_menu");
-    PrintToChat(client, "\x01Example: \x03bind v +rage_menu");
-    PrintToChat(client, "\x01Suggested keys: \x03v, b, n, m, mouse4, mouse5");
+    PrintToChat(client, "\x01Example: \x03bind g +rage_menu");
+    PrintToChat(client, "\x01Suggested keys: \x03g, k, mouse4, mouse5");
     PrintToChat(client, "\x01Hold the key to open menu, release to close.");
+    PrintToChat(client, "\x01Note: SHIFT is already bound by default. Avoid X and V (voice commands).");
 
     return Plugin_Handled;
 }
@@ -482,13 +634,17 @@ void StopRageMenuHold(int client)
 
     if (g_bMenuHeld[client])
     {
-        CancelClientMenu(client, true);
+        ExtraMenu_Close(client);
         g_bMenuHeld[client] = false;
     }
 }
 
 public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
 {
+    // Store the last selected option for E button detection
+    g_iLastSelectedOption[client] = option;
+    g_iLastSelectedMenuId[client] = menu_id;
+    
     ArrayList map = null;
     int guideIndex = -1;
 
@@ -533,177 +689,256 @@ public void RageMenu_OnSelect(int client, int menu_id, int option, int value)
         return;
     }
 
-    bool adminSelection = (menuOption >= Menu_SpawnItems && menuOption <= Menu_GameSpeed);
-    if (adminSelection && !CheckCommandAccess(client, "sm_rage_admin", ADMFLAG_ROOT))
+    // Check admin access for admin menu
+    if (menuOption == Menu_AdminMenu)
     {
-        PrintHintText(client, "Admin-only option.");
+        if (!CheckCommandAccess(client, "sm_adm", ADMFLAG_ROOT))
+        {
+            PrintHintText(client, "This option is only available to admins.");
+            return;
+        }
+        
+        // Open admin menu via command
+        FakeClientCommand(client, "sm_adm");
         return;
     }
 
-    switch (menuOption)
+    if (menuOption == Menu_GetKit)
     {
-        case Menu_Deploy:
+        if (!Kits_CanUseKit(client))
         {
-            // Use quick_deploy command which skips look-down/shift requirements
-            FakeClientCommand(client, "quick_deploy");
+            PrintHintText(client, "You're out of kits. Please wait for more to become available.");
+            return;
         }
-        case Menu_GetKit:
-        {
-            int maxKits = (g_hKitSlots != null) ? g_hKitSlots.IntValue : 1;
-            if (maxKits <= 0 || g_iKitsUsed[client] >= maxKits)
-            {
-                PrintHintText(client, "out of kits");
-                return;
-            }
 
-            g_iKitsUsed[client]++;
-            FakeClientCommand(client, "sm_kit");
-        }
-        case Menu_SetAway:
-        {
-            PrintHintText(client, "Away mode is not available here.");
-        }
-        case Menu_SelectTeam:
-        {
-            PrintHintText(client, "Team selection is not available in this menu.");
-        }
-        case Menu_ChangeClass:
-        {
-            if (value < 0 || value >= CLASS_OPTION_COUNT)
-            {
-                PrintHintText(client, "Choose a class with left/right to apply it.");
-                return;
-            }
+        int kitsRemaining = Kits_ConsumeKit(client);
+        FakeClientCommand(client, "sm_kit");
 
-            int classIndex = value + 1; // class options skip the NONE slot
-            FakeClientCommand(client, "sm_class_set %d", classIndex);
-            PrintHintText(client, "Switching to %s", g_sClassOptions[value]);
-        }
-        case Menu_ViewRank:
+        PrintHintText(client, "Kit delivered (%d remaining).", kitsRemaining);
+        return;
+    }
+    else if (menuOption == Menu_SetAway)
+    {
+        FakeClientCommand(client, "sm_afk");
+        return;
+    }
+    else if (menuOption == Menu_SelectTeam)
+    {
+        PrintHintText(client, "Team selection is not available here. Use the main menu instead.");
+        return;
+    }
+    else if (menuOption == Menu_ChangeClass)
+    {
+        if (value < 0 || value >= CLASS_OPTION_COUNT)
         {
-            FakeClientCommand(client, "sm_stats");
+            PrintHintText(client, "Please select a class using the left/right arrows.");
+            return;
         }
-        case Menu_VoteCustomMap:
-        {
-            PrintHintText(client, "Custom map voting is not configured.");
-        }
-        case Menu_VoteGameMode:
-        {
-            ChangeGameModeByIndex(client, value);
-        }
-        case Menu_ThirdPerson:
-        {
-            if (value < 0 || value > 2)
-            {
-                PrintHintText(client, "Invalid camera selection.");
-                return;
-            }
 
-            ThirdPersonMode newMode = view_as<ThirdPersonMode>(value);
-            g_ThirdPersonMode[client] = newMode;
-            PersistThirdPersonMode(client);
-            ApplyThirdPersonMode(client);
-            PrintHintText(client, "Camera mode set to %s.", (newMode == TP_Always) ? "Always" : (newMode == TP_MeleeOnly) ? "Melee only" : "Off");
-        }
-        case Menu_MultiEquip:
+        if (value == 0)
         {
-            PrintHintText(client, "Multiple equipment mode is not configured.");
+            PrintHintText(client, "No class selected. Please choose one first.");
+            return;
         }
-        case Menu_HudToggle:
+
+        int classIndex = value; // options align with actual class index
+        FakeClientCommand(client, "sm_class_set %d", classIndex);
+        PrintHintText(client, "Switching to %s", g_sClassOptions[value]);
+        return;
+    }
+    else if (menuOption == Menu_DeployAction)
+    {
+        // Close menu and execute deployment action
+        ExtraMenu_Close(client);
+        g_bMenuHeld[client] = false;
+        
+        // Execute the deployment action - it will handle its own feedback/menus
+        FakeClientCommand(client, "deployment_action");
+        
+        // Don't show generic message - let the deployment action show its own menu/feedback
+        return;
+    }
+    else if (menuOption == Menu_ViewRank)
+    {
+        FakeClientCommand(client, "sm_stats");
+        return;
+    }
+    else if (menuOption == Menu_VoteOptions)
+    {
+        // value: 0 = Change Map, 1+ = Gamemode index (1 = Versus, 2 = Competitive, etc.)
+        if (value < 0)
         {
-            bool enableHud = value != 0;
-            SetHudEnabled(enableHud, client);
+            PrintHintText(client, "Something went wrong. Please try again.");
+            return;
         }
-        case Menu_MusicToggle:
+        
+        if (value == 0)
         {
-            if (value == 0)
+            // Map vote selected
+            g_iVoteSelection[client] = 0;
+            g_bVoteTypeIsMap[client] = true;
+            PrintHintText(client, "Selected: Change Map. Press 'Initiate Vote' to start.");
+        }
+        else
+        {
+            // Gamemode vote selected (value is 1-based index into gamemode array)
+            int modeIndex = value - 1; // Convert to 0-based
+            if (modeIndex >= 0 && modeIndex < GAMEMODE_OPTION_COUNT)
             {
-                FakeClientCommand(client, "sm_music_pause");
-                PrintHintText(client, "Music paused.");
+                g_iVoteSelection[client] = modeIndex;
+                g_bVoteTypeIsMap[client] = false;
+                PrintHintText(client, "Selected: %s. Press 'Initiate Vote' to start.", g_sGameModeNames[modeIndex]);
             }
             else
             {
-                FakeClientCommand(client, "sm_music_play");
-                FakeClientCommand(client, "sm_music"); // open menu for quick control
-                PrintHintText(client, "Music playing. Use menu to change track.");
+                PrintHintText(client, "Something went wrong. Please try again.");
             }
         }
-        case Menu_MusicVolume:
-        {
-            // Value from ExtraMenu list index (0-10). Clamp defensively.
-            int vol = value;
-            if (vol < 0)
-            {
-                vol = 0;
-            }
-            else if (vol > 10)
-            {
-                vol = 10;
-            }
-
-            FakeClientCommand(client, "sm_music_volume %d", vol);
-            PrintHintText(client, "Music volume set to %d%%", vol * 10);
-        }
-        case Menu_ChangeCharacter:
-        {
-            PrintHintText(client, "Character change is not configured.");
-        }
-        case Menu_SpawnItems:
-        {
-            PrintHintText(client, "Item spawning is not available.");
-        }
-        case Menu_Reload:
-        {
-            PrintHintText(client, "Reload options are not available.");
-        }
-        case Menu_ManageSkills:
-        {
-            PrintHintText(client, "Skill management is not available.");
-        }
-        case Menu_ManagePerks:
-        {
-            PrintHintText(client, "Perk management is not available.");
-        }
-        case Menu_ApplyEffect:
-        {
-            PrintHintText(client, "Apply-effect option is not available.");
-        }
-        case Menu_DebugMode:
-        {
-            PrintHintText(client, "Debug mode toggle is not wired here.");
-        }
-        case Menu_HaltGame:
-        {
-            PrintHintText(client, "Halt game is not available.");
-        }
-        case Menu_InfectedSpawn:
-        {
-            PrintHintText(client, "Infected spawn toggle is not available.");
-        }
-        case Menu_GodMode:
-        {
-            PrintHintText(client, "God mode toggle is not available.");
-        }
-        case Menu_RemoveWeapons:
-        {
-            PrintHintText(client, "Remove weapons option is not available.");
-        }
-        case Menu_GameSpeed:
-        {
-            PrintHintText(client, "Game speed control is not available.");
-        }
-        case Menu_Guide:
-        {
-            if (!TryShowGuideMenu(client))
-            {
-                PrintToChat(client, "[Rage] Tutorial plugin is not available right now.");
-            }
-        }
-        default:
-        {
-            PrintHintText(client, "This menu option is not configured.");
-        }
+        return;
     }
+    else if (menuOption == Menu_VoteAction)
+    {
+        // Initiate the selected vote
+        if (g_iVoteSelection[client] == -1)
+        {
+            PrintHintText(client, "Please select a vote option first.");
+            return;
+        }
+        
+        if (g_bVoteTypeIsMap[client])
+        {
+            // Initiate map vote
+            FakeClientCommand(client, "sm_chmap");
+            g_iVoteSelection[client] = -1;
+            g_bVoteTypeIsMap[client] = false;
+        }
+        else
+        {
+            // Initiate gamemode vote
+            ChangeGameModeByIndex(client, g_iVoteSelection[client]);
+            g_iVoteSelection[client] = -1;
+            g_bVoteTypeIsMap[client] = false;
+        }
+        return;
+    }
+    else if (menuOption == Menu_ThirdPerson)
+    {
+        if (value < 0 || value > 2)
+        {
+            PrintHintText(client, "Something went wrong. Please try again.");
+            return;
+        }
+
+        ThirdPersonMode newMode = view_as<ThirdPersonMode>(value);
+        ThirdPerson_SetMode(client, newMode);
+        PrintHintText(client, "Camera mode set to %s.", (newMode == TP_Always) ? "Always" : (newMode == TP_MeleeOnly) ? "Melee only" : "Off");
+        
+        // Update menu to show the new active mode immediately
+        if (g_bMenuHeld[client])
+        {
+            int menuId = (GetClientTeam(client) == 2) ? g_iMenuIDSurvivor : g_iMenuIDInfected;
+            ArrayList optionMap = (GetClientTeam(client) == 2) ? g_hMenuOptionsSurvivor : g_hMenuOptionsInfected;
+            if (menuId > 0 && optionMap != null)
+            {
+                SyncMenuSelection(client, menuId, optionMap, Menu_ThirdPerson, view_as<int>(newMode));
+                // Redisplay the menu to show updated value
+                ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);
+            }
+        }
+        return;
+    }
+    else if (menuOption == Menu_MultiEquip)
+    {
+        if (value < 0 || value > 2)
+        {
+            PrintHintText(client, "Something went wrong. Please try again.");
+            return;
+        }
+
+        MultiEquipMode newMode = view_as<MultiEquipMode>(value);
+        MultiEquip_SetMode(client, newMode);
+
+        // Show hint text with tap count information
+        char modeName[32];
+        int tapCount = 0;
+        switch (newMode)
+        {
+            case ME_Off:
+            {
+                strcopy(modeName, sizeof(modeName), "Off");
+                PrintHintText(client, "Quick switch disabled - normal item pickup");
+            }
+            case ME_SingleTap:
+            {
+                strcopy(modeName, sizeof(modeName), "Single Tap");
+                tapCount = 1;
+                PrintHintText(client, "Quick switch enabled - tap once to swap items");
+            }
+            case ME_DoubleTap:
+            {
+                strcopy(modeName, sizeof(modeName), "Double Tap");
+                tapCount = 2;
+                PrintHintText(client, "Double tap enabled - tap twice to swap items");
+            }
+        }
+
+        // Update menu to show the new active mode immediately
+        if (g_bMenuHeld[client])
+        {
+            int menuId = (GetClientTeam(client) == 2) ? g_iMenuIDSurvivor : g_iMenuIDInfected;
+            ArrayList optionMap = (GetClientTeam(client) == 2) ? g_hMenuOptionsSurvivor : g_hMenuOptionsInfected;
+            if (menuId > 0 && optionMap != null)
+            {
+                SyncMenuSelection(client, menuId, optionMap, Menu_MultiEquip, view_as<int>(newMode));
+                // Redisplay the menu to show updated value
+                ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);
+            }
+        }
+        return;
+    }
+    else if (menuOption == Menu_MusicToggle)
+    {
+        if (value == 0)
+        {
+            FakeClientCommand(client, "sm_music_pause");
+            PrintHintText(client, "Music paused.");
+        }
+        else
+        {
+            FakeClientCommand(client, "sm_music_play");
+            FakeClientCommand(client, "sm_music"); // open menu for quick control
+            PrintHintText(client, "Music playing. Use menu to change track.");
+        }
+        return;
+    }
+    else if (menuOption == Menu_MusicVolume)
+    {
+        // Value from ExtraMenu list index (0-10). Clamp defensively.
+        int vol = value;
+        if (vol < 0)
+        {
+            vol = 0;
+        }
+        else if (vol > 10)
+        {
+            vol = 10;
+        }
+
+        FakeClientCommand(client, "sm_music_volume %d", vol);
+        PrintHintText(client, "Music volume set to %d%%", vol * 10);
+        return;
+    }
+    else if (menuOption == Menu_Guide)
+    {
+        if (!TryShowGuideMenu(client))
+        {
+            PrintToChat(client, "[Rage] Tutorial plugin is not available right now.");
+        }
+        return;
+    }
+
+    PrintHintText(client, "This menu option is not configured.");
+
 }
 
 public void ExtraMenu_OnSelect(int client, int menu_id, int option, int value)
@@ -761,6 +996,44 @@ public void AddClassOptions(int menu_id)
     }
 
     ExtraMenu_AddOptions(menu_id, options);
+}
+
+public int GetSavedClassIndex(int client)
+{
+    if (client <= 0 || client > MaxClients || g_hClassCookie == INVALID_HANDLE || !IsClientInGame(client))
+    {
+        return 0;
+    }
+
+    char stored[32];
+    GetClientCookie(client, g_hClassCookie, stored, sizeof(stored));
+    TrimString(stored);
+
+    if (stored[0] == '\0')
+    {
+        return 0;
+    }
+
+    int classIndex = ClassIdentifierToIndex(stored);
+    if (classIndex <= 0 || classIndex >= CLASS_OPTION_COUNT)
+    {
+        return 0;
+    }
+
+    return classIndex;
+}
+
+public int ClassIdentifierToIndex(const char[] ident)
+{
+    for (int i = 1; i < CLASS_OPTION_COUNT; i++)
+    {
+        if (StrEqual(ident, g_sClassIdentifiers[i], false))
+        {
+            return i;
+        }
+    }
+
+    return 0;
 }
 
 void ChangeGameModeByIndex(int client, int modeIndex)
@@ -833,31 +1106,73 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "1. Deploy (Medic/Engineer/Saboteur)", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_Deploy));
-    ExtraMenu_AddEntry(menu_id, "2. Get Kit", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_GetKit));
-    ExtraMenu_AddOptions(menu_id, "Medic kit|Rambo kit|Counter-terrorist kit|Ninja kit");
-
-    ExtraMenu_AddEntry(menu_id, "3. Set yourself away", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_SetAway));
-    ExtraMenu_AddEntry(menu_id, "4. Select team", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_SelectTeam));
+    ExtraMenu_AddEntry(menu_id, "1. Deploy class ability", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_DeployAction));
 
     if (includeChangeClass)
     {
-        ExtraMenu_AddEntry(menu_id, "5. Change class: _OPT_", MENU_SELECT_LIST);
+        ExtraMenu_AddEntry(menu_id, "2. Choose class: _OPT_", MENU_SELECT_LIST);
         optionMap.Push(view_as<int>(Menu_ChangeClass));
         AddClassOptions(menu_id);
     }
 
-    ExtraMenu_AddEntry(menu_id, "6. See your ranking", MENU_SELECT_ONLY);
+    ExtraMenu_AddEntry(menu_id, "3. 3rd person mode: _OPT_", MENU_SELECT_LIST);
+    optionMap.Push(view_as<int>(Menu_ThirdPerson));
+    ExtraMenu_AddOptions(menu_id, "Off|Melee Only|Always");
+
+    int guideIndex = optionMap.Length;
+    ExtraMenu_AddEntry(menu_id, "4. Guide", MENU_SELECT_ONLY, true);
+    optionMap.Push(view_as<int>(Menu_Guide));
+
+    ExtraMenu_NewPage(menu_id);
+
+    ExtraMenu_AddEntry(menu_id, "TEAM & VOTING:", MENU_ENTRY);
+    if (!buttons_nums)
+    {
+        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
+    }
+
+    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
+    
+    // Team selection as slider (AFK/Infected/Survivors)
+    ExtraMenu_AddEntry(menu_id, "1. Team: _OPT_", MENU_SELECT_LIST);
+    optionMap.Push(view_as<int>(Menu_SelectTeam));
+    ExtraMenu_AddOptions(menu_id, "AFK|Infected|Survivors");
+    
+    ExtraMenu_AddEntry(menu_id, "2. Set yourself away", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_SetAway));
+    
+    // Combined voting options (scrollable)
+    ExtraMenu_AddEntry(menu_id, "3. Vote Options: _OPT_", MENU_SELECT_ADD, false, 250, 10, 100, 300);
+    optionMap.Push(view_as<int>(Menu_VoteOptions));
+    // Build vote options string: "Change Map|Gamemode1|Gamemode2|..."
+    char voteOptions[512] = "Change Map|";
+    for (int i = 0; i < GAMEMODE_OPTION_COUNT; i++)
+    {
+        if (i > 0)
+            StrCat(voteOptions, sizeof(voteOptions), "|");
+        StrCat(voteOptions, sizeof(voteOptions), g_sGameModeNames[i]);
+    }
+    ExtraMenu_AddOptions(menu_id, voteOptions);
+    
+    // Action button to initiate vote
+    ExtraMenu_AddEntry(menu_id, "4. Initiate Vote", MENU_SELECT_ONLY);
+    optionMap.Push(view_as<int>(Menu_VoteAction));
+    
+    ExtraMenu_NewPage(menu_id);
+
+    ExtraMenu_AddEntry(menu_id, "EQUIPMENT & STATS:", MENU_ENTRY);
+    if (!buttons_nums)
+    {
+        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
+    }
+
+    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
+    ExtraMenu_AddEntry(menu_id, "1. Get Kit", MENU_SELECT_LIST);
+    optionMap.Push(view_as<int>(Menu_GetKit));
+    ExtraMenu_AddOptions(menu_id, "Medic kit|Rambo kit|Counter-terrorist kit|Ninja kit");
+    ExtraMenu_AddEntry(menu_id, "2. See your ranking", MENU_SELECT_ONLY);
     optionMap.Push(view_as<int>(Menu_ViewRank));
-    ExtraMenu_AddEntry(menu_id, "7. Vote for custom map", MENU_SELECT_ADD, false, 250, 10, 100, 300);
-    optionMap.Push(view_as<int>(Menu_VoteCustomMap));
-    ExtraMenu_AddEntry(menu_id, "8. Vote for gamemode", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_VoteGameMode));
-    AddGameModeOptions(menu_id);
     ExtraMenu_NewPage(menu_id);
 
     ExtraMenu_AddEntry(menu_id, "GAME OPTIONS:", MENU_ENTRY);
@@ -867,63 +1182,32 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "1. 3rd person mode: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_ThirdPerson));
-    ExtraMenu_AddOptions(menu_id, "Off|Melee Only|Always");
-    ExtraMenu_AddEntry(menu_id, "2. Multiple Equipment Mode: _OPT_", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "1. Multiple Equipment Mode: _OPT_", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_MultiEquip));
     ExtraMenu_AddOptions(menu_id, "Off|Single Tap|Double tap");
-    ExtraMenu_AddEntry(menu_id, "3. HUD: _OPT_", MENU_SELECT_ONOFF, false, g_bHudEnabled ? 1 : 0);
-    optionMap.Push(view_as<int>(Menu_HudToggle));
-    ExtraMenu_AddEntry(menu_id, "4. Music player: _OPT_", MENU_SELECT_ONOFF);
+    ExtraMenu_AddEntry(menu_id, "3. Music player: _OPT_", MENU_SELECT_ONOFF);
     optionMap.Push(view_as<int>(Menu_MusicToggle));
-    ExtraMenu_AddEntry(menu_id, "5. Music Volume: _OPT_", MENU_SELECT_LIST);
+    ExtraMenu_AddEntry(menu_id, "4. Music Volume: _OPT_", MENU_SELECT_LIST);
     optionMap.Push(view_as<int>(Menu_MusicVolume));
     ExtraMenu_AddOptions(menu_id, "----------|#---------|##--------|###-------|####------|#####-----|######----|#######---|########--|#########-|##########");
 
-    ExtraMenu_AddEntry(menu_id, "6. Change Character: _OPT_", MENU_SELECT_ONOFF);
-    optionMap.Push(view_as<int>(Menu_ChangeCharacter));
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-
-    ExtraMenu_NewPage(menu_id);
-
-    ExtraMenu_AddEntry(menu_id, "ADMIN MENU:", MENU_ENTRY);
-
-    ExtraMenu_AddEntry(menu_id, "1. Spawn Items: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_SpawnItems));
-    ExtraMenu_AddOptions(menu_id, "New cabinet|New weapon|Special Infected|Special tank");
-    ExtraMenu_AddEntry(menu_id, "2. Reload _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_Reload));
-    ExtraMenu_AddOptions(menu_id, "Map|Rage Plugins|All plugins|Restart server");
-    ExtraMenu_AddEntry(menu_id, "3. Manage skills", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_ManageSkills));
-    ExtraMenu_AddEntry(menu_id, "4. Manage perks", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_ManagePerks));
-    ExtraMenu_AddEntry(menu_id, "5. Apply effect on player", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_ApplyEffect));
-
-    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "DEBUG COMMANDS:", MENU_ENTRY);
-    ExtraMenu_AddEntry(menu_id, "1. Debug mode: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_DebugMode));
-    ExtraMenu_AddOptions(menu_id, "Off|Log to file|Log to chat|Tracelog to chat");
-    ExtraMenu_AddEntry(menu_id, "2. Halt game: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_HaltGame));
-    ExtraMenu_AddOptions(menu_id, "Off|Only survivors|All");
-    ExtraMenu_AddEntry(menu_id, "3. Infected spawn: _OPT_", MENU_SELECT_ONOFF, false, 1);
-    optionMap.Push(view_as<int>(Menu_InfectedSpawn));
-    ExtraMenu_AddEntry(menu_id, "4. God mode: _OPT_", MENU_SELECT_ONOFF, false, 1);
-    optionMap.Push(view_as<int>(Menu_GodMode));
-    ExtraMenu_AddEntry(menu_id, "5. Remove weapons from map", MENU_SELECT_ONLY);
-    optionMap.Push(view_as<int>(Menu_RemoveWeapons));
-    ExtraMenu_AddEntry(menu_id, "6. Game speed: _OPT_", MENU_SELECT_LIST);
-    optionMap.Push(view_as<int>(Menu_GameSpeed));
-    ExtraMenu_AddOptions(menu_id, "----------|#---------|##--------|###-------|####------|#####-----|######----|#######---|########--|#########-|##########");
-
-    int guideIndex = optionMap.Length;
-    ExtraMenu_AddEntry(menu_id, "Open Rage tutorial guide", MENU_SELECT_ONLY, true);
-    optionMap.Push(view_as<int>(Menu_Guide));
-    ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
+    
+    // Admin menu link (only shown for admins, checked at display time)
+    // Store the index so we can hide it for non-admins
+    int adminMenuIndex = optionMap.Length;
+    ExtraMenu_AddEntry(menu_id, "Admin Menu", MENU_SELECT_ONLY, true);
+    optionMap.Push(view_as<int>(Menu_AdminMenu));
+    
+    // Store admin menu option index for this menu
+    if (includeChangeClass)
+    {
+        g_iAdminMenuOptionIndexSurvivor = adminMenuIndex;
+    }
+    else
+    {
+        g_iAdminMenuOptionIndexInfected = adminMenuIndex;
+    }
 
     if (includeChangeClass)
     {
@@ -959,6 +1243,39 @@ void BuildSingleMenu(bool includeChangeClass)
     }
 }
 
+public void SyncMenuSelections(int client, int menuId, ArrayList optionMap)
+{
+    if (optionMap == null)
+    {
+        return;
+    }
+
+    SyncMenuSelection(client, menuId, optionMap, Menu_ThirdPerson, view_as<int>(g_ThirdPersonMode[client]));
+    SyncMenuSelection(client, menuId, optionMap, Menu_ChangeClass, GetSavedClassIndex(client));
+    SyncMenuSelection(client, menuId, optionMap, Menu_MultiEquip, view_as<int>(MultiEquip_GetMode(client)));
+    
+    // Sync team selection (0=AFK, 1=Infected, 2=Survivors)
+    int currentTeam = GetClientTeam(client);
+    int teamValue = (currentTeam == 0) ? 0 : (currentTeam == 3) ? 1 : 2;
+    SyncMenuSelection(client, menuId, optionMap, Menu_SelectTeam, teamValue);
+    
+    // Sync vote selection
+    if (g_iVoteSelection[client] >= 0)
+    {
+        int voteValue = g_bVoteTypeIsMap[client] ? 0 : (g_iVoteSelection[client] + 1);
+        SyncMenuSelection(client, menuId, optionMap, Menu_VoteOptions, voteValue);
+    }
+}
+
+public void SyncMenuSelection(int client, int menuId, ArrayList optionMap, RageMenuOption option, int value)
+{
+    int index = optionMap.FindValue(view_as<int>(option));
+    if (index != -1)
+    {
+        ExtraMenu_SetClientValue(menuId, client, index, value);
+    }
+}
+
 public bool HasRageMenuAccess(int client)
 {
     return client > 0 && IsClientInGame(client) && CheckCommandAccess(client, "sm_rage", 0);
@@ -972,6 +1289,34 @@ public bool DisplayRageMenu(int client, bool showHint)
         return false;
     }
 
+    // Check if survivor player has selected a class - if not, show class selection menu
+    if (GetClientTeam(client) == 2)
+    {
+        // Get class from saved cookie since we can't access ClientData from this plugin
+        int savedClassIndex = GetSavedClassIndex(client);
+        ClassTypes currentClass = (savedClassIndex > 0) ? view_as<ClassTypes>(savedClassIndex) : NONE;
+        
+        // If no class selected, show class selection menu
+        if (currentClass == NONE && savedClassIndex == 0)
+        {
+            FakeClientCommand(client, "sm_class");
+            return true;
+        }
+        
+        // If player has a saved class but current class is NONE, try to auto-select it
+        if (currentClass == NONE && savedClassIndex > 0)
+        {
+            ClassTypes savedClass = view_as<ClassTypes>(savedClassIndex);
+            // Auto-select the saved class - trigger the class selection command
+            // This will use the standard class selection system which will check if class is full
+            char cmd[32];
+            Format(cmd, sizeof(cmd), "sm_class %d", savedClassIndex);
+            FakeClientCommand(client, cmd);
+            PrintToChat(client, "%s✓ Your previous \x04%s\x01 class was auto-selected.", 
+                       PRINT_PREFIX, MENU_OPTIONS[savedClass]);
+        }
+    }
+
     int menuId = (GetClientTeam(client) == 2) ? g_iMenuIDSurvivor : g_iMenuIDInfected;
     if (!g_bExtraMenuLoaded || menuId == 0)
     {
@@ -979,169 +1324,114 @@ public bool DisplayRageMenu(int client, bool showHint)
         return false;
     }
 
+    ArrayList optionMap = (GetClientTeam(client) == 2) ? g_hMenuOptionsSurvivor : g_hMenuOptionsInfected;
+    SyncMenuSelections(client, menuId, optionMap);
+
     if (showHint)
     {
-        PrintHintText(client, "Press X (voice menu) or type !rage_bind to bind a key; use W/S/A/D to navigate.");
+        PrintHintText(client, "Hold SHIFT to open menu; type !rage_bind for key binding help; use W/S/A/D to navigate.");
     }
 
     ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);
     return true;
 }
 
-public void SetHudEnabled(bool enabled, int activator)
+public void DisplayQuickActionMenu(int client)
 {
-    if (activator > 0 && IsClientInGame(activator))
-    {
-        if (g_bHudEnabled == enabled)
-        {
-            PrintHintText(activator, "HUD is already %s.", enabled ? "on" : "off");
-            return;
-        }
-    }
-
-    g_bHudEnabled = enabled;
-
-    BuildRageMenus();
-
-    if (!enabled)
-    {
-        DeleteAllHUD();
-
-        if (activator > 0 && IsClientInGame(activator))
-        {
-            PrintHintText(activator, "HUD disabled.");
-        }
-
-        return;
-    }
-
-    // Only setup HUD if a map is running (entities can be created)
-    char mapname[64];
-    GetCurrentMap(mapname, sizeof(mapname));
-    if (mapname[0] == '\0')
-    {
-        // Map not loaded yet, HUD will be initialized in OnMapStart
-        return;
-    }
-
-    hudPosition currentPos = view_as<hudPosition>(getCurrentHud());
-    if (currentPos < HUD_POSITION_FAR_LEFT || currentPos > HUD_POSITION_SCORE_4)
-    {
-        currentPos = HUD_POSITION_MID_TOP;
-    }
-
-    SetupMessageHud(currentPos, HUD_FLAG_ALIGN_LEFT | HUD_FLAG_NOBG | HUD_FLAG_TEAM_SURVIVORS);
-
-    if (activator > 0 && IsClientInGame(activator))
-    {
-        PrintHintText(activator, "HUD enabled.");
-    }
-}
-
-public bool IsMeleeWeapon(int weapon)
-{
-    if (weapon <= 0 || !IsValidEntity(weapon))
-    {
-        return false;
-    }
-
-    char cls[64];
-    GetEntityClassname(weapon, cls, sizeof(cls));
-    return StrContains(cls, "melee", false) != -1 || StrEqual(cls, "weapon_chainsaw", false);
-}
-
-public void PersistThirdPersonMode(int client)
-{
-    if (g_hThirdPersonCookie == INVALID_HANDLE || IsFakeClient(client))
+    if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
     {
         return;
     }
 
-    char buffer[8];
-    IntToString(view_as<int>(g_ThirdPersonMode[client]), buffer, sizeof(buffer));
-    SetClientCookie(client, g_hThirdPersonCookie, buffer);
-}
-
-public void ApplyThirdPersonMode(int client)
-{
-    if (client <= 0 || !IsClientInGame(client) || !IsPlayerAlive(client))
+    // Get class from saved cookie since we can't access ClientData from this plugin
+    int savedClassIndex = GetSavedClassIndex(client);
+    ClassTypes classType = (savedClassIndex > 0) ? view_as<ClassTypes>(savedClassIndex) : NONE;
+    if (classType == NONE)
     {
+        PrintHintText(client, "Select a class first!");
         return;
     }
 
-    bool shouldThird = false;
-    switch (g_ThirdPersonMode[client])
+    // Close any existing menu
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
     {
-        case TP_MeleeOnly:
-        {
-            int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-            shouldThird = IsMeleeWeapon(weapon);
-        }
-        case TP_Always:
-        {
-            shouldThird = true;
-        }
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
     }
 
-    if (shouldThird == g_ThirdPersonActive[client])
-    {
-        return;
-    }
-
-    g_ThirdPersonActive[client] = shouldThird;
-
-    if (shouldThird)
-    {
-        ClientCommand(client, "thirdpersonshoulder");
-    }
-    else
-    {
-        ClientCommand(client, "firstperson");
-    }
-}
-
-bool IsValidKeyString(const char[] key)
-{
-    // Validate that the key string only contains safe characters
-    // Valid keys are alphanumeric, mouse buttons, or common special keys
-    int len = strlen(key);
-    if (len == 0 || len > 31)
-    {
-        return false;
-    }
+    Menu menu = CreateMenu(MenuHandler_QuickAction);
+    char title[128];
+    Format(title, sizeof(title), "Quick Actions - %s", MENU_OPTIONS[classType]);
+    SetMenuTitle(menu, title);
     
-    // Check each character - allow alphanumeric, underscore, and digits
-    for (int i = 0; i < len; i++)
-    {
-        char c = key[i];
-        // Allow: a-z, A-Z, 0-9, underscore
-        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'))
-        {
-            return false;
-        }
-    }
+    // Add menu items - use generic names since we can't access private variables from rage_survivor.sp
+    // The actual skill names will be shown when the skill is used
+    AddMenuItem(menu, "deploy", "1. Deploy");
+    AddMenuItem(menu, "skill1", "2. Skill Action 1");
+    AddMenuItem(menu, "skill2", "3. Skill Action 2");
+    AddMenuItem(menu, "skill3", "4. Skill Action 3");
     
-    return true;
+    SetMenuExitButton(menu, false);
+    DisplayMenu(menu, client, 10);
+    g_hQuickActionMenu[client] = menu;
+    g_bQuickActionMenuOpen[client] = true;
 }
 
-public Action Timer_NotifyMenuKey(Handle timer, int userid)
+public int MenuHandler_QuickAction(Menu menu, MenuAction action, int param1, int param2)
 {
-    int client = GetClientOfUserId(userid);
-    if (client <= 0 || !IsClientInGame(client) || IsFakeClient(client))
+    switch (action)
     {
-        return Plugin_Stop;
-    }
-    
-    char defaultKey[32];
-    if (g_hDefaultMenuKey != null)
-    {
-        g_hDefaultMenuKey.GetString(defaultKey, sizeof(defaultKey));
-        if (defaultKey[0] != '\0')
+        case MenuAction_Select:
         {
-            PrintToChat(client, "\x04[Rage]\x01 Menu bound to \x03%s\x01 key. Hold to open, release to close.", defaultKey);
-            PrintToChat(client, "\x01Or press \x03X\x01 (voice menu) for quick access. Type \x03!rage_bind\x01 to change key.");
+            char info[32];
+            GetMenuItem(menu, param2, info, sizeof(info));
+            
+            // Get class from saved cookie since we can't access ClientData from this plugin
+            int savedClassIndex = GetSavedClassIndex(param1);
+            ClassTypes classType = (savedClassIndex > 0) ? view_as<ClassTypes>(savedClassIndex) : NONE;
+            if (classType == NONE)
+            {
+                CloseQuickActionMenu(param1);
+                return 0;
+            }
+            
+            if (StrEqual(info, "deploy"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Deploy);
+            }
+            else if (StrEqual(info, "skill1"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Special);
+            }
+            else if (StrEqual(info, "skill2"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Secondary);
+            }
+            else if (StrEqual(info, "skill3"))
+            {
+                TryExecuteSkillInput(param1, ClassSkill_Tertiary);
+            }
+            
+            CloseQuickActionMenu(param1);
+        }
+        case MenuAction_End:
+        {
+            CloseHandle(menu);
         }
     }
-    
-    return Plugin_Stop;
+    return 0;
 }
+
+public void CloseQuickActionMenu(int client)
+{
+    if (g_hQuickActionMenu[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hQuickActionMenu[client]);
+        g_hQuickActionMenu[client] = INVALID_HANDLE;
+    }
+    g_bQuickActionMenuOpen[client] = false;
+}
+
+// GetActionDisplayName removed - cannot access private variables from rage_survivor.sp
+// Using generic menu item names instead
+

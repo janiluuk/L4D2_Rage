@@ -2,7 +2,7 @@
 //Created by https://github.com/Jackzmc
 //See it here: https://github.com/Jackzmc/sourcemod-plugins/blob/master/scripting/include/l4d2hud.inc
 
-#include <jutils>
+#include <rage/validation>
 
 enum hudPosition {
     HUD_POSITION_FAR_LEFT, 
@@ -122,7 +122,7 @@ void SetupHUD(hudPosition position, int flags, float x, float y, float w, float 
 
     
     int id = view_as<int>(position);
-    Format(huds[id], 1024, "SMHud%d <- { Fields = { players = { slot = g_ModeScript.HUD_%s, staticstring = \"Players:\", special = g_ModeScript.HUD_SPECIAL_COOLDOWN, dataval = \"%%s\", %s name = \"smhud%d\" } } }; HUDSetLayout( SMHud%d ); HUDPlace( g_ModeScript.HUD_%s, %f, %f, %f, %f )", id, hudPositions[id], buffer, id, id, hudPositions[id], x, y, w, h);
+    Format(huds[id], 1024, "SMHud%d <- { Fields = { players = { slot = g_ModeScript.HUD_%s, staticstring = \"Players:\", special = HUD_SPECIAL_COOLDOWN, dataval = \"%%s\", %s name = \"smhud%d\" } } }; HUDSetLayout( SMHud%d ); HUDPlace( g_ModeScript.HUD_%s, %f, %f, %f, %f )", id, hudPositions[id], buffer, id, id, hudPositions[id], x, y, w, h);
     L4D2_RunScript(huds[id], "");
 }
 
@@ -146,7 +146,7 @@ void DeleteHUD(hudPosition position) {
     huds[view_as<int>(position)][0] = '\0';
 }
 
-stock void GetHUDFormatString(hudPosition position, char[] buffer, int buffersize) {
+void GetHUDFormatString(hudPosition position, char[] buffer, int buffersize) {
     strcopy(buffer, buffersize, huds[view_as<int>(position)]);
 }
 
@@ -186,8 +186,8 @@ void SetupMessageHud(hudPosition position, int flags, float xpos=0.0, float ypos
     }
 
     SetupHUD(MSG_HUD_POS, flags , xpos, ypos, width, height);
-    if (isEnabled == true && msgTimer != null) {
-        KillTimer(msgTimer);
+    if (isEnabled == true) {
+        KillTimerSafe(msgTimer);
     }
     isEnabled = true;
 
@@ -220,11 +220,11 @@ int getCurrentHud() {
     return MSG_HUD_POS;
 }
 
-stock void setCurrentHud(pos) {
+void setCurrentHud(pos) {
     MSG_HUD_POS = view_as<hudPosition>(pos);
 }
 
-stock void getHudText(char[] text, int textSize) {
+void getHudText(char[] text, int textSize) {
     GetHUDFormatString(MSG_HUD_POS, text, textSize);
 }
 

@@ -5,6 +5,9 @@
 #include <sdkhooks>
 #include <rage/skills>
 #include <rage/validation>
+#include <rage/effects>
+#include <rage/timers>
+#include <rage/cooldown_notify>
 
 #define PLUGIN_VERSION	"0.2"
 #define CVAR_FLAGS		FCVAR_NONE
@@ -12,7 +15,7 @@
 #define PLUGIN_SKILL_DESCRIPTION "Summons a healing orb near the player to patch up allies."
 public Plugin myinfo =
 {
-        name = "Healing orb skill",
+        name = "[RAGE] Healing Orb",
 	author = "zonde306, Yani",
 	description = PLUGIN_SKILL_DESCRIPTION,
 	version = PLUGIN_VERSION,
@@ -28,7 +31,8 @@ public Plugin myinfo =
 
 int BlueColor[4] = {80, 80, 255, 255};
 Handle HealingBallTimer[MAXPLAYERS+1] = { INVALID_HANDLE, ... };
-int g_BeamSprite, g_HaloSprite, g_GlowSprite;
+// g_BeamSprite and g_HaloSprite are provided by rage/effects.inc
+int g_GlowSprite;
 
 float HealingBallInterval[MAXPLAYERS+1], HealingBallEffect[MAXPLAYERS+1],
         HealingBallRadius[MAXPLAYERS+1], HealingBallDuration[MAXPLAYERS+1];
@@ -42,11 +46,12 @@ public void OnPluginStart()
         g_fHealingOrbCooldown = GetConVarFloat(g_hHealingOrbCooldown);
         HookConVarChange(g_hHealingOrbCooldown, OnHealingOrbCooldownChanged);
 
+        // Initialize arrays
         for (int i = 1; i <= MaxClients; ++i)
         {
                 HealingBallTimer[i] = INVALID_HANDLE;
-                g_fNextHealingOrbUse[i] = 0.0;
         }
+        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0);
 }
 
 public void OnHealingOrbCooldownChanged(Handle convar, const char[] oldValue, const char[] newValue)
@@ -67,6 +72,7 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
         if (remaining > 0.0)
         {
                 PrintHintText(client, "Healing orb ready in %.0f seconds", remaining);
+                OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "cooldown");
                 return 1;
         }
 
@@ -75,8 +81,11 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
         HealingBallRadius[client] = 130.0;
         HealingBallDuration[client] = 8.0;
         g_fNextHealingOrbUse[client] = now + g_fHealingOrbCooldown;
+        // Register cooldown for notification
+        CooldownNotify_Register(client, g_fNextHealingOrbUse[client], PLUGIN_SKILL_NAME);
         HealingBallFunction(client);
-        PrintHintText(client, "Healing orb now active");
+        PrintHintText(client, "✓ Healing orb activated!");
+        OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
 
         return 1;
 }
@@ -93,29 +102,28 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
+        // Clean up timers and reset arrays
         for(int i = 1; i <= MaxClients; ++i)
         {
-                if(HealingBallTimer[i] != INVALID_HANDLE)
-                        KillTimer(HealingBallTimer[i]);
-
-                HealingBallTimer[i] = INVALID_HANDLE;
-                g_fNextHealingOrbUse[i] = 0.0;
+                KillTimerSafe(HealingBallTimer[i]);
         }
+        ResetClientArrayFloat(g_fNextHealingOrbUse, 0.0);
 }
 
 public void OnClientDisconnect(int client)
 {
-        if (HealingBallTimer[client] != INVALID_HANDLE)
-        {
-                KillTimer(HealingBallTimer[client]);
-                HealingBallTimer[client] = INVALID_HANDLE;
-        }
-
+        if (!IsValidClient(client))
+                return;
+        
+        KillTimerSafe(HealingBallTimer[client]);
         g_fNextHealingOrbUse[client] = 0.0;
 }
 
 public Action HealingBallFunction(int Client)
 {
+	if (!IsValidClient(Client))
+		return Plugin_Handled;
+	
 	float Radius = HealingBallRadius[Client];
 	float pos[3];
 	GetTracePosition(Client, pos);
@@ -130,10 +138,7 @@ public Action HealingBallFunction(int Client)
 		TE_SendToAll();
 	}
 
-	if(HealingBallTimer[Client] != INVALID_HANDLE)
-		KillTimer(HealingBallTimer[Client]);
-	
-	HealingBallTimer[Client] = INVALID_HANDLE;
+	KillTimerSafe(HealingBallTimer[Client]);
 	
 	Handle pack;
 	HealingBallTimer[Client] = CreateDataTimer(HealingBallInterval[Client], HealingBallTimerFunction, pack, TIMER_REPEAT);
@@ -169,47 +174,50 @@ public Action HealingBallTimerFunction(Handle timer, Handle pack)
 	TE_SetupBeamRingPoint(pos, Radius-0.1, Radius, g_BeamSprite, g_HaloSprite, 0, 10, 1.0, 10.0, 5.0, BlueColor, 5, 0);
 	TE_SendToAll();
 
+	// Validate client before proceeding
+	if (!IsValidClient(Client))
+	{
+		KillTimerSafe(HealingBallTimer[Client]);
+		return Plugin_Stop;
+	}
+	
 	int team = GetClientTeam(Client);
 	if(GetEngineTime() - time < HealingBallDuration[Client])
 	{
 		for(int i = 1; i <= MaxClients; i++)
 		{
-			if(IsClientInGame(i))
+			if(!IsValidAliveClient(i) || GetClientTeam(i) != team)
+				continue;
+			
+			GetEntPropVector(i, Prop_Send, "m_vecOrigin", entpos);
+			SubtractVectors(entpos, pos, distance);
+			if(GetVectorLength(distance) <= Radius)
 			{
-				if(GetClientTeam(i) == team && IsPlayerAlive(i))
+				int HP = GetClientHealth(i);
+				
+				if(IsPlayerIncapped(i))
 				{
-					GetEntPropVector(i, Prop_Send, "m_vecOrigin", entpos);
-					SubtractVectors(entpos, pos, distance);
-					if(GetVectorLength(distance) <= Radius)
-					{
-						int HP = GetClientHealth(i);
-						
-						if(IsPlayerIncapped(i))
-						{
-							SetEntProp(i, Prop_Data, "m_iHealth", HP+RoundToCeil(HealingBallEffect[Client]));
-						}
-						else
-						{
-							int MaxHP = GetEntProp(i, Prop_Data, "m_iMaxHealth");
-							HP += RoundToCeil(HealingBallEffect[Client]);
-							if(HP > MaxHP)
-								HP = MaxHP;
-							
-							SetEntProp(i, Prop_Data, "m_iHealth", HP);
-						}
-						
-						ShowParticle(entpos, HealingBall_Particle_Effect, 0.5);
-						TE_SetupBeamPoints(pos, entpos, g_BeamSprite, 0, 0, 0, 0.5, 1.0, 1.0, 1, 0.5, BlueColor, 0);
-						TE_SendToAll();
-					}
+					SetEntProp(i, Prop_Data, "m_iHealth", HP+RoundToCeil(HealingBallEffect[Client]));
 				}
+				else
+				{
+					int MaxHP = GetEntProp(i, Prop_Data, "m_iMaxHealth");
+					HP += RoundToCeil(HealingBallEffect[Client]);
+					if(HP > MaxHP)
+						HP = MaxHP;
+					
+					SetEntProp(i, Prop_Data, "m_iHealth", HP);
+				}
+						
+				ShowParticleCompat(entpos, HealingBall_Particle_Effect, 0.5);
+				TE_SetupBeamPoints(pos, entpos, g_BeamSprite, 0, 0, 0, 0.5, 1.0, 1.0, 1, 0.5, BlueColor, 0);
+				TE_SendToAll();
 			}
 		}
 	}
 	else
 	{
-		KillTimer(HealingBallTimer[Client]);
-		HealingBallTimer[Client] = INVALID_HANDLE;
+		KillTimerSafe(HealingBallTimer[Client]);
 	}
 	
 	return Plugin_Continue;
@@ -235,20 +243,12 @@ public bool TraceEntityFilterPlayer(int entity, int contentsMask)
 	return entity > MaxClients || !entity;
 }
 
-public void ShowParticle(float pos[3], char[] particlename, float time)
+// ShowParticle and DeleteParticles are now provided by rage/effects.inc
+// Note: The shared ShowParticle requires an angle parameter, so we use a wrapper for compatibility
+stock void ShowParticleCompat(float pos[3], char[] particlename, float time)
 {
-	/* Show particle effect you like */
-	int particle = CreateEntityByName("info_particle_system");
-	if(IsValidEdict(particle))
-	{
-		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(time, DeleteParticles, particle);
-	}
+	float nullAng[3] = {0.0, 0.0, 0.0};
+	ShowParticle(pos, nullAng, particlename, time);
 }
 
 public void AttachParticle(int ent, char[] particleType, float time)
@@ -273,36 +273,6 @@ public void AttachParticle(int ent, char[] particleType, float time)
 	}
 }
 
-public Action DeleteParticles(Handle timer, any particle)
-{
-	/* Delete particle - verify entity actually exists before accessing properties */
-    if(IsValidEntityEx(particle))
-	{
-		char classname[64];
-		GetEdictClassname(particle, classname, sizeof(classname));
-		if(StrEqual(classname, "info_particle_system", false))
-		{
-			AcceptEntityInput(particle, "stop");
-			AcceptEntityInput(particle, "kill");
-			RemoveEdict(particle);
-		}
-	}
-	
-	return Plugin_Continue;
-}
-
-public void PrecacheParticle(char[] particlename)
-{
-	/* Precache particle */
-	int particle = CreateEntityByName("info_particle_system");
-	if(IsValidEdict(particle))
-	{
-		DispatchKeyValue(particle, "effect_name", particlename);
-		DispatchKeyValue(particle, "targetname", "particle");
-		DispatchSpawn(particle);
-		ActivateEntity(particle);
-		AcceptEntityInput(particle, "start");
-		CreateTimer(0.01, DeleteParticles, particle);
-	}
-}
+// DeleteParticles is now provided by rage/timers.inc - removed duplicate implementation
+// PrecacheParticle now provided by rage/effects.inc
 

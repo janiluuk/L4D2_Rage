@@ -7,6 +7,8 @@
 #define RAGE_PLUGIN_NAME "rage_survivor"
 #define RAGE_PLUGIN_FILE "rage_survivor.smx"
 
+#include <rage/validation>
+
 /**
  * Get player classname
  *
@@ -184,12 +186,7 @@ stock CreateClientTimer(client, Float:interval, Timer:func, flags=TIMER_REPEAT)
 
 stock KillClientTimer(client)
 {
-    new Handle:timer=g_ClientTimers[client];
-    if (timer != INVALID_HANDLE)
-    {
-        KillTimer(timer);
-        g_ClientTimers[client] = INVALID_HANDLE;    
-    }
+    KillTimerSafe(g_ClientTimers[client]);
 }
 
 stock KillAllClientTimers()

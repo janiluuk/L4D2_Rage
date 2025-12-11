@@ -1,4 +1,4 @@
-#define PLUGIN_NAME "[Rage] Dead Ringer Plugin"
+#define PLUGIN_NAME "[RAGE] Dead Ringer"
 #define PLUGIN_AUTHOR "Yani & Shadowysn"
 #define PLUGIN_DESC "Activate a dead ringer distraction and cloak the user."
 #define PLUGIN_VERSION "1.0"
@@ -15,6 +15,7 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <rage/skills>
+#include <rage/validation>
 //#include <sendproxy>
 //https://forums.alliedmods.net/showpost.php?p=2210301&postcount=270
 //#include <sceneprocessor>
@@ -291,7 +292,8 @@ public void OnPluginEnd()
 		{ ApplyEffectsToEntity(i, false); }
 	}
 	for (int client = 1; client <= MaxClients; client++) {
-		if (IsValidEntity(g_BloodPool[client]))
+		// Validate entity index before access
+		if (IsValidEntityIndexSafe(g_BloodPool[client]) && IsValidEntity(g_BloodPool[client]))
 		{
 			char class[128];
 			GetEntityClassname(g_BloodPool[client], class, sizeof(class));
@@ -300,6 +302,12 @@ public void OnPluginEnd()
 				AcceptEntityInput(g_BloodPool[client], "Stop"); 
 				AcceptEntityInput(g_BloodPool[client], "Kill"); 
 			}
+			g_BloodPool[client] = -1;
+		}
+		else if (g_BloodPool[client] != -1)
+		{
+			// Entity was invalid, just reset the index
+			g_BloodPool[client] = -1;
 		}
 		if (!IsValidClient(client)) continue;
 		isTriggerable[client] = false;
@@ -336,7 +344,7 @@ public int OnSpecialSkillUsed(int iClient, int skill, int type)
 	}
 	if (StrEqual(szSkillName,PLUGIN_SKILL_NAME))
 	{
-		PrintToChat(iClient, "You activated \x04CLOAK!\x01");
+		PrintHintText(iClient, "✓ Cloak activated!");
 		TriggerDeadRinger(iClient, true, false, false, false);
 		BeginDeadRingerFromDamage(iClient, iClient, iClient, 1.0, 0, -1);
 	
@@ -470,12 +478,51 @@ Action HitMyself_Command(int client, int args) {
 
 public void OnClientDisconnect(int client)
 {
+	if (!IsValidClient(client))
+		return;
+	
+	// Clean up all timers to prevent memory leaks
+	KillTimerSafe(g_UncloakTimer[client]);
+	KillTimerSafe(g_BoostTimer[client]);
+	KillTimerSafe(g_ReadyTimer[client]);
+	
 	isTriggerable[client] = true;
 	isActive[client] = false;
 	isCloaked[client] = false;
 	RemoveCorpse(client);
 	SDKUnhook(client, MAIN_DAMAGE_HOOK, Hook_OnTakeDamagePost);
 	//SDKUnhook(client, CHANGE_DAMAGE_HOOK, Hook_OnTakeDamage);
+}
+
+public void OnMapEnd()
+{
+	// Clean up all entities and timers on map end
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		// Clean up timers
+		KillTimerSafe(g_UncloakTimer[i]);
+		KillTimerSafe(g_BoostTimer[i]);
+		KillTimerSafe(g_ReadyTimer[i]);
+		
+		// Clean up entities
+		if (IsValidEntityIndexSafe(g_Ragdoll[i]))
+		{
+			RemoveCorpse(i);
+		}
+		if (IsValidEntityIndexSafe(g_BloodPool[i]))
+		{
+			if (IsValidEntity(g_BloodPool[i]))
+			{
+				AcceptEntityInput(g_BloodPool[i], "Kill");
+			}
+			g_BloodPool[i] = -1;
+		}
+		
+		// Reset state
+		isTriggerable[i] = true;
+		isActive[i] = false;
+		isCloaked[i] = false;
+	}
 }
 
 Action Hook_SetTransmit(int client, int entity)
@@ -623,8 +670,8 @@ void DeadRingerUncloak(int client, bool killtimer = true)
 	SetTransmit(client, false);
 	DoStuffToWeapons(client, false);
 	ApplyEffectsToEntity(client, false);
-	if (g_UncloakTimer[client] != null && killtimer)
-	{ KillTimer(g_UncloakTimer[client]); }
+	if (killtimer)
+	{ KillTimerSafe(g_UncloakTimer[client]); }
 	if (IsPlayerAlive(client)) {
 		//SetEntityRenderColor(client, 255, 255, 255, 255);
 	}
@@ -1188,15 +1235,9 @@ int TriggerDeadRinger(int client, bool hint, bool clean, bool override, bool ove
 		{ PrintHintText(client, ACTIVE_STR); }
 		if (clean)
 		{
-			if (g_UncloakTimer[client] != null)
-			{ KillTimer(g_UncloakTimer[client], true); }
-			if (g_BoostTimer[client] != null)
-			{ KillTimer(g_BoostTimer[client], true); }
-			if (g_ReadyTimer[client] != null)
-			{ KillTimer(g_ReadyTimer[client], true); }
-			g_UncloakTimer[client] = null;
-			g_BoostTimer[client] = null;
-			g_ReadyTimer[client] = null;
+			KillTimerSafe(g_UncloakTimer[client]);
+			KillTimerSafe(g_BoostTimer[client]);
+			KillTimerSafe(g_ReadyTimer[client]);
 		}
 		return 1;
 	}
@@ -1209,15 +1250,9 @@ int TriggerDeadRinger(int client, bool hint, bool clean, bool override, bool ove
 		{ PrintHintText(client, INACTIVE_STR); }
 		if (clean)
 		{
-			if (g_UncloakTimer[client] != null)
-			{ KillTimer(g_UncloakTimer[client], true); }
-			if (g_BoostTimer[client] != null)
-			{ KillTimer(g_BoostTimer[client], true); }
-			if (g_ReadyTimer[client] != null)
-			{ KillTimer(g_ReadyTimer[client], true); }
-			g_UncloakTimer[client] = null;
-			g_BoostTimer[client] = null;
-			g_ReadyTimer[client] = null;
+			KillTimerSafe(g_UncloakTimer[client]);
+			KillTimerSafe(g_BoostTimer[client]);
+			KillTimerSafe(g_ReadyTimer[client]);
 			//Hook_Manager_AliveProp(client, false);
 		}
 		return 0;
@@ -1391,6 +1426,12 @@ void SpawnCorpse(int client)
 		int corpse = CreateEntityByName(IsSurvivor(client) ? "commentary_dummy" : "prop_dynamic");
 		if(!IsValidEntity(corpse))
 		{ return; }
+		// Validate entity index before storing
+		if (!IsValidEntityIndexSafe(corpse))
+		{
+			AcceptEntityInput(corpse, "Kill");
+			return;
+		}
 		g_Ragdoll[client] = corpse;
 		
 		int c_attack = GetEntPropEnt(client, Prop_Send, "m_pummelAttacker");
@@ -1510,7 +1551,11 @@ bool TraceRay_FilterPlayers(int entity, int contentsMask)
 
 void RemoveCorpse(int client)
 {
-	if(IsValidEntity(g_Ragdoll[client]))
+	if (!IsValidClient(client))
+		return;
+	
+	// Validate entity index before access
+	if (IsValidEntityIndexSafe(g_Ragdoll[client]) && IsValidEntity(g_Ragdoll[client]))
 	{
 		char classname[PLATFORM_MAX_PATH+1];
 		GetEntityClassname(g_Ragdoll[client], classname, sizeof(classname));
@@ -1518,6 +1563,11 @@ void RemoveCorpse(int client)
 		{
 			AcceptEntityInput(g_Ragdoll[client], "Kill");
 		}
+		g_Ragdoll[client] = -1;
+	}
+	else if (g_Ragdoll[client] != -1)
+	{
+		// Entity was invalid, just reset the index
 		g_Ragdoll[client] = -1;
 	}
 }
@@ -1679,26 +1729,11 @@ bool canTriggerDR(int client)
 	return true;
 }
 
-bool IsSurvivor(int client)
-{
-	if (!IsValidClient(client)) return false;
-	if (GetClientTeam(client) == SURVIVORTEAM || GetClientTeam(client) == SURVIVORTEAM_PASSING) return true;
-	return false;
-}
+// IsSurvivor is now provided by rage/validation.inc - removed duplicate implementation
 
-bool IsValidClient(int client, bool replaycheck = true)
-//IsValidClient(client)
-{
-	if (!IsValidEntity(client)) return false;
-	if (client <= 0 || client > MaxClients) return false;
-	if (!IsClientInGame(client)) return false;
-	//if (GetEntProp(client, Prop_Send, "m_bIsCoaching")) return false;
-	if (replaycheck)
-	{
-		if (IsClientSourceTV(client) || IsClientReplay(client)) return false;
-	}
-	return true;
-}
+// IsValidClient now provided by rage/validation.inc
+// Note: The shared version doesn't check replay/SourceTV by default
+// If replay checking is needed, add explicit checks where required
 // Below functions taken and modified from infected_release plugin.
 /*void ExecuteCheatCommand(client, const char[] cmd_Str)
 {
