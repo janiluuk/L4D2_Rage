@@ -29,6 +29,7 @@ public Plugin myinfo =
 #include <adminmenu>
 #include <sdktools>
 #include <clientprefs>
+#include <l4d2hud>
 #include <jutils>
 #include <l4d2>
 #tryinclude <LMCCore>
