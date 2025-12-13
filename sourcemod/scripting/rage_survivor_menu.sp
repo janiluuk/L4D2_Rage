@@ -8,6 +8,7 @@
 #include <left4dhooks>
 #include <rage_menus/rage_menu_base>
 #include <rage_survivor_guide>
+#include <jutils>
 #include <rage_menus/rage_survivor_menu_kits>
 #include <rage_menus/rage_survivor_menu_keybinds>
 #include <rage_menus/rage_survivor_menu_thirdperson>

@@ -156,7 +156,7 @@ bind mouse5 skill_action_3
 
 ---
 
-### ⚔️ Trooper (Commando) – The Damage Dealer
+### 💪 Commando – The Damage Dealer
 **The vibe:** You're here to kill things. Fast. Reload faster, hit harder, and take down Tanks with your bare hands (okay, with melee, but still).
 
 **What you do:**

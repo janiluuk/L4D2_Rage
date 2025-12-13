@@ -97,10 +97,9 @@ public Action:TimerThink(Handle:hTimer, any:userid)
 	bool pressedPlant = PressedPlantModifier(client, buttons);
 	int entityFlags = GetEntityFlags(client);
 	bool onGround = (entityFlags & FL_ONGROUND) != 0;
-	// Deployment requires CROUCH+SHOVE (IN_ATTACK2) to be held
-	bool holdingDeploy = (buttons & IN_ATTACK2) != 0 && (buttons & IN_DUCK) != 0;
-	// bool lookingDown = IsLookingDown(client); // Unused - removed to fix warning
-	#pragma unused holdingDeploy
+	// Note: Deployment now only requires CTRL (IN_DUCK) to be held - see line 189
+	bool lookingDown = IsLookingDown(client);
+	#pragma unused lookingDown
 
 	ClassTypes classType = ClientData[client].ChosenClass;
 
