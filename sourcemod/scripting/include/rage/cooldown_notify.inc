@@ -31,7 +31,7 @@ enum struct CooldownEntry {
 ArrayList g_CooldownEntries;
 
 // Initialize cooldown notification system
-void CooldownNotify_Init()
+stock void CooldownNotify_Init()
 {
     if (g_CooldownEntries == null)
     {
@@ -40,7 +40,7 @@ void CooldownNotify_Init()
 }
 
 // Cleanup cooldown notification system
-void CooldownNotify_Cleanup()
+stock void CooldownNotify_Cleanup()
 {
     if (g_CooldownEntries != null)
     {
@@ -58,9 +58,8 @@ void CooldownNotify_Cleanup()
 
 // Register a cooldown to track
 // Returns true if registered, false if already exists
-// NOTE: This function is used by multiple skill plugins (zedtime, chainlightning, blink, etc.)
-// The compiler warning about it being unused is a false positive - it's called from other plugins
-bool CooldownNotify_Register(int client, float endTime, const char[] skillName)
+// Marked stock so it can be safely included in plugins that don't call it (avoids unused warnings)
+stock bool CooldownNotify_Register(int client, float endTime, const char[] skillName)
 {
     if (g_CooldownEntries == null)
     {
@@ -119,7 +118,7 @@ bool CooldownNotify_Register(int client, float endTime, const char[] skillName)
 }
 
 // Unregister a cooldown (when skill is used or client disconnects)
-void CooldownNotify_Unregister(int client, const char[] skillName = "")
+stock void CooldownNotify_Unregister(int client, const char[] skillName = "")
 {
     if (g_CooldownEntries == null)
     {
@@ -143,7 +142,7 @@ void CooldownNotify_Unregister(int client, const char[] skillName = "")
 }
 
 // Timer callback when cooldown ends
-public Action Timer_CooldownNotify(Handle timer, DataPack pack)
+stock Action Timer_CooldownNotify(Handle timer, DataPack pack)
 {
     pack.Reset();
     int client = pack.ReadCell();
@@ -174,7 +173,7 @@ public Action Timer_CooldownNotify(Handle timer, DataPack pack)
 }
 
 // Format skill name for display
-void FormatSkillDisplayName(const char[] skillName, char[] buffer, int maxlen)
+stock void FormatSkillDisplayName(const char[] skillName, char[] buffer, int maxlen)
 {
     // Convert skill name to display format
     // e.g., "LethalWeapon" -> "Lethal Weapon"
@@ -210,15 +209,14 @@ void FormatSkillDisplayName(const char[] skillName, char[] buffer, int maxlen)
 }
 
 // Cleanup on client disconnect
-void CooldownNotify_OnClientDisconnect(int client)
+stock void CooldownNotify_OnClientDisconnect(int client)
 {
     CooldownNotify_Unregister(client);
 }
 
 // Cleanup on map end
-void CooldownNotify_OnMapEnd()
+stock void CooldownNotify_OnMapEnd()
 {
     CooldownNotify_Cleanup();
     CooldownNotify_Init();
 }
-

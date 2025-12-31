@@ -157,6 +157,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		return Plugin_Continue;
 	}
 
+	int movementButtons = buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT | IN_JUMP);
+	if (!g_bWallRunning[client] && movementButtons == 0)
+	{
+		return Plugin_Continue;
+	}
+
 	// Check if player is near a wall
 	float clientPos[3], clientAng[3];
 	GetClientAbsOrigin(client, clientPos);
@@ -218,10 +224,12 @@ bool FindWall(int client, float pos[3], float angles[3], float wallPoint[3], flo
 	{
 		float endPos[3];
 		CopyVector(pos, endPos);
-		ScaleVector(directions[i], g_cvarStickDistance.FloatValue * 2.0);
-		AddVectors(endPos, directions[i], endPos);
+		float traceDir[3];
+		CopyVector(directions[i], traceDir);
+		ScaleVector(traceDir, g_cvarStickDistance.FloatValue * 2.0);
+		AddVectors(endPos, traceDir, endPos);
 
-		Handle trace = TR_TraceRayFilterEx(pos, directions[i], MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_WallRun, client);
+		Handle trace = TR_TraceRayFilterEx(pos, endPos, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_WallRun, client);
 		
 		if (TR_DidHit(trace))
 		{
@@ -343,4 +351,3 @@ void CopyVector(float src[3], float dst[3])
 	dst[1] = src[1];
 	dst[2] = src[2];
 }
-

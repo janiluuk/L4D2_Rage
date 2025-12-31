@@ -15,6 +15,8 @@ bool g_bRageAvailable;
 int g_iClassID = -1;
 ParachuteAbility g_Parachute;
 ConVar g_hParachuteEnabled;
+const int CLASS_ATHLETE = 2;
+bool g_bHasAbility[MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
@@ -57,6 +59,7 @@ public void OnPluginStart()
 public void OnAllPluginsLoaded()
 {
     RageSkills_Refresh(PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+    RefreshAthleteStates();
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -88,6 +91,7 @@ public void Rage_OnPluginState(char[] plugin, int state)
         {
             g_iClassID = RegisterRageSkill(PLUGIN_SKILL_NAME, 0);
         }
+        RefreshAthleteStates();
     }
     else
     {
@@ -99,6 +103,12 @@ public void Rage_OnPluginState(char[] plugin, int state)
 public void OnClientDisconnect(int client)
 {
     g_Parachute.ResetClient(client);
+    g_bHasAbility[client] = false;
+}
+
+public void OnClientPutInServer(int client)
+{
+    g_bHasAbility[client] = false;
 }
 
 public void OnMapStart()
@@ -120,7 +130,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
         return Plugin_Continue;
     }
 
-    if (!IsAthlete(client))
+    if (!g_bHasAbility[client])
     {
         return Plugin_Continue;
     }
@@ -129,9 +139,43 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     return Plugin_Continue;
 }
 
-bool IsAthlete(int client)
+public int OnPlayerClassChange(int client, int newClass, int previousClass)
 {
+    g_bHasAbility[client] = (newClass == CLASS_ATHLETE);
+    if (!g_bHasAbility[client])
+    {
+        g_Parachute.ResetClient(client);
+    }
+    return g_bHasAbility[client] ? 1 : 0;
+}
+
+void RefreshAthleteStates()
+{
+    if (!g_bRageAvailable)
+    {
+        return;
+    }
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i))
+        {
+            UpdateAthleteState(i);
+        }
+    }
+}
+
+void UpdateAthleteState(int client)
+{
+    g_bHasAbility[client] = false;
+    if (!g_bRageAvailable)
+    {
+        return;
+    }
+
     char className[32];
-    GetPlayerClassName(client, className, sizeof(className));
-    return StrEqual(className, "Athlete", false);
+    if (GetPlayerClassName(client, className, sizeof(className)) > 0)
+    {
+        g_bHasAbility[client] = StrEqual(className, "Athlete", false);
+    }
 }

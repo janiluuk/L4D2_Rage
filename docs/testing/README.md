@@ -25,6 +25,7 @@ Run all tests via the build script:
 This automatically runs:
 - Skill functionality tests
 - Class skills tests
+- Menu navigation tests
 - Bug detection tests
 - Code coverage analysis
 - Integration tests
@@ -35,6 +36,7 @@ Located in `tests/` directory:
 
 - `test_skills.sh` - Skill functionality tests
 - `test_class_skills.sh` - Class skills tests
+- `test_menu_navigation.sh` - Menu navigation improvements (MenuNums mode)
 - `test_bugs.sh` - Bug detection
 - `test_coverage.sh` - Code coverage
 - `test_integration.sh` - Integration tests
@@ -56,6 +58,7 @@ The test suite covers:
 - ✅ Plugin loading and registration
 - ✅ Skill activation and cooldowns
 - ✅ Class assignment and menus
+- ✅ Menu navigation (MenuNums mode, movement blocking)
 - ✅ Deployment actions
 - ✅ Memory leak detection
 - ✅ Performance optimization checks

@@ -12,6 +12,9 @@
 
 ### Basic Controls
 - **SHIFT**: Hold to open/close main menu (release to close)
+  - **Menu Navigation**: Use **1/2/3/4** keys to navigate menu options
+  - **7**: Previous page, **8**: Next page, **9**: Exit menu
+  - **Movement is NOT blocked** - you can move while menu is open!
 - **CTRL**: Hold to open deployment menu (release to close)
 - **SHOVE + USE** (hold for 1 second): Open quick action menu to deploy or use any skill
 - **Mouse3/4/5**: Use class abilities directly

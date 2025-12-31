@@ -1015,6 +1015,10 @@ int MenuExtra_Handler(Menu menu, MenuAction action, int client, int type)
 				case MenuCancel_Exit, MenuCancel_Interrupted, MenuCancel_Timeout:
 				{
 					g_bMenuOpen[client] = false;
+					if( g_hMenu[client] == menu )
+					{
+						g_hMenu[client] = null;
+					}
 
 					if( !g_bMenuNums[client] )
 					{
@@ -1029,6 +1033,10 @@ int MenuExtra_Handler(Menu menu, MenuAction action, int client, int type)
 		}
 		case MenuAction_End:
 		{
+			if( g_hMenu[client] == menu )
+			{
+				g_hMenu[client] = null;
+			}
 			delete menu;
 		}
 	}
@@ -1523,6 +1531,13 @@ void OnButton_Exit(int client)
 // ClientCommand(client, "slot10"); works but shows "FCVAR_SERVER_CAN_EXECUTE prevented server running command: menuselect" in client console.
 void CloseExtraMenu(int client)
 {
+	// Cancel the old menu if it exists
+	if( g_hMenu[client] != null )
+	{
+		CancelMenu(g_hMenu[client]);
+		g_hMenu[client] = null;
+	}
+
 	g_iMenuID[client] = -1;
 	g_iSelected[client] = 0;
 	g_bMenuOpen[client] = false;

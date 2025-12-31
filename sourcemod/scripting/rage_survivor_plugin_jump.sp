@@ -12,6 +12,8 @@
 bool g_bRageAvailable;
 bool g_bLeft4Dead2;
 int g_iClassID = -1;
+const int CLASS_ATHLETE = 2;
+bool g_bHasAbility[MAXPLAYERS + 1];
 
 bool g_bJumpReleased[MAXPLAYERS + 1];
 bool g_bUsedDouble[MAXPLAYERS + 1];
@@ -57,6 +59,7 @@ public void OnPluginStart()
 public void OnAllPluginsLoaded()
 {
     RageSkills_Refresh(PLUGIN_SKILL_NAME, 0, g_iClassID, g_bRageAvailable);
+    RefreshAthleteStates();
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -88,6 +91,7 @@ public void Rage_OnPluginState(char[] plugin, int state)
         {
             g_iClassID = RegisterRageSkill(PLUGIN_SKILL_NAME, 0);
         }
+        RefreshAthleteStates();
     }
     else
     {
@@ -98,11 +102,13 @@ public void Rage_OnPluginState(char[] plugin, int state)
 
 public void OnClientPutInServer(int client)
 {
+    g_bHasAbility[client] = false;
     ResetJumpState(client);
 }
 
 public void OnClientDisconnect(int client)
 {
+    g_bHasAbility[client] = false;
     ResetJumpState(client);
 }
 
@@ -118,7 +124,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
         return Plugin_Continue;
     }
 
-    if (!IsAthlete(client))
+    if (!g_bHasAbility[client])
     {
         return Plugin_Continue;
     }
@@ -179,11 +185,45 @@ void PerformDoubleJump(int client)
     g_bJumpReleased[client] = false;
 }
 
-bool IsAthlete(int client)
+public int OnPlayerClassChange(int client, int newClass, int previousClass)
 {
+    g_bHasAbility[client] = (newClass == CLASS_ATHLETE);
+    if (!g_bHasAbility[client])
+    {
+        ResetJumpState(client);
+    }
+    return g_bHasAbility[client] ? 1 : 0;
+}
+
+void RefreshAthleteStates()
+{
+    if (!g_bRageAvailable)
+    {
+        return;
+    }
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i))
+        {
+            UpdateAthleteState(i);
+        }
+    }
+}
+
+void UpdateAthleteState(int client)
+{
+    g_bHasAbility[client] = false;
+    if (!g_bRageAvailable)
+    {
+        return;
+    }
+
     char className[32];
-    GetPlayerClassName(client, className, sizeof(className));
-    return StrEqual(className, "Athlete", false);
+    if (GetPlayerClassName(client, className, sizeof(className)) > 0)
+    {
+        g_bHasAbility[client] = StrEqual(className, "Athlete", false);
+    }
 }
 
 void ResetJumpState(int client)

@@ -1558,7 +1558,6 @@ int GetItemClass(int ent, char classname[LEN64])
 		}
 	}
 	return 0;
-	return 0;
 }
 
 int CreateWeaponEnt(char[] classname)

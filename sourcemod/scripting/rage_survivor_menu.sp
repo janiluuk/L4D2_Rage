@@ -8,6 +8,7 @@
 #include <left4dhooks>
 #include <rage_menus/rage_menu_base>
 #include <rage_survivor_guide>
+#include <rage/validation>
 #include <jutils>
 #include <rage_menus/rage_survivor_menu_kits>
 #include <rage_menus/rage_survivor_menu_keybinds>
@@ -1096,14 +1097,11 @@ void BuildRageMenus()
 void BuildSingleMenu(bool includeChangeClass)
 {
     ArrayList optionMap = new ArrayList();
-    int menu_id = ExtraMenu_Create();
-    bool buttons_nums = false;
+    // Enable MenuNums mode (buttons_nums = true) - uses 1-4 keys, doesn't freeze movement
+    int menu_id = ExtraMenu_Create(true, "", true);
 
     ExtraMenu_AddEntry(menu_id, "GAME MENU:", MENU_ENTRY);
-    if (!buttons_nums)
-    {
-        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
-    }
+    ExtraMenu_AddEntry(menu_id, "Use 1/2/3/4 keys to navigate, 7=Prev, 8=Next, 9=Exit", MENU_ENTRY);
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
     ExtraMenu_AddEntry(menu_id, "1. Deploy class ability", MENU_SELECT_ONLY);
@@ -1127,10 +1125,7 @@ void BuildSingleMenu(bool includeChangeClass)
     ExtraMenu_NewPage(menu_id);
 
     ExtraMenu_AddEntry(menu_id, "TEAM & VOTING:", MENU_ENTRY);
-    if (!buttons_nums)
-    {
-        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
-    }
+    ExtraMenu_AddEntry(menu_id, "Use 1/2/3/4 keys to navigate, 7=Prev, 8=Next, 9=Exit", MENU_ENTRY);
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
     
@@ -1162,10 +1157,7 @@ void BuildSingleMenu(bool includeChangeClass)
     ExtraMenu_NewPage(menu_id);
 
     ExtraMenu_AddEntry(menu_id, "EQUIPMENT & STATS:", MENU_ENTRY);
-    if (!buttons_nums)
-    {
-        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
-    }
+    ExtraMenu_AddEntry(menu_id, "Use 1/2/3/4 keys to navigate, 7=Prev, 8=Next, 9=Exit", MENU_ENTRY);
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
     ExtraMenu_AddEntry(menu_id, "1. Get Kit", MENU_SELECT_LIST);
@@ -1176,10 +1168,7 @@ void BuildSingleMenu(bool includeChangeClass)
     ExtraMenu_NewPage(menu_id);
 
     ExtraMenu_AddEntry(menu_id, "GAME OPTIONS:", MENU_ENTRY);
-    if (!buttons_nums)
-    {
-        ExtraMenu_AddEntry(menu_id, "Use W/S to move row and A/D to select", MENU_ENTRY);
-    }
+    ExtraMenu_AddEntry(menu_id, "Use 1/2/3/4 keys to navigate, 7=Prev, 8=Next, 9=Exit", MENU_ENTRY);
 
     ExtraMenu_AddEntry(menu_id, " ", MENU_ENTRY);
     ExtraMenu_AddEntry(menu_id, "1. Multiple Equipment Mode: _OPT_", MENU_SELECT_LIST);
@@ -1329,7 +1318,7 @@ public bool DisplayRageMenu(int client, bool showHint)
 
     if (showHint)
     {
-        PrintHintText(client, "Hold SHIFT to open menu; type !rage_bind for key binding help; use W/S/A/D to navigate.");
+        PrintHintText(client, "Hold SHIFT to open menu; Use 1/2/3/4 keys to navigate (7=Prev, 8=Next, 9=Exit); Movement not blocked!");
     }
 
     ExtraMenu_Display(client, menuId, MENU_TIME_FOREVER);

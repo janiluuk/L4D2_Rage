@@ -34,7 +34,7 @@ This is what happens when players get tired of vanilla and decide to turn everyt
 
 **You're Never Helpless** – Downed? Revive yourself. Grabbed? Struggle free. Hanging off a ledge? Pull yourself up. This mod believes in second chances and giving you tools to save yourself when things go sideways.
 
-**Controls That Make Sense** – Hold SHIFT to open the menu. Mouse buttons for abilities. WASD to navigate. It's intuitive, it auto-binds, and it just works. No memorizing 50 keybinds.
+**Controls That Make Sense** – Hold SHIFT to open the menu (uses 1/2/3/4 keys to navigate - movement NOT blocked!). Mouse buttons for abilities. It's intuitive, it auto-binds, and it just works. No memorizing 50 keybinds.
 
 **It Remembers You** – Your class choice? Saved. Your music preference? Saved. Your camera mode? Saved. We remember what you like so you don't have to set it up every round.
 
@@ -46,10 +46,11 @@ This is what happens when players get tired of vanilla and decide to turn everyt
 
 **Just Playing?** Here's all you need:
 1. Join a server running Rage Edition
-2. Hold **SHIFT** to open the menu
+2. Hold **SHIFT** to open the menu (use **1/2/3/4** keys to navigate, **7/8/9** for pages)
 3. Pick a class—the menu will highlight your last choice
 4. Your abilities auto-bind to **mouse3**, **mouse4**, and **mouse5**
 5. Type `!guide` if you get confused (but you probably won't)
+6. **Pro Tip**: You can move freely while the menu is open - no more frozen movement!
 
 That's it. Seriously. Everything else you'll figure out by playing.
 
