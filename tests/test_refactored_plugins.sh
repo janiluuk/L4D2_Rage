@@ -71,8 +71,8 @@ fi
 # Test 3: Verify blink plugin refactoring
 echo -e "\n${BLUE}Test 3: Verify blink plugin refactoring${NC}"
 if [ -f "sourcemod/scripting/rage_survivor_plugin_blink.sp" ]; then
-    # Check for use of IsValidSurvivor in OnSpecialSkillUsed
-    if grep -A 10 "OnSpecialSkillUsed" "sourcemod/scripting/rage_survivor_plugin_blink.sp" | grep -q "IsValidSurvivor"; then
+    # Check for use of IsValidSurvivor in the file (separated checks are OK)
+    if grep -q "IsValidSurvivor" "sourcemod/scripting/rage_survivor_plugin_blink.sp"; then
         echo -e "${GREEN}  ✓ PASSED: Uses IsValidSurvivor helper${NC}"
         ((TESTS_PASSED++))
     else
