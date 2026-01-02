@@ -8,15 +8,21 @@
 #include <rage/skills>
 #include <rage/skill_actions>
 #include <rage/cooldown_notify>
+#include <rage/validation>
 
 #define PLUGIN_VERSION "1.0"
 #define PLUGIN_SKILL_NAME "UnVomit"
+#define VOMIT_DURATION 20.0  // Bile naturally expires after 20 seconds
 
+// Rage system integration
 bool g_bRageAvailable;
 int g_iClassID = -1;
+
+// Client tracking
 float g_fLastCleanse[MAXPLAYERS + 1];
 bool g_bVomitCovered[MAXPLAYERS + 1];
 
+// Configuration
 ConVar g_hCooldown;
 float g_fCooldown;
 
@@ -46,10 +52,13 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-    g_hCooldown = CreateConVar("rage_medic_unvomit_cooldown", "120.0", "Cooldown before a medic can clear bile again (seconds).", FCVAR_NOTIFY, true, 1.0, true, 300.0);
+    g_hCooldown = CreateConVar("rage_medic_unvomit_cooldown", "120.0", 
+        "Cooldown before a medic can clear bile again (seconds).", 
+        FCVAR_NOTIFY, true, 1.0, true, 300.0);
     g_fCooldown = g_hCooldown.FloatValue;
     g_hCooldown.AddChangeHook(OnCooldownChanged);
 
+    AutoExecConfig(true, "rage_unvomit");
     LoadSkillActionBindings();
     HookEvent("player_now_it", Event_PlayerNowIt, EventHookMode_Post);
 }
@@ -109,24 +118,25 @@ public void OnClientDisconnect(int client)
 public int OnSpecialSkillUsed(int client, int skill, int type)
 {
     if (!g_bRageAvailable)
-    {
         return 0;
-    }
 
     char skillName[32];
     GetPlayerSkillName(client, skillName, sizeof(skillName));
     if (!StrEqual(skillName, PLUGIN_SKILL_NAME))
-    {
         return 0;
-    }
+
+    // Validate client and class requirements
+    if (!IsValidSurvivor(client, true))
+        return 0;
 
     if (!IsMedic(client))
     {
-        OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "not_medic");
         PrintHintText(client, "Unvomit is available to medics only.");
+        OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "not_medic");
         return 1;
     }
 
+    // Check if covered in bile
     if (!g_bVomitCovered[client])
     {
         PrintHintText(client, "No bile to clear right now.");
@@ -134,19 +144,20 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
         return 1;
     }
 
+    // Check cooldown
     float now = GetGameTime();
     float sinceUse = now - g_fLastCleanse[client];
     if (sinceUse < g_fCooldown)
     {
-        int wait = RoundToCeil(g_fCooldown - sinceUse);
-        PrintHintText(client, "Unvomit ready in %d seconds", wait);
+        float wait = g_fCooldown - sinceUse;
+        PrintHintText(client, "Unvomit ready in %.1f seconds", wait);
         OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "cooldown");
         return 1;
     }
 
+    // Execute skill
     ClearVomit(client, false);
     g_fLastCleanse[client] = now;
-    // Register cooldown for notification
     CooldownNotify_Register(client, now + g_fCooldown, PLUGIN_SKILL_NAME);
     OnSpecialSkillSuccess(client, PLUGIN_SKILL_NAME);
     return 1;
@@ -155,22 +166,22 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 public Action Event_PlayerNowIt(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    if (client <= 0 || !IsClientInGame(client) || GetClientTeam(client) != 2)
-    {
+    if (!IsValidSurvivor(client, false))
         return Plugin_Continue;
-    }
 
     g_bVomitCovered[client] = true;
-    if (!g_bRageAvailable || !IsMedic(client))
+    
+    // Auto-clear flag after bile expires naturally
+    CreateTimer(VOMIT_DURATION, Timer_ClearVomitFlag, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+
+    // Show hint to medics about cleanse ability
+    if (g_bRageAvailable && IsMedic(client))
     {
-        return Plugin_Continue;
+        char binding[64];
+        GetSkillActionBindingLabel(SkillAction_Tertiary, binding, sizeof(binding));
+        PrintHintText(client, "Press %s to clear vomit", binding);
     }
-
-    CreateTimer(20.0, Timer_ClearVomitFlag, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-
-    char binding[64];
-    GetSkillActionBindingLabel(SkillAction_Tertiary, binding, sizeof(binding));
-    PrintHintText(client, "Press %s to clear vomit", binding);
+    
     return Plugin_Continue;
 }
 
@@ -185,32 +196,37 @@ public Action Timer_ClearVomitFlag(Handle timer, any userid)
     return Plugin_Stop;
 }
 
+/**
+ * Clears vomit/bile effect from a survivor.
+ * 
+ * @param client      Client index
+ * @param fromEvent   If true, message is suppressed (auto-clear)
+ */
 void ClearVomit(int client, bool fromEvent)
 {
-    if (!IsClientInGame(client) || GetClientTeam(client) != 2)
-    {
+    if (!IsValidSurvivor(client, false))
         return;
-    }
 
+    // Use Left4DHooks to expire the IT effect
     if (LibraryExists("left4dhooks"))
-    {
         L4D_OnITExpired(client);
-    }
 
     g_bVomitCovered[client] = false;
 
     if (!fromEvent)
-    {
         PrintHintText(client, "Bile cleared. Stay sharp, Medic!");
-    }
 }
 
+/**
+ * Checks if a client is the Medic class.
+ * 
+ * @param client   Client index
+ * @return         True if client is Medic, false otherwise
+ */
 bool IsMedic(int client)
 {
-    if (!g_bRageAvailable)
-    {
+    if (!g_bRageAvailable || !IsValidClient(client))
         return false;
-    }
 
     char className[32];
     GetPlayerClassName(client, className, sizeof(className));

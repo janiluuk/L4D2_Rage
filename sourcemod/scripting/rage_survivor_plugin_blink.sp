@@ -12,23 +12,23 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-// ConVars
+// Configuration
 ConVar g_cvarEnable;
 ConVar g_cvarDistance;
 ConVar g_cvarCooldown;
 ConVar g_cvarMaxDistance;
 ConVar g_cvarRequireLOS;
 
-// Rage system
+// Rage system integration
 int g_iClassID = -1;
 bool g_bRageAvailable = false;
 const int CLASS_ATHLETE = 2;
 
-// Client data
+// Client tracking
 float g_fNextUse[MAXPLAYERS+1] = {0.0, ...};
 bool g_bHasAbility[MAXPLAYERS+1] = {false, ...};
 
-// Effects
+// Visual effects
 int g_iBeamSprite = -1;
 int g_iHaloSprite = -1;
 
@@ -56,11 +56,16 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	g_cvarEnable = CreateConVar("rage_blink_enable", "1", "Enable Blink skill", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	g_cvarDistance = CreateConVar("rage_blink_distance", "300.0", "Default blink distance", FCVAR_NOTIFY, true, 50.0, true, 1000.0);
-	g_cvarMaxDistance = CreateConVar("rage_blink_maxdistance", "500.0", "Maximum blink distance", FCVAR_NOTIFY, true, 100.0, true, 2000.0);
-	g_cvarCooldown = CreateConVar("rage_blink_cooldown", "8.0", "Cooldown in seconds", FCVAR_NOTIFY, true, 1.0);
-	g_cvarRequireLOS = CreateConVar("rage_blink_requirelos", "1", "Require line of sight for blink", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_cvarEnable = CreateConVar("rage_blink_enable", "1", 
+		"Enable Blink skill", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_cvarDistance = CreateConVar("rage_blink_distance", "300.0", 
+		"Default blink distance", FCVAR_NOTIFY, true, 50.0, true, 1000.0);
+	g_cvarMaxDistance = CreateConVar("rage_blink_maxdistance", "500.0", 
+		"Maximum blink distance", FCVAR_NOTIFY, true, 100.0, true, 2000.0);
+	g_cvarCooldown = CreateConVar("rage_blink_cooldown", "8.0", 
+		"Cooldown in seconds", FCVAR_NOTIFY, true, 1.0);
+	g_cvarRequireLOS = CreateConVar("rage_blink_requirelos", "1", 
+		"Require line of sight for blink", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	AutoExecConfig(true, "rage_blink");
 }
@@ -139,12 +144,10 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 	if (!StrEqual(skillName, PLUGIN_SKILL_NAME))
 		return 0;
 
-	if (!IsValidClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != 2)
+	if (!IsValidSurvivor(client, true) || !g_bHasAbility[client])
 		return 0;
 
-	if (!g_bHasAbility[client])
-		return 0;
-
+	// Check cooldown
 	float gameTime = GetGameTime();
 	if (g_fNextUse[client] > gameTime)
 	{
@@ -164,17 +167,23 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 	return 0;
 }
 
+/**
+ * Performs the blink teleport for a client.
+ * Calculates destination, validates position, and teleports the player.
+ * 
+ * @param client   Client index
+ * @return         True if blink succeeded, false otherwise
+ */
 bool PerformBlink(int client)
 {
 	float clientPos[3], clientAng[3], endPos[3];
 	GetClientAbsOrigin(client, clientPos);
 	GetClientEyeAngles(client, clientAng);
 	
-	// Get blink distance
 	float distance = g_cvarDistance.FloatValue;
 	float maxDistance = g_cvarMaxDistance.FloatValue;
 	
-	// Calculate end position
+	// Calculate target position
 	float direction[3];
 	GetAngleVectors(clientAng, direction, NULL_VECTOR, NULL_VECTOR);
 	NormalizeVector(direction, direction);
@@ -182,17 +191,17 @@ bool PerformBlink(int client)
 	AddVectors(clientPos, direction, endPos);
 	
 	// Trace to find valid position
-	Handle trace = TR_TraceRayFilterEx(clientPos, clientAng, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter_Blink, client);
+	Handle trace = TR_TraceRayFilterEx(clientPos, clientAng, MASK_PLAYERSOLID, 
+		RayType_Infinite, TraceFilter_Blink, client);
 	
 	if (TR_DidHit(trace))
 	{
 		TR_GetEndPosition(endPos, trace);
 		
-		// Check distance
+		// Clamp to max distance
 		float actualDistance = GetVectorDistance(clientPos, endPos);
 		if (actualDistance > maxDistance)
 		{
-			// Scale down to max distance
 			float direction2[3];
 			SubtractVectors(endPos, clientPos, direction2);
 			NormalizeVector(direction2, direction2);
@@ -201,11 +210,12 @@ bool PerformBlink(int client)
 		}
 		
 		// Check if position is valid (not in solid)
-		TR_TraceRayFilter(clientPos, endPos, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_Blink, client);
+		TR_TraceRayFilter(clientPos, endPos, MASK_PLAYERSOLID, RayType_EndPoint, 
+			TraceFilter_Blink, client);
 		if (TR_DidHit(trace))
 		{
 			TR_GetEndPosition(endPos, trace);
-			// Move back slightly from wall
+			// Move back slightly from wall to avoid getting stuck
 			float direction3[3];
 			SubtractVectors(clientPos, endPos, direction3);
 			NormalizeVector(direction3, direction3);
@@ -219,7 +229,8 @@ bool PerformBlink(int client)
 	// Check line of sight if required
 	if (g_cvarRequireLOS.BoolValue)
 	{
-		Handle losTrace = TR_TraceRayFilterEx(clientPos, endPos, MASK_PLAYERSOLID, RayType_EndPoint, TraceFilter_Blink, client);
+		Handle losTrace = TR_TraceRayFilterEx(clientPos, endPos, MASK_PLAYERSOLID, 
+			RayType_EndPoint, TraceFilter_Blink, client);
 		if (TR_DidHit(losTrace))
 		{
 			CloseHandle(losTrace);
@@ -232,34 +243,39 @@ bool PerformBlink(int client)
 	// Teleport player
 	TeleportEntity(client, endPos, NULL_VECTOR, NULL_VECTOR);
 	
-	// Visual effects
+	// Visual and audio effects
 	CreateBlinkEffect(clientPos, endPos);
-	
-	// Sound effect
-	EmitSoundToAll("ambient/atmosphere/teleport1.wav", client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+	EmitSoundToAll("ambient/atmosphere/teleport1.wav", client, SNDCHAN_AUTO, 
+		SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 	
 	PrintHintText(client, "Blink!");
 	return true;
 }
 
+/**
+ * Trace filter for blink ray traces.
+ * Excludes the blinking player and other players.
+ */
 public bool TraceFilter_Blink(int entity, int contentsMask, int client)
 {
-	if (entity == client)
-		return false;
-	
-	if (entity > 0 && entity <= MaxClients)
-		return false;
-	
-	return true;
+	return (entity != client && (entity <= 0 || entity > MaxClients));
 }
 
+/**
+ * Creates visual effects for the blink ability.
+ * Shows beam between start and end positions with glow sprites.
+ * 
+ * @param start   Start position (origin)
+ * @param end     End position (destination)
+ */
 void CreateBlinkEffect(float start[3], float end[3])
 {
-	// Beam effect
-	TE_SetupBeamPoints(start, end, g_iBeamSprite, g_iHaloSprite, 0, 15, 0.3, 3.0, 3.0, 5, 0.0, {100, 200, 255, 255}, 10);
+	// Beam effect showing teleport path
+	TE_SetupBeamPoints(start, end, g_iBeamSprite, g_iHaloSprite, 
+		0, 15, 0.3, 3.0, 3.0, 5, 0.0, {100, 200, 255, 255}, 10);
 	TE_SendToAll();
 	
-	// Glow at start and end
+	// Glow sprites at start and end points
 	TE_SetupGlowSprite(start, g_iHaloSprite, 0.5, 2.0, 200);
 	TE_SendToAll();
 	TE_SetupGlowSprite(end, g_iHaloSprite, 0.5, 2.0, 200);
