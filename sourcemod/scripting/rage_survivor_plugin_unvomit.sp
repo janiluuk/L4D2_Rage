@@ -149,8 +149,8 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
     float sinceUse = now - g_fLastCleanse[client];
     if (sinceUse < g_fCooldown)
     {
-        float wait = g_fCooldown - sinceUse;
-        PrintHintText(client, "Unvomit ready in %.1f seconds", wait);
+        int wait = RoundToCeil(g_fCooldown - sinceUse);
+        PrintHintText(client, "Unvomit ready in %d seconds", wait);
         OnSpecialSkillFail(client, PLUGIN_SKILL_NAME, "cooldown");
         return 1;
     }

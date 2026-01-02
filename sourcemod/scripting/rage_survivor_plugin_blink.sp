@@ -144,8 +144,17 @@ public int OnSpecialSkillUsed(int client, int skill, int type)
 	if (!StrEqual(skillName, PLUGIN_SKILL_NAME))
 		return 0;
 
-	if (!IsValidSurvivor(client, true) || !g_bHasAbility[client])
+	if (!IsValidSurvivor(client, true))
+	{
+		PrintHintText(client, "Blink requires a valid survivor.");
 		return 0;
+	}
+
+	if (!g_bHasAbility[client])
+	{
+		PrintHintText(client, "Blink is only available to Athletes.");
+		return 0;
+	}
 
 	// Check cooldown
 	float gameTime = GetGameTime();

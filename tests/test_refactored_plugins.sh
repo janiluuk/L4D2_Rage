@@ -145,20 +145,24 @@ done
 echo -e "\n${BLUE}Test 6: Code quality checks${NC}"
 
 # Check that plugins use consistent formatting
-SKILL_PLUGINS=($(find sourcemod/scripting -name "rage_survivor_plugin_*.sp" -type f | head -5))
+SKILL_PLUGINS=($(find sourcemod/scripting -name "rage_survivor_plugin_*.sp" -type f))
 CONSISTENT=0
+TOTAL_CHECKED=0
 for plugin in "${SKILL_PLUGINS[@]}"; do
     # Check for proper semicolon usage
     if head -5 "$plugin" | grep -q "#pragma semicolon 1"; then
         ((CONSISTENT++))
     fi
+    ((TOTAL_CHECKED++))
 done
 
-if [ $CONSISTENT -ge 3 ]; then
-    echo -e "${GREEN}  ✓ PASSED: Plugins use consistent pragma directives${NC}"
+# Need at least 50% consistency
+THRESHOLD=$((TOTAL_CHECKED / 2))
+if [ $CONSISTENT -ge $THRESHOLD ]; then
+    echo -e "${GREEN}  ✓ PASSED: $CONSISTENT/$TOTAL_CHECKED plugins use consistent pragma directives${NC}"
     ((TESTS_PASSED++))
 else
-    echo -e "${RED}  ✗ FAILED: Plugins lack consistent pragma directives${NC}"
+    echo -e "${RED}  ✗ FAILED: Only $CONSISTENT/$TOTAL_CHECKED plugins use consistent pragma directives${NC}"
     ((TESTS_FAILED++))
 fi
 

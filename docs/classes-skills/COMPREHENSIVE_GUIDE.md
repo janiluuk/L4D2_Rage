@@ -480,9 +480,8 @@ Each class can have:
 
 ## Additional Resources
 
-- **Testing Skills:** [../testing/TESTING_SKILLS.md](../testing/TESTING_SKILLS.md)
-- **Testing Classes:** [../testing/TESTING_CLASS_SKILLS.md](../testing/TESTING_CLASS_SKILLS.md)
-- **Main README:** [../../README.md](../../README.md)
+- **[Testing Guide](../testing/)** - Test suite documentation and how to run tests
+- **[Main README](../../README.md)** - Project overview and getting started
 
 ---
 
