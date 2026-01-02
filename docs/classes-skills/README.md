@@ -1,14 +1,15 @@
-# Classes & Skills
+# Classes & Skills Documentation
 
-## Overview
+Complete documentation for all survivor classes, abilities, and gameplay mechanics in L4D2 Rage Edition.
 
-L4D2 Rage Edition features 7 unique classes, each with distinct abilities and playstyles. Each class has:
-- **Special Skill**: Primary ability (mouse3)
-- **Secondary Skill**: Secondary ability (mouse4)
-- **Tertiary Skill**: Tertiary ability (mouse5)
-- **Deploy Action**: Hold CTRL to deploy items/supplies
+## 📖 Quick Navigation
 
-## Classes
+### [**⭐ Comprehensive Classes & Skills Guide**](COMPREHENSIVE_GUIDE.md)
+**Start here!** Complete reference covering all 7 classes, every ability, passive perks, and gameplay strategies.
+
+---
+
+## Quick Class Overview
 
 ### 🪖 Soldier
 **Role**: Frontline fighter with heavy firepower
@@ -150,8 +151,22 @@ L4D2 Rage Edition features 7 unique classes, each with distinct abilities and pl
 - **Engineer**: Set up turrets at chokepoints
 - **Brawler**: Focus on drawing enemy attention and protecting teammates
 
-## Related Documentation
+---
 
-- [Deploy Action Guide](../features/DEPLOY_ACTION_GUIDE.md)
-- [Plugin Integration](../development/plugin-integration.md) - For adding new skills
+## Configuration & Related Documentation
 
+**Class Configuration:**
+- `sourcemod/configs/rage_class_skills.cfg` - Class skill assignments
+- `cfg/sourcemod/talents.cfg` - Cooldowns and limits
+- `cfg/sourcemod/rage_*.cfg` - Individual skill configs
+
+**Related Guides:**
+- **[Comprehensive Guide](COMPREHENSIVE_GUIDE.md)** - Complete class reference ⭐
+- [Deploy Action Guide](../features/DEPLOY_ACTION_GUIDE.md) - Deployment system
+- [Testing Classes](../testing/TESTING_CLASS_SKILLS.md) - Class testing
+- [Plugin Integration](../development/plugin-integration.md) - Adding new skills
+
+---
+
+**Last Updated:** 2026-01-02  
+**Version:** L4D2 Rage Edition v1.82b+
